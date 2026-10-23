@@ -1,0 +1,281 @@
+# Sensiblee — Complete Feature Implementation Checklist
+
+Below is the simplified list of features to implement for the Sensiblee AI-powered Customer Experience Intelligence SaaS MVP, divided into the customer-facing application and the internal Admin/Back-End Panel.
+
+## 1. Customer-facing application
+
+### A. Dashboard and overview
+
+- Overall Reputation Health Score (0–100)
+- Average Google rating
+- Total number of reviews
+- New reviews received
+- Unanswered reviews count
+- Negative-review alerts
+- Review response rate
+- Review response time
+- Review volume and rating trends
+- Top customer complaints and positive feedback
+- Recent activity and notifications
+
+### B. Google Review Monitoring
+
+- Connect Google Business Profile through OAuth
+- Select and connect authorized business locations
+- Sync Google reviews
+- Display reviews with rating, date and text where permitted
+- Filter reviews by location, rating, date and response status
+- Identify unanswered reviews
+- Identify negative reviews
+- Track new reviews and rating changes
+- Send new-review notifications
+- Display synchronization status and errors
+
+### C. Reputation Health Score
+
+- Calculate an overall health score
+- Show score improvement or decline
+- Show rating trend
+- Show review velocity
+- Show recent customer sentiment
+- Show negative-review rate
+- Show response rate and response speed
+- Compare performance across locations
+- Explain the reasons behind score changes
+- Flag insufficient or missing data
+
+### D. AI-assisted reply drafting
+
+- Generate AI replies to Google reviews
+- Detect review sentiment and context
+- Generate positive, neutral and negative review responses
+- Configure brand voice and response tone
+- Support relevant languages
+- Edit and regenerate AI drafts
+- Approve replies before publishing
+- Publish replies through the authorized Google integration
+- Track published, pending and failed replies
+- Flag sensitive reviews for human handling
+
+### E. WhatsApp review requests
+
+- Connect the selected WhatsApp Business provider
+- Manage approved message templates
+- Upload or import customer contact records where authorized
+- Record consent and messaging eligibility
+- Send genuine review requests after a customer transaction
+- Include the appropriate Google review link
+- Track queued, sent, delivered and failed messages
+- Manage opt-outs and suppression lists
+- Configure sending limits and quiet hours
+- Track WhatsApp usage and cost
+
+### F. Location management and analytics
+
+- Create and manage business locations
+- Assign managers to locations
+- View each location's Reputation Health Score
+- Compare ratings and review volumes
+- Compare response rates and response times
+- Identify location-specific customer complaints
+- Show location-level sentiment and trends
+- Drill down from the overall dashboard into each location
+
+### G. Staff intelligence
+
+- Identify staff names mentioned in reviews, where appropriate
+- Count positive and negative mentions
+- Display review context behind staff mentions
+- Show staff-related customer experience trends
+- Provide coaching recommendations
+- Restrict staff data to authorized managers
+
+### H. Issues and action tracking
+
+- Create issues from recurring customer complaints
+- Assign issues to staff or location managers
+- Set priority and due date
+- Track issue status
+- Add action notes
+- Escalate overdue issues
+- Track resolution and subsequent customer-experience trends
+
+
+### I. Reports and notifications
+
+- In-app notifications
+- New-review alerts
+- Negative-review alerts
+- Unanswered-review reminders
+- Health-score change alerts
+- Weekly and monthly reports
+- Location performance reports
+- AI-generated management summaries
+- Export permitted reports
+
+## 2. Admin Panel and Back-End
+
+### A. Admin dashboard
+
+- Total registered customers
+- Active, trial and suspended accounts
+- Total connected locations
+- Google integration health
+- Review synchronization status
+- AI usage and costs
+- WhatsApp usage and costs
+- Failed jobs and system errors
+- Critical alerts and service status
+
+### B. Customer and organisation management
+
+- Create customer organisations
+- View and search all organisations
+- Edit organisation details
+- Activate, suspend and reactivate accounts
+- Manage organisation owners
+- View onboarding progress
+- View connected locations
+- Record support notes
+- Process customer export and deletion requests
+
+### C. User and permission management
+
+- Invite users
+- Activate and deactivate users
+- Assign roles and permissions
+- Assign users to locations
+- Reset access and revoke sessions
+- Enforce administrator MFA
+- Control temporary support access
+- Record access and permission changes
+
+### D. Subscription and plan management
+
+- Create and edit subscription plans
+- Configure monthly and annual billing options
+- Manage free trials
+- Configure location and user limits
+- Configure AI usage limits
+- Configure WhatsApp allowances
+- Enable or disable plan features
+- Track subscription status
+- Manage plan changes and cancellations
+- Monitor usage and billing records
+
+### E. Google integration administration
+
+- View connected Google accounts
+- View authorized locations
+- Monitor OAuth connection status
+- Identify expired or revoked authorization
+- Monitor review synchronization
+- View failed API requests and error details
+- Monitor quotas and rate limits
+- Retry eligible failed jobs
+- Monitor reply publishing
+- Diagnose integration failures
+
+### F. AI administration
+
+- Configure AI model settings
+- Manage prompt and model versions
+- Configure brand voice defaults
+- Monitor AI-generated replies
+- Monitor topic classification and sentiment analysis
+- Track AI usage and costs per customer
+- Track failed or invalid AI outputs
+- Review customer feedback on AI results
+- Monitor insight quality and accuracy
+- Configure confidence thresholds
+- Disable or pause AI features when necessary
+
+### G. WhatsApp administration
+
+- Configure WhatsApp provider connection
+- Manage message templates and approval status
+- Monitor message delivery
+- Track failed messages
+- Monitor opt-outs and suppression records
+- Track messaging costs per customer
+- Set messaging limits
+- Configure usage alerts
+- Pause outbound messaging when necessary
+
+### H. Reputation and location controls
+
+- Configure Reputation Health Score weights
+- Version scoring formulas
+- Configure minimum data thresholds
+- Monitor data completeness
+- Resolve duplicate or mismatched locations
+- Review location performance calculations
+- Monitor score calculation failures
+
+### I. Issues and workflow administration
+
+- View customer issues across organisations
+- Monitor unresolved high-priority issues
+- Track overdue actions
+- Configure escalation rules
+- Monitor action completion
+- Audit changes to issue assignments and statuses
+
+### K. Reports and scheduled tasks
+
+- Configure report templates
+- Schedule recurring reports
+- Monitor report generation
+- Monitor email delivery
+- Retry eligible failed jobs
+- Configure notification rules
+- Manage scheduled background tasks
+
+### L. Security and audit
+
+- Maintain administrator audit logs
+- Track login and access events
+- Track permission changes
+- Track plan and configuration changes
+- Audit customer-data access
+- Enforce tenant-level data isolation
+- Encrypt sensitive data and protect credentials
+- Configure data retention rules
+- Process data export and deletion requests
+- Monitor suspicious activity
+- Maintain backup and recovery procedures
+
+### M. System operations
+
+- Monitor backend service health
+- Monitor queues and background jobs
+- Retry transient failures safely
+- Manage failed-job queues
+- Monitor database and API errors
+- Monitor external provider availability
+- Configure system alerts
+- Maintain incident records
+- Add emergency feature kill switches
+- Manage controlled feature flags
+
+## 3. Recommended implementation order
+
+Use this sequence to build features
+
+Core foundation
+
+Admin login, roles, customer management, Google OAuth, location setup, review synchronization and tenant isolation.
+
+Core customer features
+
+Review inbox, alerts, AI reply drafting, approval and publishing, Reputation Health Score and location dashboard.
+
+Operations and growth
+
+Subscription limits, WhatsApp review requests, issue tracking, usage monitoring, reports and scheduled jobs.
+
+Intelligence and hardening
+
+AI quality monitoring, audit tools, deletion workflows and production security testing.
+
+Ensure that the system is reliable for Google review monitoring, AI-assisted responses and location-level reputation improvement.

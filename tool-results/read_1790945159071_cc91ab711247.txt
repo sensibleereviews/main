@@ -1,0 +1,502 @@
+   400→                  <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2.5 text-[11.5px] text-white/60 hover:bg-white/5 hover:text-white"
+   401→                    onClick={() => setSelected(t)}>
+   402→                    Manage
+   403→                  </Button>
+   404→                </td>
+   405→              </tr>
+   406→            ))}
+   407→          </tbody>
+   408→        </table>
+   409→      </div>
+   410→
+   411→      <div className="grid gap-4 md:grid-cols-3">
+   412→        <DarkCard icon={<Users size={16} />} title="Roles & access" desc="Super admin, platform managers and read-only observers — plus owner-defined roles inside each client workspace. Every action audit-logged." />
+   413→        <DarkCard icon={<KeyRound size={16} />} title="Impersonation" desc={isSuper ? "Support can enter a client workspace with a consent banner + time-boxed session." : "Time-boxed support sessions — super admin only."} />
+   414→        <DarkCard icon={<Activity size={16} />} title="Client health" desc="Sync failures, low adoption, quota warnings — surfaced before churn calls." />
+   415→      </div>
+   416→
+   417→      <TenantDrawer tenant={selected} onClose={() => setSelected(null)} onChanged={() => tenants.reload()} toast={toast} canOperate={canOperate} isSuper={isSuper} />
+   418→    </div>
+   419→  );
+   420→}
+   421→
+   422→function AdminStatus({ status }: { status: string }) {
+   423→  const map: Record<string, string> = {
+   424→    active: "bg-mint/15 text-mint",
+   425→    trial: "bg-amber-soft/15 text-amber-300",
+   426→    past_due: "bg-red-400/15 text-red-300",
+   427→    suspended: "bg-white/10 text-white/50",
+   428→  };
+   429→  const label = status === "past_due" ? "Past due" : status.charAt(0).toUpperCase() + status.slice(1);
+   430→  return <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold", map[status])}>{label}</span>;
+   431→}
+   432→
+   433→function DarkCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
+   434→  return (
+   435→    <div className="rounded-2xl border border-white/10 bg-brand p-4">
+   436→      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-mint/15 text-mint">{icon}</span>
+   437→      <h4 className="mt-3 text-[13.5px] font-semibold">{title}</h4>
+   438→      <p className="mt-1 text-[12px] leading-relaxed text-white/40">{desc}</p>
+   439→    </div>
+   440→  );
+   441→}
+   442→
+   443→/* -------------------------------- Billing -------------------------------- */
+   444→
+   445→type BillingPayload = { invoices: InvoiceVM[]; stats: { settledMonth: number; failed: number; overdueAmount: number; annualContracts: number } };
+   446→
+   447→function BillingView({ canOperate }: { canOperate: boolean }) {
+   448→  const { toast } = useToast();
+   449→  const data = useApiData<BillingPayload>("/api/admin/invoices");
+   450→  const [busyId, setBusyId] = useState<string | null>(null);
+   451→
+   452→  const act = async (id: string, action: "remind" | "mark-paid", tenant: string) => {
+   453→    setBusyId(id);
+   454→    try {
+   455→      await api.patch(`/api/admin/invoices/${id}`, { action });
+   456→      toast({
+   457→        title: action === "remind" ? "Payment link sent" : "Invoice settled",
+   458→        description: action === "remind" ? `WhatsApp link dispatched to ${tenant}'s billing contact.` : `${tenant} — subscription reactivated if it was paused.`,
+   459→      });
+   460→      data.reload();
+   461→    } catch (e) {
+   462→      toast({ title: "Action failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   463→    } finally {
+   464→      setBusyId(null);
+   465→    }
+   466→  };
+   467→
+   468→  if (data.loading || !data.data) return <div className="h-64 animate-pulse rounded-2xl bg-brand" />;
+   469→  const d = data.data;
+   470→
+   471→  return (
+   472→    <div className="space-y-5">
+   473→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   474→        <DarkStat label="Settled (this month)" value={inr(d.stats.settledMonth)} hint="Razorpay · T+2 settlement" icon={<Landmark size={15} />} />
+   475→        <DarkStat label="Failed payments" value={String(d.stats.failed)} hint={d.stats.failed ? `${inr(d.stats.overdueAmount)} overdue` : "all clean"} icon={<Wallet size={15} />} />
+   476→        <DarkStat label="Invoices issued" value={String(d.invoices.length)} hint="lifetime" icon={<Layers size={15} />} />
+   477→        <DarkStat label="Dunning ladder" value={d.stats.failed ? "active" : "idle"} hint="retry 1/3/5/7 · WhatsApp links" icon={<RefreshCw size={15} />} />
+   478→      </div>
+   479→
+   480→      {d.invoices.filter((p) => p.status === "overdue").map((p) => (
+   481→        <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/20 bg-red-400/10 p-4">
+   482→          <div className="text-[13px]">
+   483→            <p className="font-semibold text-red-300">Auto-debit failed — {p.tenant}</p>
+   484→            <p className="mt-0.5 text-[12px] text-white/50">{p.method} · {p.date} · {p.remindersSent} reminder{p.remindersSent === 1 ? "" : "s"} sent · smart dunning armed</p>
+   485→          </div>
+   486→          <Button size="sm" className="h-8 rounded-xl bg-mint text-[12px] text-brand-deep hover:bg-mint/90" disabled={busyId === p.id || !canOperate} onClick={() => act(p.id, "remind", p.tenant)}>
+   487→            Send WhatsApp payment link
+   488→          </Button>
+   489→        </div>
+   490→      ))}
+   491→
+   492→      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-brand">
+   493→        <table className="w-full min-w-[680px] text-left text-[13px]">
+   494→          <thead>
+   495→            <tr className="border-b border-white/10 text-[11px] uppercase tracking-wider text-white/35">
+   496→              <th className="px-5 py-3 font-medium">Invoice</th>
+   497→              <th className="px-3 py-3 font-medium">Client</th>
+   498→              <th className="px-3 py-3 font-medium">Amount</th>
+   499→              <th className="px-3 py-3 font-medium">Method</th>
+   500→              <th className="px-3 py-3 font-medium">Status</th>
+   501→              <th className="px-5 py-3 text-right font-medium">Actions</th>
+   502→            </tr>
+   503→          </thead>
+   504→          <tbody>
+   505→            {d.invoices.map((p) => (
+   506→              <tr key={p.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.03]">
+   507→                <td className="px-5 py-3 font-mono text-[11.5px] text-white/50">{p.number}</td>
+   508→                <td className="px-3 py-3 font-medium text-white/85">{p.tenant}</td>
+   509→                <td className="px-3 py-3 font-semibold">{inr(p.amount)}</td>
+   510→                <td className="px-3 py-3 text-white/50">{p.method}</td>
+   511→                <td className="px-3 py-3">
+   512→                  <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize",
+   513→                    p.status === "paid" ? "bg-mint/15 text-mint" : p.status === "overdue" ? "bg-red-400/15 text-red-300" : "bg-white/10 text-white/60")}>
+   514→                    {p.status}
+   515→                  </span>
+   516→                </td>
+   517→                <td className="px-5 py-3 text-right">
+   518→                  {p.status !== "paid" ? (
+   519→                    <span className="inline-flex gap-1.5">
+   520→                      <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2 text-[11px] text-white/70 hover:bg-white/5 hover:text-white"
+   521→                        disabled={busyId === p.id || !canOperate} onClick={() => act(p.id, "remind", p.tenant)}>
+   522→                        Remind
+   523→                      </Button>
+   524→                      <Button size="sm" variant="outline" className="h-7 border-mint/30 bg-transparent px-2 text-[11px] text-mint hover:bg-mint/10"
+   525→                        disabled={busyId === p.id || !canOperate} onClick={() => act(p.id, "mark-paid", p.tenant)}>
+   526→                        Mark paid
+   527→                      </Button>
+   528→                    </span>
+   529→                  ) : (
+   530→                    <span className="text-[11px] text-white/30">settled</span>
+   531→                  )}
+   532→                </td>
+   533→              </tr>
+   534→            ))}
+   535→          </tbody>
+   536→        </table>
+   537→      </div>
+   538→
+   539→      <div className="grid gap-4 md:grid-cols-3">
+   540→        <DarkCard icon={<RefreshCw size={16} />} title="Proration engine" desc="Mid-cycle upgrades bill per day immediately; downgrades become invoice credit." />
+   541→        <DarkCard icon={<Wallet size={16} />} title="Dunning ladder" desc="Retries day 1/3/5/7, WhatsApp payment links, auto-downgrade before suspension." />
+   542→        <DarkCard icon={<Webhook size={16} />} title="Razorpay events" desc="Signature-verified webhooks reconcile invoices within 30 seconds." />
+   543→      </div>
+   544→    </div>
+   545→  );
+   546→}
+   547→
+   548→/* ----------------------------- Plans & pricing ---------------------------- */
+   549→
+   550→type PlanRow = { id: string; name: string; monthlyInr: number; halfYearlyInr: number; annualInr: number; blurb: string; features: string[]; popular: boolean };
+   551→
+   552→function PlansView({ canOperate }: { canOperate: boolean }) {
+   553→  const { toast } = useToast();
+   554→  const data = useApiData<{ plans: PlanRow[] }>("/api/admin/plans");
+   555→  const [edits, setEdits] = useState<Record<string, { monthlyInr: number; halfYearlyInr: number; annualInr: number }>>({});
+   556→  const [savingId, setSavingId] = useState<string | null>(null);
+   557→
+   558→  const save = async (p: PlanRow) => {
+   559→    const e = edits[p.id];
+   560→    if (!e) return;
+   561→    setSavingId(p.id);
+   562→    try {
+   563→      await api.patch("/api/admin/plans", { id: p.id, monthlyInr: e.monthlyInr, halfYearlyInr: e.halfYearlyInr, annualInr: e.annualInr });
+   564→      toast({ title: `${p.name} updated`, description: "Public pricing page reflects instantly." });
+   565→      data.reload();
+   566→    } catch (err) {
+   567→      toast({ title: "Save failed", description: err instanceof Error ? err.message : "", variant: "destructive" });
+   568→    } finally {
+   569→      setSavingId(null);
+   570→    }
+   571→  };
+   572→
+   573→  if (data.loading || !data.data) return <div className="h-64 animate-pulse rounded-2xl bg-brand" />;
+   574→
+   575→  return (
+   576→    <div className="space-y-5">
+   577→      <div className="grid gap-4 lg:grid-cols-3">
+   578→        {data.data.plans.map((p) => {
+   579→          const e = edits[p.id] || { monthlyInr: p.monthlyInr, halfYearlyInr: p.halfYearlyInr, annualInr: p.annualInr };
+   580→          const dirty = e.monthlyInr !== p.monthlyInr || e.halfYearlyInr !== p.halfYearlyInr || e.annualInr !== p.annualInr;
+   581→          return (
+   582→            <div key={p.id} className={cn("relative rounded-2xl border p-5", p.popular ? "border-mint/60 bg-brand ring-1 ring-mint/30" : "border-white/10 bg-brand")}>
+   583→              {p.popular && (
+   584→                <span className="absolute -top-2.5 left-5 rounded-full bg-mint px-2.5 py-0.5 text-[10.5px] font-bold text-brand-deep">Most popular</span>
+   585→              )}
+   586→              <div className="flex items-baseline justify-between">
+   587→                <h3 className="text-[16px] font-bold">{p.name}</h3>
+   588→                <p className="text-[22px] font-bold text-mint">
+   589→                  ₹{e.monthlyInr.toLocaleString("en-IN")}<span className="text-[12px] font-medium text-white/40">/mo</span>
+   590→                </p>
+   591→              </div>
+   592→              <p className="mt-1 text-[12.5px] text-white/45">{p.blurb}</p>
+   593→              <ul className="mt-4 space-y-2">
+   594→                {p.features.map((f) => (
+   595→                  <li key={f} className="flex items-start gap-2 text-[12.5px] text-white/70">
+   596→                    <Check size={13} className="mt-0.5 shrink-0 text-mint" /> {f}
+   597→                  </li>
+   598→                ))}
+   599→              </ul>
+   600→              <div className="mt-4 grid grid-cols-3 gap-2">
+   601→                <label className="block">
+   602→                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">Monthly ₹</span>
+   603→                  <input type="number" value={e.monthlyInr} onChange={(ev) => setEdits((m) => ({ ...m, [p.id]: { ...e, monthlyInr: Number(ev.target.value) } }))}
+   604→                    className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-brand-deep/60 px-2.5 text-[12.5px] text-white outline-none focus:border-mint/50" />
+   605→                </label>
+   606→                <label className="block">
+   607→                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">Half-yr ₹</span>
+   608→                  <input type="number" value={e.halfYearlyInr} onChange={(ev) => setEdits((m) => ({ ...m, [p.id]: { ...e, halfYearlyInr: Number(ev.target.value) } }))}
+   609→                    className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-brand-deep/60 px-2.5 text-[12.5px] text-white outline-none focus:border-mint/50" />
+   610→                </label>
+   611→                <label className="block">
+   612→                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">Annual ₹</span>
+   613→                  <input type="number" value={e.annualInr} onChange={(ev) => setEdits((m) => ({ ...m, [p.id]: { ...e, annualInr: Number(ev.target.value) } }))}
+   614→                    className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-brand-deep/60 px-2.5 text-[12.5px] text-white outline-none focus:border-mint/50" />
+   615→                </label>
+   616→              </div>
+   617→              <Button size="sm" className={cn("mt-3 h-9 w-full rounded-xl text-[12.5px]", p.popular ? "bg-mint text-brand-deep hover:bg-mint/90" : "border border-white/15 bg-transparent text-white hover:bg-white/5")}
+   618→                disabled={!canOperate || !dirty || savingId === p.id} onClick={() => save(p)}>
+   619→                {!canOperate ? "Read-only" : savingId === p.id ? "Saving…" : dirty ? "Save pricing" : "Saved"}
+   620→              </Button>
+   621→            </div>
+   622→          );
+   623→        })}
+   624→      </div>
+   625→
+   626→      <div className="grid gap-4 md:grid-cols-2">
+   627→        <DarkCard icon={<CreditCard size={16} />} title="Checkout" desc="Razorpay subscription sessions created from the admin or public pricing page; GST invoices auto-issued." />
+   628→        <DarkCard icon={<Gauge size={16} />} title="Quota display" desc="Clients see live meters for drafts, WhatsApp messages and locations — no surprise overage." />
+   629→      </div>
+   630→    </div>
+   631→  );
+   632→}
+   633→
+   634→/* --------------------------------- System -------------------------------- */
+   635→
+   636→type SystemPayload = {
+   637→  jobs: { name: string; desc: string; state: string; queue: string; latency: string }[];
+   638→  events: { id: string; type: string; name: string; state: string; detail: string | null; t: string }[];
+   639→  connectors: { google: string; whatsapp: string };
+   640→};
+   641→
+   642→function SystemView({ canOperate }: { canOperate: boolean }) {
+   643→  const { toast } = useToast();
+   644→  const data = useApiData<SystemPayload>("/api/admin/system");
+   645→  const [running, setRunning] = useState<string | null>(null);
+   646→
+   647→  const runJob = async (name: string) => {
+   648→    setRunning(name);
+   649→    try {
+   650→      await api.post("/api/admin/system", { name });
+   651→      toast({ title: `${name} completed`, description: "Event recorded in the system log." });
+   652→      data.reload();
+   653→    } finally {
+   654→      setRunning(null);
+   655→    }
+   656→  };
+   657→
+   658→  if (data.loading || !data.data) return <div className="h-64 animate-pulse rounded-2xl bg-brand" />;
+   659→  const d = data.data;
+   660→
+   661→  return (
+   662→    <div className="space-y-5">
+   663→      <div className="flex flex-wrap items-center gap-2">
+   664→        <Badge className={cn("capitalize", d.connectors.google === "live" ? "border-mint/30 bg-mint/10 text-mint" : "border-amber-300/30 bg-amber-soft/10 text-amber-300")}>
+   665→          Google connector: {d.connectors.google}
+   666→        </Badge>
+   667→        <Badge className={cn("capitalize", d.connectors.whatsapp === "live" ? "border-mint/30 bg-mint/10 text-mint" : "border-amber-300/30 bg-amber-soft/10 text-amber-300")}>
+   668→          WhatsApp connector: {d.connectors.whatsapp}
+   669→        </Badge>
+   670→        <span className="text-[11.5px] text-white/40">simulated mode keeps the loop alive until API credentials are set (README-DEPLOY).</span>
+   671→      </div>
+   672→
+   673→      <div className="grid gap-4 lg:grid-cols-3">
+   674→        {d.jobs.map((j) => (
+   675→          <div key={j.name} className={cn("rounded-2xl border p-4", j.state === "healthy" ? "border-white/10 bg-brand" : "border-amber-300/25 bg-amber-soft/5")}>
+   676→            <div className="flex items-center justify-between">
+   677→              <p className="font-mono text-[13px] font-semibold text-white">{j.name}</p>
+   678→              <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold", j.state === "healthy" ? "bg-mint/15 text-mint" : "bg-amber-soft/15 text-amber-300")}>
+   679→                <span className={cn("h-1.5 w-1.5 rounded-full", j.state === "healthy" ? "animate-pulse bg-mint" : "bg-amber-300")} />
+   680→                {j.state}
+   681→              </span>
+   682→            </div>
+   683→            <p className="mt-1.5 text-[12px] text-white/45">{j.desc}</p>
+   684→            <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-[11.5px] text-white/40">
+   685→              <span>{j.queue}</span>
+   686→              <span>{j.latency}</span>
+   687→            </div>
+   688→            <Button size="sm" variant="outline" className="mt-3 h-7 w-full border-white/15 bg-transparent text-[11px] text-white/60 hover:bg-white/5 hover:text-white"
+   689→              disabled={!canOperate || running === j.name} onClick={() => runJob(j.name)}>
+   690→              {!canOperate ? "Read-only" : running === j.name ? "Running…" : "Run manual cycle"}
+   691→            </Button>
+   692→          </div>
+   693→        ))}
+   694→      </div>
+   695→
+   696→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+   697→        <h3 className="text-[15px] font-semibold">Event log</h3>
+   698→        <p className="mt-0.5 text-xs text-white/40">Deploys, job cycles, billing signals and incidents — newest first</p>
+   699→        <div className="mt-4 space-y-2">
+   700→          {d.events.map((e) => (
+   701→            <div key={e.id} className="flex items-start gap-3 rounded-xl bg-brand-deep/50 px-3.5 py-2.5 text-[12.5px]">
+   702→              <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full",
+   703→                e.state === "ok" ? "bg-mint" : e.state === "warn" ? "bg-amber-300" : "bg-red-400")} />
+   704→              <div className="min-w-0 flex-1">
+   705→                <p className="font-semibold text-white/85">{e.name} <span className="font-normal uppercase text-white/30">· {e.type}</span></p>
+   706→                {e.detail && <p className="truncate text-[11.5px] text-white/40">{e.detail}</p>}
+   707→              </div>
+   708→              <span className="shrink-0 font-mono text-[10.5px] text-white/25">{e.t}</span>
+   709→            </div>
+   710→          ))}
+   711→        </div>
+   712→      </div>
+   713→
+   714→      <div className="grid gap-4 md:grid-cols-3">
+   715→        <DarkCard icon={<Server size={16} />} title="Single-VPS deployment" desc="Docker Compose on Hostinger: nginx, app, worker, Postgres, Redis. Nightly encrypted backups, 2-hour restore target." />
+   716→        <DarkCard icon={<KeyRound size={16} />} title="Secrets & keys" desc="Google OAuth, WhatsApp HSM templates, Razorpay webhooks — rotated quarterly, least-privilege scopes." />
+   717→        <DarkCard icon={<Activity size={16} />} title="Audit trail" desc="Every admin action, login and impersonation event is immutable-logged and exportable." />
+   718→      </div>
+   719→    </div>
+   720→  );
+   721→}
+   722→
+   723→/* ----------------------------- Tenant drawer ----------------------------- */
+   724→
+   725→function TenantDrawer({ tenant, onClose, onChanged, toast, canOperate, isSuper }: {
+   726→  tenant: TenantVM | null;
+   727→  onClose: () => void;
+   728→  onChanged: () => void;
+   729→  toast: ReturnType<typeof useToast>["toast"];
+   730→  canOperate: boolean;
+   731→  isSuper: boolean;
+   732→}) {
+   733→  const { navigate } = useRouter();
+   734→  const { refresh } = useSession();
+   735→  const open = tenant !== null;
+   736→  const [busy, setBusy] = useState(false);
+   737→  const [planPicking, setPlanPicking] = useState(false);
+   738→  const detail = useApiData<TenantDetail>(tenant ? `/api/admin/tenants/${tenant.id}` : null);
+   739→
+   740→  const patchTenant = async (data: { status?: string; planId?: string }, label: string) => {
+   741→    if (!tenant) return;
+   742→    setBusy(true);
+   743→    try {
+   744→      await api.patch(`/api/admin/tenants/${tenant.id}`, data);
+   745→      toast({ title: label, description: `${tenant.business} updated.` });
+   746→      detail.reload();
+   747→      onChanged();
+   748→    } catch (e) {
+   749→      toast({ title: "Update failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   750→    } finally {
+   751→      setBusy(false);
+   752→    }
+   753→  };
+   754→
+   755→  const impersonate = async () => {
+   756→    if (!tenant) return;
+   757→    setBusy(true);
+   758→    try {
+   759→      await api.post(`/api/admin/tenants/${tenant.id}/impersonate`);
+   760→      await refresh();
+   761→      toast({ title: "Impersonation started", description: `Time-boxed 30-min session into ${tenant.business}. Audit-logged.` });
+   762→      onClose();
+   763→      navigate({ surface: "client" });
+   764→    } catch (e) {
+   765→      toast({ title: "Could not start session", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   766→    } finally {
+   767→      setBusy(false);
+   768→    }
+   769→  };
+   770→
+   771→  const t = detail.data?.tenant || tenant;
+   772→  const d = detail.data?.detail;
+   773→
+   774→  return (
+   775→    <div className={cn("fixed inset-0 z-50", !open && "pointer-events-none")} aria-hidden={!open}>
+   776→      <button
+   777→        onClick={onClose}
+   778→        aria-label="Close client details"
+   779→        tabIndex={open ? 0 : -1}
+   780→        className={cn("absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300", open ? "opacity-100" : "opacity-0")}
+   781→      />
+   782→      <aside
+   783→        className={cn(
+   784→          "absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-white/10 bg-brand shadow-2xl transition-transform duration-300 ease-out",
+   785→          open ? "translate-x-0" : "translate-x-full"
+   786→        )}
+   787→        role="dialog"
+   788→        aria-label="Client details"
+   789→      >
+   790→        {t && d && (
+   791→          <TenantDrawerBody
+   792→            tenant={t}
+   793→            detail={d}
+   794→            busy={busy}
+   795→            planPicking={planPicking}
+   796→            setPlanPicking={setPlanPicking}
+   797→            onPatch={patchTenant}
+   798→            onImpersonate={impersonate}
+   799→            onClose={onClose}
+   800→            toast={toast}
+   801→            canOperate={canOperate}
+   802→            isSuper={isSuper}
+   803→          />
+   804→        )}
+   805→        {tenant && detail.loading && (
+   806→          <div className="flex flex-1 items-center justify-center">
+   807→            <RefreshCw size={22} className="animate-spin text-mint" />
+   808→          </div>
+   809→        )}
+   810→      </aside>
+   811→    </div>
+   812→  );
+   813→}
+   814→
+   815→function TenantDrawerBody({ tenant: t, detail: d, busy, planPicking, setPlanPicking, onPatch, onImpersonate, onClose, toast, canOperate, isSuper }: {
+   816→  tenant: TenantVM;
+   817→  detail: TenantDetail["detail"];
+   818→  busy: boolean;
+   819→  planPicking: boolean;
+   820→  setPlanPicking: (v: boolean) => void;
+   821→  onPatch: (data: { status?: string; planId?: string }, label: string) => void;
+   822→  onImpersonate: () => void;
+   823→  onClose: () => void;
+   824→  toast: ReturnType<typeof useToast>["toast"];
+   825→  canOperate: boolean;
+   826→  isSuper: boolean;
+   827→}) {
+   828→  const maxMrr = Math.max(...d.mrrSeries.map((p) => p.mrr), 0.01);
+   829→  const points = d.mrrSeries.map((p, i) => `${(i / Math.max(d.mrrSeries.length - 1, 1)) * 264},${54 - (p.mrr / maxMrr) * 44}`).join(" ");
+   830→  const plans = ["starter", "growth", "multi"];
+   831→
+   832→  return (
+   833→    <>
+   834→      <header className="flex items-start justify-between border-b border-white/10 px-5 py-4">
+   835→        <div className="flex items-center gap-3">
+   836→          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint/15 text-[13px] font-bold text-mint">
+   837→            {t.business.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+   838→          </span>
+   839→          <div>
+   840→            <p className="text-[14.5px] font-bold text-white">{t.business}</p>
+   841→            <p className="text-[11.5px] text-white/40">{t.owner} · since {t.since}</p>
+   842→          </div>
+   843→          <AdminStatus status={t.status} />
+   844→        </div>
+   845→        <button onClick={onClose} className="rounded-lg p-2 text-white/40 transition-colors hover:bg-white/5 hover:text-white" aria-label="Close">
+   846→          <X size={16} />
+   847→        </button>
+   848→      </header>
+   849→
+   850→      <div className="flex-1 space-y-4 overflow-y-auto p-5">
+   851→        {/* plan + mrr */}
+   852→        <div className="rounded-2xl border border-white/10 bg-brand-deep/40 p-4">
+   853→          <div className="flex items-center justify-between">
+   854→            <div>
+   855→              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Plan · MRR</p>
+   856→              <p className="mt-1 text-[22px] font-bold text-mint">{inr(t.mrr)}<span className="ml-1.5 text-[11.5px] font-medium text-white/40">/ month</span></p>
+   857→            </div>
+   858→            <Badge variant="outline" className="border-mint/40 bg-mint/10 text-mint hover:bg-mint/10">{t.plan} plan</Badge>
+   859→          </div>
+   860→          <svg viewBox="0 0 264 58" className="mt-3 w-full" aria-hidden>
+   861→            <polyline points={points} fill="none" stroke="#88d6a0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+   862→            {d.mrrSeries.length > 0 && (
+   863→              <circle cx="264" cy={54 - (d.mrrSeries[d.mrrSeries.length - 1].mrr / maxMrr) * 44} r="3.5" fill="#88d6a0" />
+   864→            )}
+   865→          </svg>
+   866→          <div className="flex justify-between font-mono text-[9.5px] text-white/25">
+   867→            <span>{d.mrrSeries[0]?.m || "—"}</span>
+   868→            <span>latest</span>
+   869→          </div>
+   870→          <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-[11.5px]">
+   871→            <span className="text-white/40">Next invoice</span>
+   872→            <span className={cn("font-semibold", t.status === "past_due" ? "text-amber-300" : "text-white/80")}>{d.nextInvoice}</span>
+   873→          </div>
+   874→        </div>
+   875→
+   876→        {/* status banners + controls */}
+   877→        {t.status === "past_due" && (
+   878→          <div className="rounded-2xl border border-red-400/25 bg-red-400/10 p-3.5 text-[12px]">
+   879→            <p className="font-semibold text-red-300">Dunning in progress</p>
+   880→            <p className="mt-0.5 text-white/50">AI generation and WhatsApp sending are paused. Suspension auto-scheduled unless a retry succeeds.</p>
+   881→            <Button size="sm" className="mt-2.5 h-7 rounded-lg bg-mint px-3 text-[11.5px] font-semibold text-brand-deep hover:bg-mint/90"
+   882→              onClick={() => toast({ title: "Payment link sent", description: `Fresh Razorpay link dispatched to ${d.contact.person} on WhatsApp.` })}>
+   883→              Send payment link
+   884→            </Button>
+   885→          </div>
+   886→        )}
+   887→        {t.status === "trial" && (
+   888→          <div className="rounded-2xl border border-amber-300/25 bg-amber-soft/10 p-3.5 text-[12px]">
+   889→            <p className="font-semibold text-amber-300">Trial · {d.trialDaysLeft ?? "—"} days left</p>
+   890→            <p className="mt-0.5 text-white/50">Conversion nudge is armed for day −3. Usage is tracked against the Starter quota.</p>
+   891→          </div>
+   892→        )}
+   893→        <div className="flex flex-wrap gap-2">
+   894→          {t.status !== "active" && (
+   895→            <Button size="sm" variant="outline" className="h-8 rounded-xl border-mint/30 bg-transparent px-3 text-[11.5px] text-mint hover:bg-mint/10" disabled={busy || !canOperate}
+   896→              onClick={() => onPatch({ status: "active" }, "Client activated")}>
+   897→              <Check size={12} className="mr-1" /> Activate
+   898→            </Button>
+   899→          )}
+
+[showing lines 400-899 of 1367; use offset=900 with limit to continue reading]

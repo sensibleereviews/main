@@ -1,0 +1,562 @@
+    30→function TabsBar({ tabs, active, onPick }: { tabs: { key: string; label: string; icon: React.ReactNode }[]; active: string; onPick: (k: string) => void }) {
+    31→  return (
+    32→    <div className="flex flex-wrap gap-1.5">
+    33→      {tabs.map((t) => (
+    34→        <button
+    35→          key={t.key}
+    36→          onClick={() => onPick(t.key)}
+    37→          className={cn(
+    38→            "flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[12.5px] font-semibold transition-colors",
+    39→            active === t.key ? "bg-mint text-brand-deep shadow-sm" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+    40→          )}
+    41→          aria-pressed={active === t.key}
+    42→        >
+    43→          {t.icon} {t.label}
+    44→        </button>
+    45→      ))}
+    46→    </div>
+    47→  );
+    48→}
+    49→
+    50→/* --------------------------- field-spec editor --------------------------- */
+    51→
+    52→export type FieldSpec =
+    53→  | { key: string; label: string; type: "text" | "area"; hint?: string }
+    54→  | { key: string; label: string; type: "list"; itemLabel: string; fields: { key: string; label: string; type: "text" | "area" | "icon" }[] };
+    55→
+    56→export const ICON_OPTIONS = ["hotel", "restaurant", "cafe", "clinic", "salon", "gym", "retail", "school"] as const;
+    57→
+    58→function ListEditor({ spec, value, onChange, canEdit }: {
+    59→  spec: Extract<FieldSpec, { type: "list" }>;
+    60→  value: Record<string, unknown>[];
+    61→  onChange: (next: Record<string, unknown>[]) => void;
+    62→  canEdit: boolean;
+    63→}) {
+    64→  const items = Array.isArray(value) ? value : [];
+    65→  const update = (i: number, key: string, v: unknown) =>
+    66→    onChange(items.map((it, ix) => (ix === i ? { ...it, [key]: v } : it)));
+    67→  const move = (i: number, dir: -1 | 1) => {
+    68→    const j = i + dir;
+    69→    if (j < 0 || j >= items.length) return;
+    70→    const next = [...items];
+    71→    [next[i], next[j]] = [next[j], next[i]];
+    72→    onChange(next);
+    73→  };
+    74→  return (
+    75→    <div className="space-y-2">
+    76→      {items.map((it, i) => (
+    77→        <div key={i} className="rounded-xl border border-white/10 bg-brand-deep/50 p-3">
+    78→          <div className="mb-2 flex items-center justify-between">
+    79→            <span className="text-[10.5px] font-bold uppercase tracking-wider text-white/40">{spec.itemLabel} {i + 1}</span>
+    80→            {canEdit && (
+    81→              <span className="flex items-center gap-1">
+    82→                <button onClick={() => move(i, -1)} className="rounded p-1 text-white/30 hover:bg-white/5 hover:text-white" aria-label="Move up"><ChevronUp size={13} className="rotate-0" /></button>
+    83→                <button onClick={() => move(i, 1)} className="rounded p-1 text-white/30 hover:bg-white/5 hover:text-white" aria-label="Move down"><ChevronUp size={13} className="rotate-180" /></button>
+    84→                <button onClick={() => onChange(items.filter((_, ix) => ix !== i))} className="rounded p-1 text-white/30 hover:bg-white/5 hover:text-red-300" aria-label="Remove"><X size={13} /></button>
+    85→              </span>
+    86→            )}
+    87→          </div>
+    88→          <div className="grid gap-2 sm:grid-cols-2">
+    89→            {spec.fields.map((f) => (
+    90→              <label key={f.key} className={cn("block", f.type === "area" && "sm:col-span-2")}>
+    91→                <span className={lbl}>{f.label}</span>
+    92→                {f.type === "area" ? (
+    93→                  <textarea value={String(it[f.key] ?? "")} disabled={!canEdit} rows={2}
+    94→                    onChange={(e) => update(i, f.key, e.target.value)} className={cn(inpArea, "mt-1")} />
+    95→                ) : f.type === "icon" ? (
+    96→                  <select value={String(it[f.key] ?? "")} disabled={!canEdit}
+    97→                    onChange={(e) => update(i, f.key, e.target.value)} className={cn(inp, "mt-1 appearance-none")}>
+    98→                    {ICON_OPTIONS.map((o) => <option key={o} value={o} className="bg-brand">{o}</option>)}
+    99→                  </select>
+   100→                ) : (
+   101→                  <input value={String(it[f.key] ?? "")} disabled={!canEdit}
+   102→                    onChange={(e) => update(i, f.key, e.target.value)} className={cn(inp, "mt-1")} />
+   103→                )}
+   104→              </label>
+   105→            ))}
+   106→          </div>
+   107→        </div>
+   108→      ))}
+   109→      {canEdit && (
+   110→        <Button size="sm" variant="outline" className="h-8 rounded-xl border-white/15 bg-transparent text-[11.5px] text-white/70 hover:bg-white/5 hover:text-white"
+   111→          onClick={() => onChange([...items, Object.fromEntries(spec.fields.map((f) => [f.key, ""]))])}>
+   112→          <Plus size={12} className="mr-1" /> Add {spec.itemLabel.toLowerCase()}
+   113→        </Button>
+   114→      )}
+   115→    </div>
+   116→  );
+   117→}
+   118→
+   119→/* ------------------------------ pages tab ------------------------------ */
+   120→
+   121→type CmsPageRow = {
+   122→  id: string; slug: string; urlSlug: string; title: string; seoTitle: string; seoDescription: string;
+   123→  content: Record<string, unknown>; published: boolean; updatedAt: string;
+   124→};
+   125→
+   126→// Effective public URL for a page row (custom override or built-in default).
+   127→const effectiveUrl = (p: { slug: string; urlSlug?: string | null }) =>
+   128→  p.slug === "home" ? "/" : `/${p.urlSlug || DEFAULT_URL_SLUGS[p.slug] || p.slug}`;
+   129→
+   130→const PAGE_SPECS: Record<string, FieldSpec[]> = {
+   131→  home: [
+   132→    { key: "heroEyebrow", label: "Hero badge", type: "text" },
+   133→    { key: "heroTitleA", label: "Hero title — part 1", type: "text" },
+   134→    { key: "heroAccentA", label: "Hero title — accent 1 (green)", type: "text" },
+   135→    { key: "heroTitleB", label: "Hero title — part 2", type: "text" },
+   136→    { key: "heroAccentB", label: "Hero title — accent 2 (green, underlined)", type: "text" },
+   137→    { key: "heroSub", label: "Hero subtext", type: "area" },
+   138→    { key: "heroNote", label: "Hero note (under buttons)", type: "text" },
+   139→    { key: "trustedLabel", label: "Logo strip label", type: "text" },
+   140→    { key: "overviewSection", label: "Platform-in-a-nutshell header", type: "list", itemLabel: "Header", fields: [{ key: "eyebrow", label: "Eyebrow", type: "text" }, { key: "title", label: "Title", type: "text" }, { key: "sub", label: "Subtext", type: "area" }] },
+   141→    { key: "overview", label: "Platform overview paragraphs", type: "list", itemLabel: "Paragraph", fields: [{ key: "p", label: "Text", type: "area" }] },
+   142→    { key: "trialCard", label: "Free-trial card", type: "list", itemLabel: "Point", fields: [{ key: "title", label: "Card title", type: "text" }, { key: "sub", label: "Card subtext", type: "area" }, { key: "points", label: "Bullet points", type: "area" }] },
+   143→    { key: "stats", label: "Stats strip", type: "list", itemLabel: "Stat", fields: [{ key: "v", label: "Value", type: "text" }, { key: "l", label: "Label", type: "text" }] },
+   144→    { key: "modulesSection", label: "Modules section header", type: "list", itemLabel: "Header", fields: [{ key: "eyebrow", label: "Eyebrow", type: "text" }, { key: "title", label: "Title", type: "text" }, { key: "sub", label: "Subtext", type: "area" }, { key: "action", label: "Action link label", type: "text" }] },
+   145→    { key: "modules", label: "Module cards", type: "list", itemLabel: "Module", fields: [{ key: "title", label: "Title", type: "text" }, { key: "desc", label: "Description", type: "area" }] },
+   146→    { key: "howSection", label: "How-it-works header", type: "list", itemLabel: "Header", fields: [{ key: "eyebrow", label: "Eyebrow", type: "text" }, { key: "title", label: "Title", type: "text" }, { key: "sub", label: "Subtext", type: "area" }, { key: "action", label: "Action link label", type: "text" }] },
+   147→    { key: "steps", label: "Journey steps", type: "list", itemLabel: "Step", fields: [{ key: "t", label: "Title", type: "text" }, { key: "d", label: "Description", type: "area" }] },
+   148→    { key: "industriesSection", label: "Industries header", type: "list", itemLabel: "Header", fields: [{ key: "eyebrow", label: "Eyebrow", type: "text" }, { key: "title", label: "Title", type: "text" }, { key: "sub", label: "Subtext", type: "area" }] },
+   149→    { key: "industries", label: "Industry cards", type: "list", itemLabel: "Industry", fields: [{ key: "name", label: "Name", type: "text" }, { key: "ex", label: "Example line", type: "area" }, { key: "icon", label: "Icon", type: "icon" }] },
+   150→    { key: "testimonialsSection", label: "Testimonials header", type: "list", itemLabel: "Header", fields: [{ key: "eyebrow", label: "Eyebrow", type: "text" }, { key: "title", label: "Title", type: "text" }, { key: "sub", label: "Subtext", type: "area" }] },
+   151→    { key: "pricingSection", label: "Pricing header", type: "list", itemLabel: "Header", fields: [{ key: "eyebrow", label: "Eyebrow", type: "text" }, { key: "title", label: "Title", type: "text" }, { key: "sub", label: "Subtext", type: "area" }, { key: "action", label: "Action link label", type: "text" }] },
+   152→    { key: "faqSection", label: "FAQ header", type: "list", itemLabel: "Header", fields: [{ key: "eyebrow", label: "Eyebrow", type: "text" }, { key: "title", label: "Title", type: "text" }, { key: "sub", label: "Subtext", type: "area" }, { key: "action", label: "Action link label", type: "text" }] },
+   153→    { key: "blogsSection", label: "Recent blogs header", type: "list", itemLabel: "Header", fields: [{ key: "eyebrow", label: "Eyebrow", type: "text" }, { key: "title", label: "Title", type: "text" }, { key: "sub", label: "Subtext", type: "area" }, { key: "action", label: "Action link label", type: "text" }] },
+   154→    { key: "ctaNote", label: "Bottom CTA note", type: "text" },
+   155→  ],
+   156→  features: [
+   157→    { key: "eyebrow", label: "Hero badge", type: "text" },
+   158→    { key: "title", label: "Hero title", type: "text" },
+   159→    { key: "accent", label: "Hero accent (green)", type: "text" },
+   160→    { key: "description", label: "Hero subtext", type: "area" },
+   161→    { key: "modules", label: "Feature modules", type: "list", itemLabel: "Module", fields: [{ key: "name", label: "Name", type: "text" }, { key: "headline", label: "Headline", type: "text" }, { key: "desc", label: "Description", type: "area" }, { key: "points", label: "Bullet points (one per line)", type: "area" }] },
+   162→  ],
+   163→  how: [
+   164→    { key: "eyebrow", label: "Hero badge", type: "text" },
+   165→    { key: "title", label: "Hero title", type: "text" },
+   166→    { key: "accent", label: "Hero accent (green)", type: "text" },
+   167→    { key: "description", label: "Hero subtext", type: "area" },
+   168→    { key: "steps", label: "Journey steps", type: "list", itemLabel: "Step", fields: [{ key: "title", label: "Title", type: "text" }, { key: "time", label: "Time label", type: "text" }, { key: "desc", label: "Description", type: "area" }, { key: "points", label: "Chips (one per line)", type: "area" }] },
+   169→    { key: "pillars", label: "Bottom cards", type: "list", itemLabel: "Card", fields: [{ key: "t", label: "Title", type: "text" }, { key: "d", label: "Description", type: "area" }] },
+   170→  ],
+   171→  pricing: [
+   172→    { key: "eyebrow", label: "Hero badge", type: "text" },
+   173→    { key: "title", label: "Hero title", type: "text" },
+   174→    { key: "accent", label: "Hero accent (green)", type: "text" },
+   175→    { key: "description", label: "Hero subtext", type: "area" },
+   176→    { key: "addOns", label: "Add-ons", type: "list", itemLabel: "Add-on", fields: [{ key: "name", label: "Name", type: "text" }, { key: "detail", label: "Detail", type: "text" }, { key: "price", label: "Price", type: "text" }] },
+   177→    { key: "compareTitle", label: "Comparison title", type: "text" },
+   178→    { key: "faqTitle", label: "FAQ title", type: "text" },
+   179→  ],
+   180→  stories: [
+   181→    { key: "eyebrow", label: "Hero badge", type: "text" },
+   182→    { key: "title", label: "Hero title", type: "text" },
+   183→    { key: "accent", label: "Hero accent (green)", type: "text" },
+   184→    { key: "description", label: "Hero subtext", type: "area" },
+   185→    { key: "featured", label: "Featured case study", type: "list", itemLabel: "Field", fields: [{ key: "business", label: "Business", type: "text" }, { key: "place", label: "Place", type: "text" }, { key: "since", label: "Since line", type: "text" }, { key: "quote", label: "Quote", type: "area" }, { key: "person", label: "Person", type: "text" }, { key: "role", label: "Role", type: "text" }, { key: "challenge", label: "Challenge", type: "area" }, { key: "steps", label: "Steps (one per line)", type: "area" }] },
+   186→    { key: "stories", label: "Story cards", type: "list", itemLabel: "Story", fields: [{ key: "business", label: "Business", type: "text" }, { key: "place", label: "Place", type: "text" }, { key: "plan", label: "Plan chip", type: "text" }, { key: "quote", label: "Quote", type: "area" }, { key: "person", label: "Person", type: "text" }, { key: "role", label: "Role", type: "text" }, { key: "bullets", label: "Bullets (one per line)", type: "area" }] },
+   187→    { key: "aggregate", label: "Aggregate strip", type: "list", itemLabel: "Stat", fields: [{ key: "v", label: "Value", type: "text" }, { key: "l", label: "Label", type: "text" }] },
+   188→    { key: "ctaNote", label: "Bottom CTA note", type: "text" },
+   189→  ],
+   190→  security: [
+   191→    { key: "eyebrow", label: "Hero badge", type: "text" },
+   192→    { key: "title", label: "Hero title", type: "text" },
+   193→    { key: "accent", label: "Hero accent (green)", type: "text" },
+   194→    { key: "description", label: "Hero subtext", type: "area" },
+   195→    { key: "pillars", label: "Pillars", type: "list", itemLabel: "Pillar", fields: [{ key: "title", label: "Title", type: "text" }, { key: "body", label: "Body", type: "area" }] },
+   196→    { key: "compliance", label: "Compliance cards", type: "list", itemLabel: "Card", fields: [{ key: "title", label: "Title", type: "text" }, { key: "body", label: "Body", type: "area" }] },
+   197→    { key: "subprocessors", label: "Subprocessor table", type: "list", itemLabel: "Row", fields: [{ key: "name", label: "Provider", type: "text" }, { key: "role", label: "Purpose", type: "text" }, { key: "data", label: "Data shared", type: "text" }, { key: "region", label: "Region", type: "text" }] },
+   198→    { key: "sla", label: "SLA strip", type: "list", itemLabel: "Commitment", fields: [{ key: "k", label: "Value", type: "text" }, { key: "v", label: "Label", type: "text" }] },
+   199→    { key: "practices", label: "Security practices", type: "list", itemLabel: "Practice", fields: [{ key: "p", label: "Practice", type: "area" }] },
+   200→    { key: "ctaNote", label: "Bottom CTA note", type: "text" },
+   201→  ],
+   202→  about: [
+   203→    { key: "eyebrow", label: "Hero badge", type: "text" },
+   204→    { key: "title", label: "Hero title", type: "text" },
+   205→    { key: "accent", label: "Hero accent (green)", type: "text" },
+   206→    { key: "description", label: "Hero subtext", type: "area" },
+   207→    { key: "briefSection", label: "In-brief header", type: "list", itemLabel: "Header", fields: [{ key: "eyebrow", label: "Eyebrow", type: "text" }, { key: "title", label: "Title", type: "text" }, { key: "sub", label: "Subtext", type: "area" }] },
+   208→    { key: "brief", label: "In-brief paragraphs", type: "list", itemLabel: "Paragraph", fields: [{ key: "p", label: "Text", type: "area" }] },
+   209→    { key: "originKicker", label: "Origin kicker", type: "text" },
+   210→    { key: "originTitle", label: "Origin title", type: "text" },
+   211→    { key: "originBody", label: "Origin body", type: "area" },
+   212→    { key: "vision", label: "Vision card", type: "list", itemLabel: "Field", fields: [{ key: "kicker", label: "Kicker", type: "text" }, { key: "title", label: "Title", type: "text" }, { key: "body", label: "Body", type: "area" }] },
+   213→    { key: "mission", label: "Mission card", type: "list", itemLabel: "Field", fields: [{ key: "kicker", label: "Kicker", type: "text" }, { key: "title", label: "Title", type: "text" }, { key: "body", label: "Body", type: "area" }] },
+   214→    { key: "valuesSection", label: "Values header", type: "list", itemLabel: "Header", fields: [{ key: "eyebrow", label: "Eyebrow", type: "text" }, { key: "title", label: "Title", type: "text" }, { key: "sub", label: "Subtext", type: "area" }] },
+   215→    { key: "values", label: "Values", type: "list", itemLabel: "Value", fields: [{ key: "title", label: "Title", type: "text" }, { key: "desc", label: "Description", type: "area" }] },
+   216→    { key: "teamSection", label: "Team header", type: "list", itemLabel: "Header", fields: [{ key: "eyebrow", label: "Eyebrow", type: "text" }, { key: "title", label: "Title", type: "text" }, { key: "sub", label: "Subtext", type: "area" }] },
+   217→    { key: "team", label: "Team members", type: "list", itemLabel: "Member", fields: [{ key: "name", label: "Name", type: "text" }, { key: "role", label: "Role", type: "text" }, { key: "bio", label: "Bio", type: "area" }, { key: "photo", label: "Photo URL (e.g. /team/aarav-sharma.jpg)", type: "text" }] },
+   218→    { key: "storyKicker", label: "Story kicker", type: "text" },
+   219→    { key: "storyQuote", label: "Story quote", type: "text" },
+   220→    { key: "story", label: "Story columns", type: "list", itemLabel: "Column", fields: [{ key: "kicker", label: "Kicker", type: "text" }, { key: "text", label: "Text", type: "area" }] },
+   221→    { key: "ctaNote", label: "Bottom CTA note", type: "text" },
+   222→  ],
+   223→  contact: [
+   224→    { key: "eyebrow", label: "Hero badge", type: "text" },
+   225→    { key: "title", label: "Hero title", type: "text" },
+   226→    { key: "accent", label: "Hero accent (green)", type: "text" },
+   227→    { key: "description", label: "Hero subtext", type: "area" },
+   228→    { key: "sideTitle", label: "Contact card title", type: "text" },
+   229→    { key: "sideSub", label: "Contact card subtext", type: "text" },
+   230→    { key: "whatsapp", label: "WhatsApp number", type: "text" },
+   231→    { key: "email", label: "Email address", type: "text" },
+   232→    { key: "nextTitle", label: "Next-steps title", type: "text" },
+   233→    { key: "nextSteps", label: "Next steps", type: "list", itemLabel: "Step", fields: [{ key: "s", label: "Text", type: "area" }] },
+   234→    { key: "inquiryNote", label: "Inquiry note (under form)", type: "area" },
+   235→    { key: "locationOptions", label: "Location options", type: "list", itemLabel: "Option", fields: [{ key: "o", label: "Option", type: "text" }] },
+   236→    { key: "volumeOptions", label: "Volume options", type: "list", itemLabel: "Option", fields: [{ key: "o", label: "Option", type: "text" }] },
+   237→  ],
+   238→  privacy: [
+   239→    { key: "updated", label: "Last updated", type: "text" },
+   240→    { key: "sections", label: "Policy sections", type: "list", itemLabel: "Section", fields: [{ key: "h", label: "Heading", type: "text" }, { key: "body", label: "Paragraphs (one per line)", type: "area" }] },
+   241→  ],
+   242→  terms: [
+   243→    { key: "updated", label: "Last updated", type: "text" },
+   244→    { key: "sections", label: "Terms sections", type: "list", itemLabel: "Section", fields: [{ key: "h", label: "Heading", type: "text" }, { key: "body", label: "Paragraphs (one per line)", type: "area" }] },
+   245→  ],
+   246→  knowledge: [
+   247→    { key: "eyebrow", label: "Hero badge", type: "text" },
+   248→    { key: "title", label: "Hero title", type: "text" },
+   249→    { key: "accent", label: "Hero accent (green)", type: "text" },
+   250→    { key: "description", label: "Hero subtext", type: "area" },
+   251→    { key: "categories", label: "Category headers", type: "list", itemLabel: "Category", fields: [{ key: "cat", label: "Category name (matches FAQs)", type: "text" }, { key: "blurb", label: "Blurb", type: "text" }] },
+   252→    { key: "searchPlaceholder", label: "Search placeholder", type: "text" },
+   253→    { key: "ctaTitle", label: "Bottom CTA title", type: "text" },
+   254→    { key: "ctaSub", label: "Bottom CTA subtext", type: "text" },
+   255→    { key: "ctaButton", label: "Bottom CTA button", type: "text" },
+   256→    { key: "noMatchTitle", label: "No-match title", type: "text" },
+   257→    { key: "noMatchSub", label: "No-match subtext", type: "text" },
+   258→  ],
+   259→  blog: [
+   260→    { key: "eyebrow", label: "Hero badge", type: "text" },
+   261→    { key: "title", label: "Hero title", type: "text" },
+   262→    { key: "accent", label: "Hero accent (green)", type: "text" },
+   263→    { key: "description", label: "Hero subtext", type: "area" },
+   264→    { key: "footnote", label: "List footnote", type: "text" },
+   265→    { key: "ctaTitle", label: "Article CTA title", type: "text" },
+   266→    { key: "ctaSub", label: "Article CTA subtext", type: "text" },
+   267→  ],
+   268→  ticket: [
+   269→    { key: "eyebrow", label: "Hero badge", type: "text" },
+   270→    { key: "title", label: "Hero title", type: "text" },
+   271→    { key: "accent", label: "Hero accent (green)", type: "text" },
+   272→    { key: "description", label: "Hero subtext", type: "area" },
+   273→    { key: "topics", label: "Ticket topics", type: "list", itemLabel: "Topic", fields: [{ key: "t", label: "Topic", type: "text" }] },
+   274→  ],
+   275→};
+   276→
+   277→// Normalise array-ish content between editor shapes and renderer shapes.
+   278→function toEditorValue(key: string, v: unknown): unknown {
+   279→  if (key === "trialCard") {
+   280→    const t = (v || {}) as { title?: string; sub?: string; points?: string[] };
+   281→    return [{ title: t.title || "", sub: t.sub || "", points: (t.points || []).join("\n") }];
+   282→  }
+   283→  if (Array.isArray(v)) {
+   284→    return v.map((item) => {
+   285→      if (item && typeof item === "object") {
+   286→        const rec = { ...(item as Record<string, unknown>) };
+   287→        for (const k of Object.keys(rec)) {
+   288→          if (Array.isArray(rec[k])) rec[k] = (rec[k] as unknown[]).join("\n");
+   289→        }
+   290→        return rec;
+   291→      }
+   292→      return { p: String(item) };
+   293→    });
+   294→  }
+   295→  return [{ p: String(v ?? "") }];
+   296→}
+   297→
+   298→function fromEditorValue(key: string, items: Record<string, unknown>[], original: unknown): unknown {
+   299→  if (key === "trialCard") {
+   300→    const t = (items[0] || {}) as Record<string, string>;
+   301→    return { title: t.title || "", sub: t.sub || "", points: (t.points || "").split("\n").map((s) => s.trim()).filter(Boolean) };
+   302→  }
+   303→  // scalar-string lists (practices, nextSteps, options, topics, story)
+   304→  if (Array.isArray(original) && original.length > 0 && typeof original[0] === "string") {
+   305→    return items.map((it) => String(it.p ?? it.s ?? it.o ?? it.t ?? "")).filter(Boolean);
+   306→  }
+   307→  return items.map((it) => {
+   308→    const rec: Record<string, unknown> = { ...it };
+   309→    for (const k of Object.keys(rec)) {
+   310→      if (typeof rec[k] === "string" && (rec[k] as string).includes("\n")) {
+   311→        rec[k] = (rec[k] as string).split("\n").map((s) => s.trimEnd()).filter((s, i, a) => !(i === a.length - 1 && s === ""));
+   312→      }
+   313→    }
+   314→    return rec;
+   315→  });
+   316→}
+   317→
+   318→function PagesTab({ canEdit }: { canEdit: boolean }) {
+   319→  const { toast } = useToast();
+   320→  const pages = useApiData<{ pages: CmsPageRow[] }>("/api/cms/pages");
+   321→  const [slug, setSlug] = useState<string | null>(null);
+   322→  const [draft, setDraft] = useState<Partial<CmsPageRow> | null>(null);
+   323→  const [busy, setBusy] = useState(false);
+   324→
+   325→  const rows = pages.data?.pages || [];
+   326→  const current = rows.find((p) => p.slug === slug) || null;
+   327→
+   328→  const pick = (p: CmsPageRow) => {
+   329→    setSlug(p.slug);
+   330→    setDraft({ title: p.title, urlSlug: p.urlSlug || "", seoTitle: p.seoTitle, seoDescription: p.seoDescription, published: p.published, content: p.content });
+   331→  };
+   332→
+   333→  const save = async () => {
+   334→    if (!current || !draft) return;
+   335→    setBusy(true);
+   336→    try {
+   337→      const nextUrl = effectiveUrl({ slug: current.slug, urlSlug: String(draft.urlSlug ?? "").trim() });
+   338→      await api.put(`/api/cms/pages/${current.slug}`, {
+   339→        title: draft.title, urlSlug: String(draft.urlSlug ?? "").trim(), seoTitle: draft.seoTitle, seoDescription: draft.seoDescription,
+   340→        published: draft.published, content: draft.content,
+   341→      });
+   342→      toast({ title: "Page saved", description: `${draft.title || current.title} is live at ${nextUrl} — reload the marketing site to see it.` });
+   343→      pages.reload();
+   344→    } catch (e) {
+   345→      toast({ title: "Save failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   346→    } finally {
+   347→      setBusy(false);
+   348→    }
+   349→  };
+   350→
+   351→  const setContent = (key: string, spec: FieldSpec, raw: unknown) => {
+   352→    if (!draft) return;
+   353→    const content = { ...(draft.content || {}) };
+   354→    if (spec.type === "list") {
+   355→      const items = (raw as Record<string, unknown>[]) || [];
+   356→      content[key] = fromEditorValue(key, items, (current?.content || {})[key]);
+   357→    } else {
+   358→      content[key] = raw;
+   359→    }
+   360→    setDraft({ ...draft, content });
+   361→  };
+   362→
+   363→  return (
+   364→    <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
+   365→      <div className="space-y-1.5">
+   366→        {rows.map((p) => (
+   367→          <button key={p.slug} onClick={() => pick(p)}
+   368→            className={cn("flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left transition-colors",
+   369→              slug === p.slug ? "bg-mint/15 text-mint ring-1 ring-mint/40" : "bg-brand-deep/40 text-white/70 hover:bg-white/5 hover:text-white")}>
+   370→            <FileText size={13} className="shrink-0 opacity-60" />
+   371→            <span className="min-w-0 flex-1">
+   372→              <span className="block truncate text-[12.5px] font-semibold">{p.title}</span>
+   373→              <span className="block truncate font-mono text-[10.5px] text-white/35">{effectiveUrl(p)}</span>
+   374→            </span>
+   375→            {!p.published && <span className="shrink-0 rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">DEFAULTS</span>}
+   376→          </button>
+   377→        ))}
+   378→        {pages.loading && <div className="h-40 animate-pulse rounded-xl bg-brand-deep/40" />}
+   379→      </div>
+   380→
+   381→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+   382→        {!current || !draft ? (
+   383→          <div className="flex h-full min-h-[240px] flex-col items-center justify-center gap-2 text-center">
+   384→            <Globe size={22} className="text-white/20" />
+   385→            <p className="text-[13px] text-white/50">Pick a page to edit its copy, SEO and visibility.</p>
+   386→            <p className="max-w-sm text-[11.5px] text-white/30">Every page keeps built-in defaults — turning &ldquo;published&rdquo; off shows visitors the default copy instead of custom content, so the site never breaks.</p>
+   387→          </div>
+   388→        ) : (
+   389→          <div className="space-y-4">
+   390→            <div className="flex flex-wrap items-center justify-between gap-2">
+   391→              <div>
+   392→                <h3 className="text-[15px] font-semibold text-white">{current.title} <span className="ml-1 font-mono text-[11px] text-white/30">{effectiveUrl(current)}</span></h3>
+   393→                <p className="text-[11px] text-white/35">Last saved {new Date(current.updatedAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>
+   394→              </div>
+   395→              <div className="flex items-center gap-2">
+   396→                <button
+   397→                  disabled={!canEdit}
+   398→                  onClick={() => setDraft({ ...draft, published: !draft.published })}
+   399→                  className={cn("flex h-8 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold",
+   400→                    draft.published ? "bg-mint/15 text-mint" : "bg-amber-400/15 text-amber-300")}
+   401→                >
+   402→                  {draft.published ? "Published — custom copy live" : "Unpublished — showing defaults"}
+   403→                </button>
+   404→                {canEdit ? (
+   405→                  <Button size="sm" className="h-8 rounded-xl bg-mint px-4 text-[12px] font-bold text-brand-deep hover:bg-mint/90" disabled={busy} onClick={save}>
+   406→                    <Save size={13} className="mr-1" /> {busy ? "Saving…" : "Save page"}
+   407→                  </Button>
+   408→                ) : (
+   409→                  <Badge className="border-white/10 bg-white/5 text-white/50">read-only</Badge>
+   410→                )}
+   411→              </div>
+   412→            </div>
+   413→
+   414→            {/* Page identity — name + public URL (admin-editable) */}
+   415→            <div className="rounded-xl border border-white/10 bg-brand-deep/30 p-3">
+   416→              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-mint">Page name &amp; URL</p>
+   417→              <div className="grid gap-2 sm:grid-cols-2">
+   418→                <label className="block"><span className={lbl}>Page name</span>
+   419→                  <input value={String(draft.title ?? "")} disabled={!canEdit}
+   420→                    onChange={(e) => setDraft({ ...draft, title: e.target.value })} className={cn(inp, "mt-1")} /></label>
+   421→                <label className="block"><span className={lbl}>URL path</span>
+   422→                  {current.slug === "home" ? (
+   423→                    <div className={cn(inp, "mt-1 flex items-center text-white/40")}>/ <span className="ml-1.5">homepage — fixed</span></div>
+   424→                  ) : (
+   425→                    <div className="mt-1 flex">
+   426→                      <span className="flex h-9 items-center rounded-l-lg border border-r-0 border-white/10 bg-brand-deep/60 px-2.5 font-mono text-[12px] text-white/40">/</span>
+   427→                      <input value={String(draft.urlSlug ?? "")} disabled={!canEdit}
+   428→                        placeholder={DEFAULT_URL_SLUGS[current.slug] || current.slug}
+   429→                        onChange={(e) => setDraft({ ...draft, urlSlug: e.target.value })} className={cn(inp, "rounded-l-none")} />
+   430→                    </div>
+   431→                  )}
+   432→                </label>
+   433→              </div>
+   434→              <p className="mt-2 text-[10.5px] leading-relaxed text-white/30">
+   435→                {current.slug === "home" ? "Every other page can be renamed and moved to a new URL here — lowercase letters, numbers and dashes."
+   436→                  : <>Leave empty for the built-in default <span className="font-mono text-white/50">/{DEFAULT_URL_SLUGS[current.slug] || current.slug}</span>. Saving renames the page{current.slug === "blog" ? " and its article links" : ""} at
+   437→                    <span className="ml-1 font-mono text-mint/70">{effectiveUrl({ slug: current.slug, urlSlug: slugifyTitle(String(draft.urlSlug ?? "")) })}</span> — the old address will stop working (no redirects).</>}
+   438→              </p>
+   439→            </div>
+   440→
+   441→            <div className="grid gap-2 sm:grid-cols-2">
+   442→              <label className="block"><span className={lbl}>SEO title</span>
+   443→                <input value={String(draft.seoTitle ?? "")} disabled={!canEdit} onChange={(e) => setDraft({ ...draft, seoTitle: e.target.value })} className={cn(inp, "mt-1")} /></label>
+   444→              <label className="block"><span className={lbl}>SEO description</span>
+   445→                <input value={String(draft.seoDescription ?? "")} disabled={!canEdit} onChange={(e) => setDraft({ ...draft, seoDescription: e.target.value })} className={cn(inp, "mt-1")} /></label>
+   446→            </div>
+   447→
+   448→            <div className="max-h-[52vh] space-y-4 overflow-y-auto pr-1">
+   449→              {(PAGE_SPECS[current.slug] || []).map((spec) => {
+   450→                if (spec.type === "list") {
+   451→                  const original = (current.content || {})[spec.key];
+   452→                  const editorItems = toEditorValue(spec.key, draft.content?.[spec.key] ?? original);
+   453→                  return (
+   454→                    <div key={spec.key} className="rounded-xl border border-white/10 bg-brand-deep/30 p-3">
+   455→                      <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-mint">{spec.label}</p>
+   456→                      <ListEditor spec={spec} canEdit={canEdit}
+   457→                        value={editorItems as Record<string, unknown>[]}
+   458→                        onChange={(next) => setContent(spec.key, spec, next)} />
+   459→                    </div>
+   460→                  );
+   461→                }
+   462→                const val = draft.content?.[spec.key] ?? "";
+   463→                return (
+   464→                  <label key={spec.key} className="block">
+   465→                    <span className={lbl}>{spec.label}</span>
+   466→                    {spec.type === "area" ? (
+   467→                      <textarea value={String(val)} disabled={!canEdit} rows={3} onChange={(e) => setContent(spec.key, spec, e.target.value)} className={cn(inpArea, "mt-1")} />
+   468→                    ) : (
+   469→                      <input value={String(val)} disabled={!canEdit} onChange={(e) => setContent(spec.key, spec, e.target.value)} className={cn(inp, "mt-1")} />
+   470→                    )}
+   471→                  </label>
+   472→                );
+   473→              })}
+   474→            </div>
+   475→          </div>
+   476→        )}
+   477→      </div>
+   478→    </div>
+   479→  );
+   480→}
+   481→
+   482→/* ------------------------------ blog posts tab ------------------------------ */
+   483→
+   484→type CmsPostRow = {
+   485→  id: string; slug: string; title: string; tag: string; excerpt: string; summary?: string; body: string;
+   486→  readTime: string; author: string; authorRole: string; featuredMediaId: string | null;
+   487→  seoTitle: string; seoDescription: string; published: boolean; publishedAt: string;
+   488→};
+   489→
+   490→const emptyPost = { slug: "", title: "", tag: "Insights", excerpt: "", summary: "", body: "", readTime: "5 min read", author: "Admin", authorRole: "Sensiblee Team", seoTitle: "", seoDescription: "", published: true, publishedAt: new Date().toISOString(), featuredMediaId: null as string | null };
+   491→
+   492→function PostsTab({ canEdit, media }: { canEdit: boolean; media: { id: string; filename: string }[] }) {
+   493→  const { toast } = useToast();
+   494→  const posts = useApiData<{ posts: CmsPostRow[] }>("/api/cms/posts");
+   495→  const [editing, setEditing] = useState<CmsPostRow | typeof emptyPost | null>(null);
+   496→  const [isNew, setIsNew] = useState(false);
+   497→  const [busy, setBusy] = useState(false);
+   498→
+   499→  const open = (p: CmsPostRow | typeof emptyPost, fresh = false) => { setEditing({ ...p }); setIsNew(fresh); };
+   500→
+   501→  const save = async () => {
+   502→    if (!editing) return;
+   503→    setBusy(true);
+   504→    try {
+   505→      if (isNew) await api.post("/api/cms/posts", editing);
+   506→      else await api.patch(`/api/cms/posts/${(editing as CmsPostRow).id}`, editing);
+   507→      toast({ title: isNew ? "Article created" : "Article saved", description: editing.title });
+   508→      setEditing(null);
+   509→      posts.reload();
+   510→    } catch (e) {
+   511→      toast({ title: "Save failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   512→    } finally { setBusy(false); }
+   513→  };
+   514→
+   515→  const remove = async (p: CmsPostRow) => {
+   516→    try { await api.del(`/api/cms/posts/${p.id}`); posts.reload(); toast({ title: "Article deleted", description: p.title }); }
+   517→    catch (e) { toast({ title: "Delete failed", description: e instanceof Error ? e.message : "", variant: "destructive" }); }
+   518→  };
+   519→
+   520→  const set = (k: keyof CmsPostRow | keyof typeof emptyPost, v: unknown) => setEditing((p) => (p ? { ...p, [k]: v } : p));
+   521→  const rows = posts.data?.posts || [];
+   522→
+   523→  return (
+   524→    <div className="space-y-3">
+   525→      <div className="flex flex-wrap items-center justify-between gap-2">
+   526→        <Badge className="border-mint/30 bg-mint/10 text-mint hover:bg-mint/10">{rows.length} article{rows.length === 1 ? "" : "s"}</Badge>
+   527→        {canEdit && <Button size="sm" className="h-8 rounded-xl bg-mint px-3.5 text-[12px] font-bold text-brand-deep hover:bg-mint/90" onClick={() => open(emptyPost, true)}><Plus size={13} className="mr-1" /> New article</Button>}
+   528→      </div>
+   529→
+   530→      {editing ? (
+   531→        <div className="space-y-3 rounded-2xl border border-mint/25 bg-brand-deep/40 p-4">
+   532→          <div className="grid gap-2.5 sm:grid-cols-2">
+   533→            <label className="block"><span className={lbl}>Title</span><input value={editing.title} disabled={!canEdit} onChange={(e) => set("title", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   534→            <label className="block"><span className={lbl}>Slug (legacy — public URL always comes from the title)</span><input value={editing.slug} disabled={!canEdit} onChange={(e) => set("slug", e.target.value)} className={cn(inp, "mt-1")} placeholder="auto from title" /></label>
+   535→            <label className="block"><span className={lbl}>Category chip</span><input value={editing.tag} disabled={!canEdit} onChange={(e) => set("tag", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   536→            <label className="block"><span className={lbl}>Read time</span><input value={editing.readTime} disabled={!canEdit} onChange={(e) => set("readTime", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   537→            <label className="block"><span className={lbl}>Author</span><input value={editing.author} disabled={!canEdit} onChange={(e) => set("author", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   538→            <label className="block"><span className={lbl}>Author role</span><input value={editing.authorRole} disabled={!canEdit} onChange={(e) => set("authorRole", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   539→          </div>
+   540→          <label className="block"><span className={lbl}>Excerpt</span><textarea rows={2} value={editing.excerpt} disabled={!canEdit} onChange={(e) => set("excerpt", e.target.value)} className={cn(inpArea, "mt-1")} /></label>
+   541→          <label className="block"><span className={lbl}>Article summary — shown in the “In this article” panel</span><textarea rows={2} value={editing.summary || ""} disabled={!canEdit} onChange={(e) => set("summary", e.target.value)} className={cn(inpArea, "mt-1")} /></label>
+   542→          <label className="block"><span className={lbl}>Body — paragraphs separated by a blank line; start a line with “## ” for a heading or “### ” for a sub-heading</span><textarea rows={10} value={editing.body} disabled={!canEdit} onChange={(e) => set("body", e.target.value)} className={cn(inpArea, "mt-1 font-mono text-[11.5px]")} /></label>
+   543→          <div className="grid gap-2.5 sm:grid-cols-2">
+   544→            <label className="block"><span className={lbl}>SEO title</span><input value={editing.seoTitle} disabled={!canEdit} onChange={(e) => set("seoTitle", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   545→            <label className="block"><span className={lbl}>SEO description</span><input value={editing.seoDescription} disabled={!canEdit} onChange={(e) => set("seoDescription", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   546→            <label className="block"><span className={lbl}>Featured image (Media tab to upload)</span>
+   547→              <select value={editing.featuredMediaId || ""} disabled={!canEdit} onChange={(e) => set("featuredMediaId", e.target.value || null)} className={cn(inp, "mt-1 appearance-none")}>
+   548→                <option value="" className="bg-brand">— none —</option>
+   549→                {media.map((m) => <option key={m.id} value={m.id} className="bg-brand">{m.filename}</option>)}
+   550→              </select></label>
+   551→            <label className="block"><span className={lbl}>Publish date</span>
+   552→              <input type="date" value={String(editing.publishedAt).slice(0, 10)} disabled={!canEdit} onChange={(e) => set("publishedAt", e.target.value ? new Date(e.target.value).toISOString() : new Date().toISOString())} className={cn(inp, "mt-1")} /></label>
+   553→          </div>
+   554→          <button disabled={!canEdit} onClick={() => set("published", !editing.published)}
+   555→            className={cn("flex h-8 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold", editing.published ? "bg-mint/15 text-mint" : "bg-amber-400/15 text-amber-300")}>
+   556→            {editing.published ? "Published" : "Draft — hidden from visitors"}
+   557→          </button>
+   558→          <div className="flex gap-2 pt-1">
+   559→            {canEdit && <Button size="sm" className="h-9 flex-1 rounded-xl bg-mint text-[12.5px] font-semibold text-brand-deep hover:bg-mint/90" disabled={busy || !editing.title.trim()} onClick={save}><Save size={13} className="mr-1.5" /> {busy ? "Saving…" : isNew ? "Create article" : "Save article"}</Button>}
+   560→            <Button size="sm" variant="ghost" className="h-9 rounded-xl text-[12.5px] text-white/60 hover:bg-white/5 hover:text-white" onClick={() => setEditing(null)}>Cancel</Button>
+   561→          </div>
+   562→        </div>
+   563→      ) : (
+   564→        <div className="space-y-2">
+   565→          {rows.map((p) => (
+   566→            <div key={p.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-brand-deep/50 px-3.5 py-3">
+   567→              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/70">{p.tag.slice(0, 2).toUpperCase()}</span>
+   568→              <div className="min-w-0 flex-1">
+   569→                <p className="truncate text-[13px] font-semibold text-white">{p.title} {!p.published && <span className="text-[10.5px] font-bold uppercase text-amber-300">· draft</span>}</p>
+   570→                <p className="truncate text-[11px] text-white/40">/blog/{(p.title || "").toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-") || p.slug} · {new Date(p.publishedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} · {p.author}</p>
+   571→              </div>
+   572→              {canEdit && (
+   573→                <>
+   574→                  <button onClick={() => open(p)} className="rounded-lg p-1.5 text-white/40 hover:bg-white/5 hover:text-white" aria-label={`Edit ${p.title}`}><FileText size={14} /></button>
+   575→                  <button onClick={() => remove(p)} className="rounded-lg p-1.5 text-white/30 hover:bg-white/5 hover:text-red-300" aria-label={`Delete ${p.title}`}><Trash2 size={13} /></button>
+   576→                </>
+   577→              )}
+   578→            </div>
+   579→          ))}
+   580→          {posts.loading && <div className="h-24 animate-pulse rounded-xl bg-brand-deep/50" />}
+   581→        </div>
+   582→      )}
+   583→    </div>
+   584→  );
+   585→}
+   586→
+   587→/* -------------------------------- faqs tab -------------------------------- */
+   588→
+   589→type CmsFaqRow = { id: string; section: string; category: string; question: string; answer: string; sortOrder: number; published: boolean };
+
+[showing lines 30-589 of 1013; use offset=590 with limit to continue reading]

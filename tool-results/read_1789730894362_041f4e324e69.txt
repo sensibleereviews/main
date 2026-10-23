@@ -1,0 +1,845 @@
+     1→// Sensiblee client dashboard extras — Onboarding wizard, Settings, Review detail drawer
+     2→"use client";
+     3→
+     4→import { useState } from "react";
+     5→import { Button } from "@/components/ui/button";
+     6→import { Switch } from "@/components/ui/switch";
+     7→import { Textarea } from "@/components/ui/textarea";
+     8→import { useToast } from "@/hooks/use-toast";
+     9→import { LOCATIONS, LOCATION_DETAILS, REVIEWS, type Location, type Review } from "./data";
+    10→import {
+    11→  cn,
+    12→  AlertTriangle,
+    13→  Bell,
+    14→  Building2,
+    15→  Check,
+    16→  CheckCircle2,
+    17→  ChevronRight,
+    18→  CreditCard,
+    19→  MapPin,
+    20→  Plus,
+    21→  RefreshCw,
+    22→  Rocket,
+    23→  Send,
+    24→  ShieldCheck,
+    25→  Sparkles,
+    26→  TrendingUp,
+    27→  UserPlus,
+    28→  Users,
+    29→  X,
+    30→} from "./deps";
+    31→import { GoogleG, SentimentBadge, StarRating, StatusBadge, WhatsAppIcon } from "./brand";
+    32→
+    33→/* =============================== Onboarding =============================== */
+    34→
+    35→const STEPS = [
+    36→  { title: "Connect Google", hint: "OAuth, read-only" },
+    37→  { title: "Locations", hint: "profiles found" },
+    38→  { title: "WhatsApp sender", hint: "template + opt-in" },
+    39→  { title: "Brand voice", hint: "how you reply" },
+    40→  { title: "Invite team", hint: "roles & digest" },
+    41→];
+    42→
+    43→const TONES = [
+    44→  { key: "warm", label: "Warm professional", sample: "Thank you so much, Meera! We're delighted the dosa hit the mark — the whole team will be thrilled. See you tomorrow, coffee's on us ☕" },
+    45→  { key: "formal", label: "Formal & precise", sample: "Dear Meera, thank you for your kind words regarding our filter coffee and service. We greatly value your patronage and look forward to welcoming you again." },
+    46→  { key: "playful", label: "Playful & bold", sample: "Meera!! You just made our week 🎉 Next ghee roast is on the house — we're holding your usual corner. Bring the whole crew." },
+    47→];
+    48→
+    49→export function OnboardingWizard({ onDone }: { onDone: () => void }) {
+    50→  const [step, setStep] = useState(0);
+    51→  const [tone, setTone] = useState("warm");
+    52→  const [greeting, setGreeting] = useState("Anand");
+    53→  const [email, setEmail] = useState("");
+    54→  const [invites, setInvites] = useState<string[]>(["priya@spiceroute.in"]);
+    55→  const [locs, setLocs] = useState<string[]>(LOCATIONS.map((l) => l.id));
+    56→
+    57→  const toggleLoc = (id: string) => setLocs((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
+    58→  const addInvite = () => {
+    59→    const e = email.trim();
+    60→    if (e && e.includes("@") && !invites.includes(e)) setInvites((v) => [...v, e]);
+    61→    setEmail("");
+    62→  };
+    63→
+    64→  return (
+    65→    <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand/45 p-4 backdrop-blur-sm">
+    66→      <div className="flex max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-3xl bg-cream shadow-2xl">
+    67→        {/* Rail */}
+    68→        <div className="hidden w-56 shrink-0 flex-col border-r border-neutral-200/70 bg-white p-6 sm:flex">
+    69→          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-mint-deep">First-run setup</p>
+    70→          <p className="mt-1 text-[15px] font-bold">Sensiblee onboarding</p>
+    71→          <div className="mt-6 space-y-1">
+    72→            {STEPS.map((s, i) => (
+    73→              <div key={s.title} className="flex items-start gap-2.5 rounded-xl px-2 py-2">
+    74→                <span className={cn(
+    75→                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10.5px] font-bold",
+    76→                  i < step ? "bg-mint-deep text-white" : i === step ? "bg-brand text-white" : "bg-neutral-100 text-neutral-400"
+    77→                )}>
+    78→                  {i < step ? <Check size={11} /> : i + 1}
+    79→                </span>
+    80→                <div>
+    81→                  <p className={cn("text-[12.5px] font-semibold leading-tight", i === step ? "text-brand" : i < step ? "text-neutral-500" : "text-neutral-400")}>{s.title}</p>
+    82→                  <p className="text-[10.5px] text-neutral-400">{s.hint}</p>
+    83→                </div>
+    84→              </div>
+    85→            ))}
+    86→          </div>
+    87→          <div className="mt-auto rounded-xl bg-surface p-3">
+    88→            <p className="text-[11px] leading-relaxed text-neutral-400">Takes about 4 minutes. Everything here can be changed later in Settings.</p>
+    89→          </div>
+    90→        </div>
+    91→
+    92→        {/* Body */}
+    93→        <div className="flex min-w-0 flex-1 flex-col">
+    94→          {/* mobile progress */}
+    95→          {step < STEPS.length && (
+    96→            <div className="border-b border-neutral-200/70 px-5 py-3 sm:hidden">
+    97→              <div className="flex items-center justify-between text-[11px] font-semibold text-neutral-400">
+    98→                <span>Step {step + 1} of {STEPS.length}</span><span className="font-bold text-brand">{STEPS[step].title}</span>
+    99→              </div>
+   100→              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+   101→                <div className="h-full rounded-full bg-mint-deep transition-all" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
+   102→              </div>
+   103→            </div>
+   104→          )}
+   105→
+   106→          <div className="flex-1 overflow-y-auto p-5 sm:p-7">
+   107→            {step === 0 && (
+   108→              <div>
+   109→                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-mint-soft text-mint-deep"><GoogleG size={22} /></span>
+   110→                <h2 className="mt-4 text-[20px] font-bold tracking-tight">Welcome to Sensiblee 👋</h2>
+   111→                <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-neutral-500">
+   112→                  Let&apos;s connect your Google Business Profiles. We request <span className="font-semibold text-brand">read-only access</span> to
+   113→                  reviews and locations — we can never post without your approval, and you can revoke access at any time.
+   114→                </p>
+   115→                <div className="mt-5 space-y-2.5">
+   116→                  {["Read reviews & ratings", "Read location profiles & hours", "Post replies only after your approval"].map((p) => (
+   117→                    <div key={p} className="flex items-center gap-2.5 rounded-xl bg-white px-3.5 py-2.5 ring-1 ring-neutral-200/70">
+   118→                      <CheckCircle2 size={15} className="text-mint-deep" />
+   119→                      <span className="text-[12.5px] text-neutral-600">{p}</span>
+   120→                    </div>
+   121→                  ))}
+   122→                </div>
+   123→                <Button className="mt-6 h-11 rounded-2xl bg-brand px-5 text-[13px] text-white hover:bg-brand-deep" onClick={() => setStep(1)}>
+   124→                  Continue with Google <ChevronRight size={15} className="ml-1" />
+   125→                </Button>
+   126→                <p className="mt-2.5 text-[11px] text-neutral-400">Simulated OAuth — this is a design prototype.</p>
+   127→              </div>
+   128→            )}
+   129→
+   130→            {step === 1 && (
+   131→              <div>
+   132→                <h2 className="text-[20px] font-bold tracking-tight">We found 3 profiles</h2>
+   133→                <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-neutral-500">
+   134→                  Pick the ones Sensiblee should monitor. Historical reviews (about 1,900) import immediately and are scored overnight.
+   135→                </p>
+   136→                <div className="mt-5 space-y-2.5">
+   137→                  {LOCATIONS.map((l) => (
+   138→                    <button
+   139→                      key={l.id}
+   140→                      onClick={() => toggleLoc(l.id)}
+   141→                      className={cn(
+   142→                        "flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition-all",
+   143→                        locs.includes(l.id) ? "border-mint/60 bg-mint-soft/40 ring-1 ring-mint/40" : "border-neutral-200/70 bg-white hover:border-neutral-300"
+   144→                      )}
+   145→                    >
+   146→                      <span className={cn(
+   147→                        "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border",
+   148→                        locs.includes(l.id) ? "border-mint-deep bg-mint-deep text-white" : "border-neutral-300 bg-white"
+   149→                      )}>
+   150→                        {locs.includes(l.id) && <Check size={12} />}
+   151→                      </span>
+   152→                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface"><MapPin size={15} className="text-neutral-400" /></span>
+   153→                      <div className="min-w-0 flex-1">
+   154→                        <p className="truncate text-[13.5px] font-semibold text-brand">{l.name}</p>
+   155→                        <p className="text-[11.5px] text-neutral-400">{l.area} · {l.reviews.toLocaleString("en-IN")} reviews · {l.rating}★ now</p>
+   156→                      </div>
+   157→                      <GoogleG size={15} className="shrink-0 opacity-50" />
+   158→                    </button>
+   159→                  ))}
+   160→                </div>
+   161→              </div>
+   162→            )}
+   163→
+   164→            {step === 2 && (
+   165→              <div>
+   166→                <h2 className="text-[20px] font-bold tracking-tight">Set up your WhatsApp sender</h2>
+   167→                <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-neutral-500">
+   168→                  Review requests go out on the WhatsApp Business Cloud API with pre-approved templates, quality throttling and per-guest opt-in records.
+   169→                </p>
+   170→                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+   171→                  <label className="block">
+   172→                    <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Business display name</span>
+   173→                    <input defaultValue="Spice Route Kitchen" className="mt-1.5 h-10 w-full rounded-xl border border-neutral-200 bg-white px-3 text-[13px] outline-none focus:border-mint/60" />
+   174→                  </label>
+   175→                  <label className="block">
+   176→                    <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Sender number</span>
+   177→                    <input defaultValue="+91 98450 12345" className="mt-1.5 h-10 w-full rounded-xl border border-neutral-200 bg-white px-3 text-[13px] outline-none focus:border-mint/60" />
+   178→                  </label>
+   179→                </div>
+   180→                <div className="mt-4 rounded-2xl border border-mint/40 bg-mint-soft/30 p-4">
+   181→                  <p className="flex items-center gap-1.5 text-[11.5px] font-bold text-mint-deep"><WhatsAppIcon size={14} /> Template preview · category MARKETING · auto-approved</p>
+   182→                  <div className="mt-2.5 rounded-xl bg-white p-3.5 text-[12.5px] leading-relaxed text-neutral-600 shadow-sm">
+   183→                    Hi {"{name}"}! Thank you for dining with us at Spice Route tonight. If you enjoyed your meal, a quick Google review means the world to our team — {"{review_link}"}
+   184→                  </div>
+   185→                  <p className="mt-2.5 flex items-start gap-1.5 text-[11px] leading-relaxed text-mint-deep">
+   186→                    <ShieldCheck size={13} className="mt-0.5 shrink-0" />
+   187→                    Guests can opt out by replying STOP — we record consent per contact and exclude opted-out numbers automatically.
+   188→                  </p>
+   189→                </div>
+   190→              </div>
+   191→            )}
+   192→
+   193→            {step === 3 && (
+   194→              <div>
+   195→                <h2 className="text-[20px] font-bold tracking-tight">How should your replies sound?</h2>
+   196→                <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-neutral-500">
+   197→                  The AI learns this voice from your past replies plus these choices. You can refine it any time in Settings → AI &amp; brand voice.
+   198→                </p>
+   199→                <div className="mt-5 flex flex-wrap gap-2">
+   200→                  {TONES.map((t) => (
+   201→                    <button
+   202→                      key={t.key}
+   203→                      onClick={() => setTone(t.key)}
+   204→                      className={cn(
+   205→                        "rounded-full px-3.5 py-2 text-[12.5px] font-semibold transition-colors",
+   206→                        tone === t.key ? "bg-brand text-white" : "bg-white text-neutral-500 ring-1 ring-neutral-200/80 hover:text-brand"
+   207→                      )}
+   208→                    >
+   209→                      {t.label}
+   210→                    </button>
+   211→                  ))}
+   212→                </div>
+   213→                <label className="mt-5 block max-w-xs">
+   214→                  <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Sign replies as</span>
+   215→                  <input value={greeting} onChange={(e) => setGreeting(e.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-neutral-200 bg-white px-3 text-[13px] outline-none focus:border-mint/60" />
+   216→                </label>
+   217→                <div className="mt-4 rounded-2xl border border-amber-200/70 bg-amber-soft/40 p-4">
+   218→                  <p className="flex items-center gap-1.5 text-[11.5px] font-bold text-amber-deep"><Sparkles size={13} /> Sample reply in this voice</p>
+   219→                  <p className="mt-2 text-[12.5px] leading-relaxed text-neutral-600">“{TONES.find((t) => t.key === tone)?.sample}” — {greeting || "Your name"}, Spice Route Kitchen</p>
+   220→                </div>
+   221→              </div>
+   222→            )}
+   223→
+   224→            {step === 4 && (
+   225→              <div>
+   226→                <h2 className="text-[20px] font-bold tracking-tight">Invite your team</h2>
+   227→                <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-neutral-500">
+   228→                  Managers can draft and send; observers get the weekly digest only. Owners approve everything that touches Google.
+   229→                </p>
+   230→                <div className="mt-5 flex gap-2">
+   231→                  <input
+   232→                    value={email}
+   233→                    onChange={(e) => setEmail(e.target.value)}
+   234→                    onKeyDown={(e) => e.key === "Enter" && addInvite()}
+   235→                    placeholder="teammate@spiceroute.in"
+   236→                    className="h-10 flex-1 rounded-xl border border-neutral-200 bg-white px-3 text-[13px] outline-none focus:border-mint/60"
+   237→                  />
+   238→                  <Button variant="outline" className="h-10 rounded-xl px-3.5 text-[12.5px]" onClick={addInvite}>
+   239→                    <Plus size={14} className="mr-1" /> Add
+   240→                  </Button>
+   241→                </div>
+   242→                <div className="mt-3 flex flex-wrap gap-2">
+   243→                  {invites.map((v) => (
+   244→                    <span key={v} className="flex items-center gap-1.5 rounded-full bg-white py-1.5 pl-3 pr-2 text-[12px] font-medium text-neutral-600 ring-1 ring-neutral-200/80">
+   245→                      {v}
+   246→                      <button onClick={() => setInvites((list) => list.filter((x) => x !== v))} className="rounded-full p-0.5 text-neutral-400 hover:bg-surface hover:text-brand" aria-label={`Remove ${v}`}>
+   247→                        <X size={12} />
+   248→                      </button>
+   249→                    </span>
+   250→                  ))}
+   251→                  {invites.length === 0 && <span className="text-[12px] text-neutral-400">No invites yet — you can add people later.</span>}
+   252→                </div>
+   253→                <div className="mt-5 rounded-2xl bg-brand p-4 text-white">
+   254→                  <p className="text-[12px] font-bold uppercase tracking-wider text-white/40">Ready to go</p>
+   255→                  <p className="mt-1.5 text-[13px] leading-relaxed text-white/80">
+   256→                    {locs.length} location{locs.length === 1 ? "" : "s"} · WhatsApp sender verified · {TONES.find((t) => t.key === tone)?.label} voice · {invites.length} teammate{invites.length === 1 ? "" : "s"} invited.
+   257→                  </p>
+   258→                </div>
+   259→              </div>
+   260→            )}
+   261→
+   262→            {/* success */}
+   263→            {step === 5 && (
+   264→              <div className="flex flex-col items-center py-6 text-center">
+   265→                <span className="relative flex h-16 w-16 items-center justify-center rounded-3xl bg-mint-soft">
+   266→                  <Rocket size={26} className="text-mint-deep" />
+   267→                  <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-amber-soft ring-2 ring-white" />
+   268→                  <span className="absolute -bottom-1 -left-1 h-2.5 w-2.5 rounded-full bg-mint ring-2 ring-white" />
+   269→                </span>
+   270→                <h2 className="mt-5 text-[22px] font-bold tracking-tight">You&apos;re live, {greeting || "Anand"} 🎉</h2>
+   271→                <p className="mt-2 max-w-sm text-[13.5px] leading-relaxed text-neutral-500">
+   272→                  Your first 15-minute sync is running. Historical reviews will finish scoring within the hour, and the AI queue is already warming up.
+   273→                </p>
+   274→                <div className="mt-5 grid w-full max-w-sm grid-cols-3 gap-2.5">
+   275→                  {[
+   276→                    { v: "3", l: "profiles live" },
+   277→                    { v: "1,921", l: "reviews importing" },
+   278→                    { v: "48h", l: "to first campaign" },
+   279→                  ].map((s) => (
+   280→                    <div key={s.l} className="rounded-2xl bg-white p-3.5 ring-1 ring-neutral-200/70">
+   281→                      <p className="text-[18px] font-bold text-brand">{s.v}</p>
+   282→                      <p className="mt-0.5 text-[10.5px] text-neutral-400">{s.l}</p>
+   283→                    </div>
+   284→                  ))}
+   285→                </div>
+   286→                <Button className="mt-6 h-11 rounded-2xl bg-mint-deep px-6 text-[13px] text-white hover:bg-mint-deep/90" onClick={onDone}>
+   287→                  Go to dashboard <ChevronRight size={15} className="ml-1" />
+   288→                </Button>
+   289→              </div>
+   290→            )}
+   291→          </div>
+   292→
+   293→          {/* footer nav */}
+   294→          {step < 5 && (
+   295→            <div className="flex items-center justify-between border-t border-neutral-200/70 bg-white px-5 py-3.5 sm:px-7">
+   296→              <Button variant="ghost" className="h-9 rounded-xl text-[12.5px] text-neutral-500" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
+   297→                Back
+   298→              </Button>
+   299→              <div className="flex items-center gap-3">
+   300→                <span className="hidden text-[11.5px] text-neutral-400 sm:inline">{step + 1} / {STEPS.length}</span>
+   301→                <Button className="h-9 rounded-xl bg-brand px-4.5 text-[12.5px] text-white hover:bg-brand-deep" onClick={() => setStep((s) => s + 1)}>
+   302→                  {step === 4 ? "Finish setup" : "Continue"} <ChevronRight size={14} className="ml-1" />
+   303→                </Button>
+   304→              </div>
+   305→            </div>
+   306→          )}
+   307→        </div>
+   308→      </div>
+   309→    </div>
+   310→  );
+   311→}
+   312→
+   313→/* ================================ Settings ================================ */
+   314→
+   315→function SectionCard({ icon, title, sub, children }: { icon: React.ReactNode; title: string; sub: string; children: React.ReactNode }) {
+   316→  return (
+   317→    <section className="overflow-hidden rounded-2xl border border-neutral-200/70 bg-white">
+   318→      <div className="flex items-start gap-3 border-b border-neutral-100 px-5 py-4">
+   319→        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-mint-soft text-mint-deep">{icon}</span>
+   320→        <div>
+   321→          <h2 className="text-[14.5px] font-bold">{title}</h2>
+   322→          <p className="mt-0.5 text-[12px] text-neutral-400">{sub}</p>
+   323→        </div>
+   324→      </div>
+   325→      <div className="p-5">{children}</div>
+   326→    </section>
+   327→  );
+   328→}
+   329→
+   330→function Field({ label, children }: { label: string; children: React.ReactNode }) {
+   331→  return (
+   332→    <label className="block">
+   333→      <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">{label}</span>
+   334→      <div className="mt-1.5">{children}</div>
+   335→    </label>
+   336→  );
+   337→}
+   338→
+   339→const inputCls = "h-10 w-full rounded-xl border border-neutral-200 bg-cream/60 px-3 text-[13px] outline-none transition-colors focus:border-mint/60 focus:bg-white";
+   340→
+   341→export function SettingsView() {
+   342→  const { toast } = useToast();
+   343→  const [tone, setTone] = useState("warm");
+   344→  const [threshold, setThreshold] = useState(90);
+   345→  const [notifs, setNotifs] = useState({ digest: true, negative: true, weekly: true, billing: false });
+   346→
+   347→  return (
+   348→    <div className="space-y-5">
+   349→      <div>
+   350→        <h1 className="text-[22px] font-bold tracking-tight">Settings</h1>
+   351→        <p className="mt-0.5 text-[13.5px] text-neutral-500">Business profile, brand voice, team and billing — everything in one place.</p>
+   352→      </div>
+   353→
+   354→      <div className="grid gap-5 xl:grid-cols-2">
+   355→        <div className="space-y-5">
+   356→          <SectionCard icon={<Building2 size={16} />} title="Business profile" sub="Shown in replies, templates and the WhatsApp sender">
+   357→            <div className="grid gap-4 sm:grid-cols-2">
+   358→              <Field label="Business name"><input defaultValue="Spice Route Kitchen" className={inputCls} /></Field>
+   359→              <Field label="Category"><input defaultValue="South Indian restaurant" className={inputCls} /></Field>
+   360→              <Field label="Website"><input defaultValue="spiceroute.in" className={inputCls} /></Field>
+   361→              <Field label="Reply signature">
+   362→                <input defaultValue={`— Anand, Spice Route Kitchen`} className={inputCls} />
+   363→              </Field>
+   364→            </div>
+   365→            <div className="mt-4 space-y-2">
+   366→              <p className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Connected Google profiles</p>
+   367→              {LOCATIONS.map((l) => (
+   368→                <div key={l.id} className="flex items-center justify-between rounded-xl bg-surface px-3.5 py-2.5">
+   369→                  <div className="flex items-center gap-2.5">
+   370→                    <GoogleG size={14} className="opacity-60" />
+   371→                    <div>
+   372→                      <p className="text-[12.5px] font-semibold text-brand">{l.name}</p>
+   373→                      <p className="text-[10.5px] text-neutral-400">{l.area}</p>
+   374→                    </div>
+   375→                  </div>
+   376→                  <div className="flex items-center gap-2">
+   377→                    <StatusBadge status={l.syncState} />
+   378→                    <span className="text-[11.5px] font-semibold text-neutral-500">{l.rating}★</span>
+   379→                  </div>
+   380→                </div>
+   381→              ))}
+   382→              <button className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-neutral-300 py-2.5 text-[12px] font-semibold text-neutral-400 transition-colors hover:border-mint/60 hover:text-mint-deep">
+   383→                <Plus size={13} /> Connect another profile
+   384→              </button>
+   385→            </div>
+   386→          </SectionCard>
+   387→
+   388→          <SectionCard icon={<Sparkles size={16} />} title="AI & brand voice" sub="How drafts read before you ever see them">
+   389→            <p className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Default tone</p>
+   390→            <div className="mt-2 flex flex-wrap gap-2">
+   391→              {[["warm", "Warm professional"], ["formal", "Formal & precise"], ["playful", "Playful & bold"]].map(([k, label]) => (
+   392→                <button
+   393→                  key={k}
+   394→                  onClick={() => setTone(k)}
+   395→                  className={cn("rounded-full px-3.5 py-2 text-[12.5px] font-semibold transition-colors", tone === k ? "bg-brand text-white" : "bg-surface text-neutral-500 hover:text-brand")}
+   396→                >
+   397→                  {label}
+   398→                </button>
+   399→              ))}
+   400→            </div>
+   401→            <div className="mt-5 rounded-xl bg-surface p-3.5">
+   402→              <div className="flex items-center justify-between">
+   403→                <p className="text-[12px] font-semibold">Auto-approve drafts at ≥ {threshold}% confidence</p>
+   404→                <span className="rounded-full bg-mint-soft px-2 py-0.5 text-[10px] font-bold text-mint-deep">{threshold >= 90 ? "Safe" : threshold >= 75 ? "Balanced" : "Aggressive"}</span>
+   405→              </div>
+   406→              <input
+   407→                type="range" min={50} max={100} step={5} value={threshold}
+   408→                onChange={(e) => setThreshold(Number(e.target.value))}
+   409→                className="mt-2 w-full"
+   410→                style={{ accentColor: "#3f9163" }}
+   411→                aria-label="Auto-approval confidence threshold"
+   412→              />
+   413→              <p className="mt-1 text-[11px] leading-relaxed text-neutral-400">
+   414→                Drafts below this threshold always wait in your queue. 1–2★ reviews never auto-approve, regardless of confidence.
+   415→              </p>
+   416→            </div>
+   417→            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+   418→              <Field label="Digest language"><input defaultValue="English (India)" className={inputCls} /></Field>
+   419→              <Field label="AI draft budget">
+   420→                <input defaultValue="Unlimited · fair use" readOnly className={cn(inputCls, "text-neutral-400")} />
+   421→              </Field>
+   422→            </div>
+   423→          </SectionCard>
+   424→        </div>
+   425→
+   426→        <div className="space-y-5">
+   427→          <SectionCard icon={<Bell size={16} />} title="Notifications" sub="Where Sensiblee finds you — WhatsApp and email only">
+   428→            <div className="space-y-1">
+   429→              {([
+   430→                ["digest", "Daily digest · 9:00 AM", "Health score, overnight reviews and queue status on WhatsApp"],
+   431→                ["negative", "Instant negative-review alert", "1–3★ reviews ping the owner group within 2 minutes"],
+   432→                ["weekly", "Weekly leadership summary", "Monday 10 AM — trends, staff mentions, keyword radar"],
+   433→                ["billing", "Billing & invoice emails", "Invoices, receipts and payment reminders"],
+   434→              ] as const).map(([key, title, desc]) => (
+   435→                <div key={key} className="flex items-start justify-between gap-3 rounded-xl px-2.5 py-3 transition-colors hover:bg-surface">
+   436→                  <div className="min-w-0">
+   437→                    <p className="text-[13px] font-semibold text-brand">{title}</p>
+   438→                    <p className="mt-0.5 text-[11.5px] leading-relaxed text-neutral-400">{desc}</p>
+   439→                  </div>
+   440→                  <Switch checked={notifs[key]} onCheckedChange={(v) => setNotifs((n) => ({ ...n, [key]: v }))} />
+   441→                </div>
+   442→              ))}
+   443→            </div>
+   444→          </SectionCard>
+   445→
+   446→          <SectionCard icon={<Users size={16} />} title="Team" sub="3 seats used · Multi plan includes 10">
+   447→            <div className="space-y-2">
+   448→              {[
+   449→                { n: "Anand Menon", e: "anand@spiceroute.in", r: "Owner", s: "AM", live: true },
+   450→                { n: "Divya Suresh", e: "divya@spiceroute.in", r: "Manager", s: "DS", live: true },
+   451→                { n: "Rahul Prasad", e: "rahul@spiceroute.in", r: "Observer · invite sent", s: "RP", live: false },
+   452→              ].map((m) => (
+   453→                <div key={m.e} className="flex items-center gap-3 rounded-xl bg-surface px-3.5 py-3">
+   454→                  <span className={cn("flex h-9 w-9 items-center justify-center rounded-full text-[11.5px] font-bold text-white", m.live ? "bg-brand" : "bg-neutral-300")}>{m.s}</span>
+   455→                  <div className="min-w-0 flex-1">
+   456→                    <p className="truncate text-[13px] font-semibold text-brand">{m.n}</p>
+   457→                    <p className="truncate text-[11px] text-neutral-400">{m.e}</p>
+   458→                  </div>
+   459→                  <span className={cn(
+   460→                    "shrink-0 rounded-full px-2.5 py-1 text-[10.5px] font-bold",
+   461→                    m.r === "Owner" ? "bg-brand/5 text-brand" : m.live ? "bg-mint-soft text-mint-deep" : "bg-amber-soft text-amber-deep"
+   462→                  )}>{m.r}</span>
+   463→                </div>
+   464→              ))}
+   465→            </div>
+   466→            <Button variant="outline" size="sm" className="mt-3 h-9 w-full rounded-xl text-[12.5px]" onClick={() => toast({ title: "Invite dialog opened", description: "Pick a role and we'll send the WhatsApp + email invite." })}>
+   467→              <UserPlus size={14} className="mr-1.5" /> Invite teammate
+   468→            </Button>
+   469→          </SectionCard>
+   470→
+   471→          <SectionCard icon={<CreditCard size={16} />} title="Plan & billing" sub="Billed monthly · next invoice Oct 01, 2026">
+   472→            <div className="rounded-2xl bg-brand p-4 text-white">
+   473→              <div className="flex items-center justify-between">
+   474→                <div>
+   475→                  <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Current plan</p>
+   476→                  <p className="mt-0.5 text-[16px] font-bold">Multi · ₹6,999/month</p>
+   477→                </div>
+   478→                <span className="rounded-full bg-mint px-2.5 py-1 text-[10px] font-bold text-brand-deep">Active</span>
+   479→              </div>
+   480→              <div className="mt-4 space-y-2.5">
+   481→                {[
+   482→                  { l: "Google profiles", u: "3 of 5", p: 60, warn: false },
+   483→                  { l: "WhatsApp requests", u: "4,780 of 5,000", p: 96, warn: true },
+   484→                  { l: "Team seats", u: "3 of 10", p: 30, warn: false },
+   485→                ].map((b) => (
+   486→                  <div key={b.l}>
+   487→                    <div className="flex items-center justify-between text-[11px]">
+   488→                      <span className="text-white/60">{b.l}</span>
+   489→                      <span className={cn("font-semibold", b.warn ? "text-amber-300" : "text-white/80")}>{b.u}</span>
+   490→                    </div>
+   491→                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+   492→                      <div className={cn("h-full rounded-full", b.warn ? "bg-amber-300" : "bg-mint")} style={{ width: `${b.p}%` }} />
+   493→                    </div>
+   494→                  </div>
+   495→                ))}
+   496→              </div>
+   497→              <p className="mt-3 text-[11px] leading-relaxed text-white/50">
+   498→                WhatsApp requests at 96% — the add-on pack (+5,000 for ₹1,499) prevents throttling mid-campaign.
+   499→              </p>
+   500→            </div>
+   501→            <div className="mt-4 flex gap-2.5">
+   502→              <Button size="sm" className="h-9 flex-1 rounded-xl bg-brand text-[12.5px] text-white hover:bg-brand-deep" onClick={() => toast({ title: "Manage plan", description: "Plan changes prorate automatically from the next cycle." })}>
+   503→                Manage plan
+   504→              </Button>
+   505→              <Button variant="outline" size="sm" className="h-9 flex-1 rounded-xl text-[12.5px]" onClick={() => toast({ title: "Invoices", description: "6 invoices available as PDF — sent to billing email." })}>
+   506→                View invoices
+   507→              </Button>
+   508→            </div>
+   509→          </SectionCard>
+   510→        </div>
+   511→      </div>
+   512→
+   513→      <div className="flex items-center justify-end gap-3">
+   514→        <Button variant="ghost" className="h-10 rounded-xl text-[12.5px] text-neutral-500">Discard</Button>
+   515→        <Button className="h-10 rounded-xl bg-mint-deep px-5 text-[12.5px] text-white hover:bg-mint-deep/90" onClick={() => toast({ title: "Settings saved", description: "Voice, notifications and profile updated across the workspace." })}>
+   516→          <Check size={14} className="mr-1.5" /> Save changes
+   517→        </Button>
+   518→      </div>
+   519→    </div>
+   520→  );
+   521→}
+   522→
+   523→/* ============================== Review drawer ============================== */
+   524→
+   525→const TIMELINE = (r: Review) => [
+   526→  { t: r.time, label: "Review received", desc: `Google · ${r.location} · ${r.stars}★`, icon: <GoogleG size={11} /> },
+   527→  { t: "moments later", label: "Classified", desc: `Sentiment: ${r.sentiment} · keywords extracted`, icon: <Sparkles size={11} /> },
+   528→  ...(r.status === "ai-draft"
+   529→    ? [{ t: "draft ready", label: "AI draft prepared", desc: `${Math.round((r.confidence ?? 0.9) * 100)}% confidence · awaiting approval`, icon: <Sparkles size={11} /> }]
+   530→    : []),
+   531→  ...(r.status === "replied"
+   532→    ? [{ t: "replied", label: "Reply published", desc: "Approved by Anand Menon · visible on Google", icon: <Check size={11} /> }]
+   533→    : []),
+   534→  ...(r.status === "awaiting"
+   535→    ? [{ t: "now", label: "Awaiting reply", desc: "24h SLA clock running — request a draft or reply manually", icon: <Bell size={11} /> }]
+   536→    : []),
+   537→];
+   538→
+   539→export function ReviewDrawer({ review, onClose }: { review: Review | null; onClose: () => void }) {
+   540→  const { toast } = useToast();
+   541→  const open = review !== null;
+   542→  return (
+   543→    <div className={cn("fixed inset-0 z-50", !open && "pointer-events-none")} aria-hidden={!open}>
+   544→      <button
+   545→        onClick={onClose}
+   546→        aria-label="Close review details"
+   547→        tabIndex={open ? 0 : -1}
+   548→        className={cn("absolute inset-0 bg-brand/40 backdrop-blur-sm transition-opacity duration-300", open ? "opacity-100" : "opacity-0")}
+   549→      />
+   550→      <aside
+   551→        className={cn(
+   552→          "absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-cream shadow-2xl transition-transform duration-300 ease-out",
+   553→          open ? "translate-x-0" : "translate-x-full"
+   554→        )}
+   555→        role="dialog"
+   556→        aria-label="Review details"
+   557→      >
+   558→        {review && <DrawerBody key={review.id} review={review} onClose={onClose} toast={toast} />}
+   559→      </aside>
+   560→    </div>
+   561→  );
+   562→}
+   563→
+   564→function DrawerBody({ review: r, onClose, toast }: { review: Review; onClose: () => void; toast: ReturnType<typeof useToast>["toast"] }) {
+   565→  const [note, setNote] = useState("");
+   566→  return (
+   567→    <>
+   568→      <header className="flex items-center justify-between border-b border-neutral-200/60 bg-white px-5 py-3.5">
+   569→        <div>
+   570→          <p className="text-[13.5px] font-bold text-brand">Review details</p>
+   571→          <p className="font-mono text-[10.5px] text-neutral-400">{r.id} · via Google</p>
+   572→        </div>
+   573→        <button onClick={onClose} className="rounded-xl p-2 text-neutral-400 transition-colors hover:bg-surface hover:text-brand" aria-label="Close">
+   574→          <X size={16} />
+   575→        </button>
+   576→      </header>
+   577→
+   578→      <div className="flex-1 space-y-4 overflow-y-auto p-5">
+   579→        {/* author card */}
+   580→        <div className="rounded-2xl border border-neutral-200/70 bg-white p-4">
+   581→          <div className="flex items-start gap-3">
+   582→            <span className={cn(
+   583→              "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white",
+   584→              r.sentiment === "positive" ? "bg-mint-deep" : r.sentiment === "neutral" ? "bg-amber-500" : "bg-red-500"
+   585→            )}>{r.initials}</span>
+   586→            <div className="min-w-0 flex-1">
+   587→              <div className="flex flex-wrap items-center gap-2">
+   588→                <p className="text-[14px] font-bold text-brand">{r.author}</p>
+   589→                <StarRating value={r.stars} size={13} />
+   590→              </div>
+   591→              <p className="mt-0.5 text-[11.5px] text-neutral-400">{r.location} · {r.time} · Google review</p>
+   592→              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+   593→                <SentimentBadge sentiment={r.sentiment} />
+   594→                <StatusBadge status={r.status} />
+   595→              </div>
+   596→            </div>
+   597→          </div>
+   598→          <p className="mt-3.5 border-t border-neutral-100 pt-3.5 text-[13.5px] leading-relaxed text-neutral-600">{r.text}</p>
+   599→          <div className="mt-3 flex flex-wrap gap-1.5">
+   600→            {r.keywords.map((kw) => (
+   601→              <span key={kw} className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-neutral-500">#{kw}</span>
+   602→            ))}
+   603→          </div>
+   604→        </div>
+   605→
+   606→        {/* draft / reply */}
+   607→        {r.draft && (
+   608→          <div className="rounded-2xl border border-mint/40 bg-mint-soft/30 p-4">
+   609→            <p className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-mint-deep">
+   610→              <span className="flex items-center gap-1.5"><Sparkles size={12} /> AI suggested reply</span>
+   611→              <span className="rounded-full bg-white px-2 py-0.5 text-[10px]">{Math.round((r.confidence ?? 0.9) * 100)}% confident</span>
+   612→            </p>
+   613→            <p className="mt-2 text-[13px] leading-relaxed text-neutral-600">{r.draft}</p>
+   614→            <div className="mt-3 flex flex-wrap gap-2">
+   615→              <Button size="sm" className="h-8 rounded-lg bg-mint-deep px-3 text-[11.5px] text-white hover:bg-mint-deep/90" onClick={() => toast({ title: "Reply posted", description: `Published to Google for ${r.author}.` })}>
+   616→                <Check size={12} className="mr-1" /> Approve &amp; post
+   617→              </Button>
+   618→              <Button size="sm" variant="outline" className="h-8 rounded-lg px-3 text-[11.5px]" onClick={() => toast({ title: "Editor opened", description: "Adjust the draft, then approve to publish." })}>
+   619→                Edit
+   620→              </Button>
+   621→              <Button size="sm" variant="outline" className="h-8 rounded-lg px-3 text-[11.5px]" onClick={() => toast({ title: "Regenerating", description: "The AI worker is rewriting this reply in your voice." })}>
+   622→                <Sparkles size={12} className="mr-1" /> Regenerate
+   623→              </Button>
+   624→            </div>
+   625→          </div>
+   626→        )}
+   627→        {r.reply && (
+   628→          <div className="rounded-2xl border border-neutral-200/70 bg-white p-4">
+   629→            <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Your published reply</p>
+   630→            <p className="mt-2 text-[13px] leading-relaxed text-neutral-600">{r.reply}</p>
+   631→          </div>
+   632→        )}
+   633→        {r.status === "awaiting" && (
+   634→          <div className="rounded-2xl border border-red-200/60 bg-red-50/40 p-4">
+   635→            <p className="text-[12.5px] font-semibold text-red-700">No reply yet — SLA breached soon</p>
+   636→            <Button size="sm" variant="outline" className="mt-2.5 h-8 rounded-lg bg-white px-3 text-[11.5px]" onClick={() => toast({ title: "Draft requested", description: "AI worker is writing a reply for this review." })}>
+   637→              <Sparkles size={12} className="mr-1" /> Draft a reply with AI
+   638→            </Button>
+   639→          </div>
+   640→        )}
+   641→
+   642→        {/* internal note */}
+   643→        <div className="rounded-2xl border border-neutral-200/70 bg-white p-4">
+   644→          <p className="text-[12.5px] font-bold text-brand">Internal note</p>
+   645→          <p className="mt-0.5 text-[11px] text-neutral-400">Visible to your team only — never shown on Google.</p>
+   646→          <Textarea
+   647→            value={note}
+   648→            onChange={(e) => setNote(e.target.value)}
+   649→            placeholder="e.g. Spoke to the floor captain — Saturday staffing fix scheduled…"
+   650→            className="mt-2.5 min-h-[72px] rounded-xl border-neutral-200 bg-cream/60 text-[12.5px] focus-visible:ring-mint/50"
+   651→          />
+   652→          <Button size="sm" variant="outline" className="mt-2.5 h-8 rounded-lg px-3 text-[11.5px]" onClick={() => { toast({ title: "Note saved", description: "Attached to this review for the whole team." }); setNote(""); }}>
+   653→            Save note
+   654→          </Button>
+   655→        </div>
+   656→
+   657→        {/* timeline */}
+   658→        <div className="rounded-2xl border border-neutral-200/70 bg-white p-4">
+   659→          <p className="text-[12.5px] font-bold text-brand">Activity</p>
+   660→          <div className="mt-3 space-y-3.5">
+   661→            {TIMELINE(r).map((e, i) => (
+   662→              <div key={i} className="flex gap-3">
+   663→                <div className="flex flex-col items-center">
+   664→                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-mint-soft text-mint-deep">{e.icon}</span>
+   665→                  {i < TIMELINE(r).length - 1 && <span className="mt-1 w-px flex-1 bg-neutral-200" />}
+   666→                </div>
+   667→                <div className="pb-0.5">
+   668→                  <p className="text-[12.5px] font-semibold text-brand">{e.label}</p>
+   669→                  <p className="text-[11.5px] leading-relaxed text-neutral-400">{e.desc} · {e.t}</p>
+   670→                </div>
+   671→              </div>
+   672→            ))}
+   673→          </div>
+   674→        </div>
+   675→      </div>
+   676→
+   677→      <footer className="flex items-center gap-2.5 border-t border-neutral-200/60 bg-white px-5 py-3.5">
+   678→        <Button variant="outline" size="sm" className="h-9 flex-1 rounded-xl text-[12px]" onClick={() => toast({ title: "Opening Google", description: "The original review would open in a new tab." })}>
+   679→          Open on Google
+   680→        </Button>
+   681→        <Button size="sm" className="h-9 flex-1 rounded-xl bg-brand text-[12px] text-white hover:bg-brand-deep" onClick={onClose}>
+   682→          Done
+   683→        </Button>
+   684→      </footer>
+   685→    </>
+   686→  );
+   687→}
+   688→
+   689→/* ============================ Location drawer ============================= */
+   690→
+   691→export function LocationDrawer({ location, onClose }: { location: Location | null; onClose: () => void }) {
+   692→  const { toast } = useToast();
+   693→  const open = location !== null;
+   694→  return (
+   695→    <div className={cn("fixed inset-0 z-50", !open && "pointer-events-none")} aria-hidden={!open}>
+   696→      <button
+   697→        onClick={onClose}
+   698→        aria-label="Close location details"
+   699→        tabIndex={open ? 0 : -1}
+   700→        className={cn("absolute inset-0 bg-brand/40 backdrop-blur-sm transition-opacity duration-300", open ? "opacity-100" : "opacity-0")}
+   701→      />
+   702→      <aside
+   703→        className={cn(
+   704→          "absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-cream shadow-2xl transition-transform duration-300 ease-out",
+   705→          open ? "translate-x-0" : "translate-x-full"
+   706→        )}
+   707→        role="dialog"
+   708→        aria-label="Location details"
+   709→      >
+   710→        {location && <LocationDrawerBody key={location.id} location={location} onClose={onClose} toast={toast} />}
+   711→      </aside>
+   712→    </div>
+   713→  );
+   714→}
+   715→
+   716→function LocationDrawerBody({ location: l, onClose, toast }: {
+   717→  location: Location;
+   718→  onClose: () => void;
+   719→  toast: ReturnType<typeof useToast>["toast"];
+   720→}) {
+   721→  const d = LOCATION_DETAILS[l.id];
+   722→  if (!d) return null;
+   723→  const short = l.name.replace("Spice Route ", "");
+   724→  const localReviews = REVIEWS.filter((r) => r.location === short).slice(0, 3);
+   725→  const stateIcon = { ok: <Check size={11} />, warn: <AlertTriangle size={11} />, error: <AlertTriangle size={11} /> };
+   726→  const stateCls = { ok: "bg-mint-soft text-mint-deep", warn: "bg-amber-soft text-amber-deep", error: "bg-red-50 text-red-500" };
+   727→
+   728→  return (
+   729→    <>
+   730→      <header className="flex items-center justify-between border-b border-neutral-200/60 bg-white px-5 py-3.5">
+   731→        <div className="flex min-w-0 items-center gap-2.5">
+   732→          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand text-white"><GoogleG size={16} /></span>
+   733→          <div className="min-w-0">
+   734→            <p className="truncate text-[13.5px] font-bold text-brand">{l.name}</p>
+   735→            <p className="truncate font-mono text-[10px] text-neutral-400">google.business/{short.toLowerCase().replace(/\s+/g, "-")}</p>
+   736→          </div>
+   737→        </div>
+   738→        <button onClick={onClose} className="rounded-xl p-2 text-neutral-400 transition-colors hover:bg-surface hover:text-brand" aria-label="Close">
+   739→          <X size={16} />
+   740→        </button>
+   741→      </header>
+   742→
+   743→      <div className="flex-1 space-y-4 overflow-y-auto p-5">
+   744→        {/* hero stats */}
+   745→        <div className="grid grid-cols-3 gap-3">
+   746→          <div className="rounded-2xl border border-neutral-200/70 bg-white p-3.5 text-center">
+   747→            <p className="text-[24px] font-bold leading-none text-brand">{l.rating}</p>
+   748→            <StarRating value={l.rating} size={11} className="mt-1.5 justify-center" />
+   749→            <p className={cn("mt-1 text-[10.5px] font-semibold", l.delta >= 0 ? "text-mint-deep" : "text-red-500")}>
+   750→              {l.delta >= 0 ? "+" : ""}{l.delta} · 90d
+   751→            </p>
+   752→          </div>
+   753→          <div className="rounded-2xl border border-neutral-200/70 bg-white p-3.5 text-center">
+   754→            <p className="text-[24px] font-bold leading-none text-brand">{l.reviews.toLocaleString("en-IN")}</p>
+   755→            <p className="mt-1.5 text-[10.5px] text-neutral-400">total reviews</p>
+   756→            <p className="text-[10.5px] text-neutral-300">all time</p>
+   757→          </div>
+   758→          <div className="rounded-2xl border border-neutral-200/70 bg-white p-3.5 text-center">
+   759→            <p className="text-[24px] font-bold leading-none text-brand">{d.responseRate}%</p>
+   760→            <p className="mt-1.5 text-[10.5px] text-neutral-400">response rate</p>
+   761→            <p className="text-[10.5px] text-neutral-300">{d.avgResponse} avg</p>
+   762→          </div>
+   763→        </div>
+   764→
+   765→        {/* health breakdown */}
+   766→        <div className="rounded-2xl border border-neutral-200/70 bg-white p-4">
+   767→          <p className="text-[12.5px] font-bold text-brand">What guests talk about</p>
+   768→          <p className="mt-0.5 text-[11px] text-neutral-400">Keyword-clustered health scores · trailing 90 days</p>
+   769→          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+   770→            {d.health.map((h) => (
+   771→              <div key={h.label}>
+   772→                <div className="flex items-baseline justify-between text-[11.5px]">
+   773→                  <span className="truncate text-neutral-500">{h.label}</span>
+   774→                  <span className="font-bold text-brand">{h.score}</span>
+   775→                </div>
+   776→                <div className="mt-1 h-1.5 rounded-full bg-neutral-100">
+   777→                  <div className={cn("h-full rounded-full", h.score >= 85 ? "bg-mint-deep" : h.score >= 70 ? "bg-amber-400" : "bg-red-400")} style={{ width: `${h.score}%` }} />
+   778→                </div>
+   779→              </div>
+   780→            ))}
+   781→          </div>
+   782→          {d.health.some((h) => h.score < 70) && (
+   783→            <p className="mt-3 flex items-start gap-1.5 rounded-xl bg-amber-soft/50 p-2.5 text-[11px] leading-relaxed text-amber-deep">
+   784→              <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+   785→              Scores below 70 feed the weekly digest — HSR wait-time trend is already flagged for Saturday staffing.
+   786→            </p>
+   787→          )}
+   788→        </div>
+   789→
+   790→        {/* recent reviews */}
+   791→        <div className="rounded-2xl border border-neutral-200/70 bg-white p-4">
+   792→          <div className="flex items-center justify-between">
+   793→            <p className="text-[12.5px] font-bold text-brand">Recent at this location</p>
+   794→            <span className="text-[10.5px] font-semibold text-neutral-400">{localReviews.length} of {REVIEWS.filter((r) => r.location === short).length}</span>
+   795→          </div>
+   796→          <div className="mt-2.5 space-y-2">
+   797→            {localReviews.map((r) => (
+   798→              <div key={r.id} className="flex items-start gap-2.5 rounded-xl bg-cream/70 p-2.5">
+   799→                <span className={cn(
+   800→                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white",
+   801→                  r.sentiment === "positive" ? "bg-mint-deep" : r.sentiment === "neutral" ? "bg-amber-500" : "bg-red-500"
+   802→                )}>{r.initials}</span>
+   803→                <div className="min-w-0 flex-1">
+   804→                  <div className="flex items-center gap-1.5">
+   805→                    <p className="truncate text-[11.5px] font-semibold text-brand">{r.author}</p>
+   806→                    <StarRating value={r.stars} size={9} />
+   807→                  </div>
+   808→                  <p className="truncate text-[11px] text-neutral-400">{r.text}</p>
+   809→                </div>
+   810→                <StatusBadge status={r.status} />
+   811→              </div>
+   812→            ))}
+   813→          </div>
+   814→        </div>
+   815→
+   816→        {/* sync log */}
+   817→        <div className="rounded-2xl border border-neutral-200/70 bg-white p-4">
+   818→          <p className="text-[12.5px] font-bold text-brand">Sync log</p>
+   819→          <p className="mt-0.5 text-[11px] text-neutral-400">Every pull from Google · newest first</p>
+   820→          <div className="mt-2.5 space-y-1.5">
+   821→            {d.syncLog.map((s, i) => (
+   822→              <div key={i} className="flex items-start gap-2.5 rounded-xl bg-surface px-3 py-2">
+   823→                <span className={cn("mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full", stateCls[s.state])}>{stateIcon[s.state]}</span>
+   824→                <p className="flex-1 text-[11.5px] leading-snug text-neutral-500">{s.msg}</p>
+   825→                <span className="mt-0.5 shrink-0 font-mono text-[10px] text-neutral-300">{s.t}</span>
+   826→              </div>
+   827→            ))}
+   828→          </div>
+   829→        </div>
+   830→      </div>
+   831→
+   832→      <footer className="flex items-center gap-2.5 border-t border-neutral-200/60 bg-white px-5 py-3.5">
+   833→        <Button size="sm" className="h-9 flex-1 rounded-xl bg-mint-deep text-[12px] text-white hover:bg-mint-deep/90"
+   834→          onClick={() => toast({ title: "Manual sync started", description: `${l.name} — pulling reviews since cursor.` })}>
+   835→          <RefreshCw size={12} className="mr-1" /> Sync now
+   836→        </Button>
+   837→        <Button size="sm" variant="outline" className="h-9 flex-1 rounded-xl text-[12px]"
+   838→          onClick={() => toast({ title: "Alert rules", description: `Routing for ${short}: WhatsApp alerts on 1–2★, digest at 9 AM.` })}>
+   839→          <Bell size={12} className="mr-1" /> Alert rules
+   840→        </Button>
+   841→      </footer>
+   842→    </>
+   843→  );
+   844→}
+   845→

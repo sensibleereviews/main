@@ -1,0 +1,1681 @@
+     1→// Sensiblee platform admin console — dark slate surface, live platform data
+     2→// Views: Platform overview, Clients (+drawer, impersonation), Billing, Plans, Platform team, System, My account
+     3→"use client";
+     4→
+     5→import { useEffect, useState } from "react";
+     6→import { Badge } from "@/components/ui/badge";
+     7→import { Button } from "@/components/ui/button";
+     8→import { Switch } from "@/components/ui/switch";
+     9→import { useToast } from "@/hooks/use-toast";
+    10→import { api, useApiData, inr } from "@/lib/client";
+    11→import { useSession } from "@/lib/session";
+    12→import { useRouter } from "@/lib/router";
+    13→import { hasPerm } from "@/lib/permissions";
+    14→import { WebsiteView } from "./admin-cms";
+    15→import { RolesPanel, MemberEditor, type RoleRow, type PermissionDef } from "./team-roles";
+    16→import { ThemeToggle } from "./theme-toggle";
+    17→import type { TenantVM, InvoiceVM } from "@/lib/viewmodels";
+    18→import {
+    19→  cn,
+    20→  Activity,
+    21→  Building2,
+    22→  Check,
+    23→  CreditCard,
+    24→  Download,
+    25→  ExternalLink,
+    26→  FileText,
+    27→  Gauge,
+    28→  Globe,
+    29→  KeyRound,
+    30→  Landmark,
+    31→  Layers,
+    32→  LayoutDashboard,
+    33→  LogOut,
+    34→  Pencil,
+    35→  RefreshCw,
+    36→  Send,
+    37→  Server,
+    38→  ShieldCheck,
+    39→  ToggleLeft,
+    40→  Users,
+    41→  Wallet,
+    42→  Webhook,
+    43→  X,
+    44→  Zap,
+    45→  UserCog,
+    46→  UserPlus,
+    47→  Pause,
+    48→  Play,
+    49→  Trash2,
+    50→} from "./deps";
+    51→import { BrandLogo, StatusBadge } from "./brand";
+    52→import { MrrChart, StatCard } from "./widgets";
+    53→
+    54→type AdminOverview = {
+    55→  kpis: { mrr: string; mrrRaw: number; tenants: number; active: number; reviewsProcessed: string; waMessages: string };
+    56→  mrrSeries: { m: string; mrr: number }[];
+    57→  watchlist: { due: TenantVM[]; trials: (TenantVM & { trialEndsIn: number | null })[] };
+    58→  aiUsage: { tokens: number; drafts: number; costInr: number; budgetInr: number };
+    59→  topTenants: TenantVM[];
+    60→  payments: InvoiceVM[];
+    61→  demoRequests: { newCount: number; items: { id: string; name: string; company: string; email: string; outlets: string | null; status: string; date: string }[] };
+    62→};
+    63→
+    64→type ViewKey = "platform" | "tenants" | "billing" | "plans" | "website" | "team" | "system" | "account";
+    65→
+    66→const NAV: { key: ViewKey; label: string; icon: React.ReactNode }[] = [
+    67→  { key: "platform", label: "Platform", icon: <LayoutDashboard size={16} /> },
+    68→  { key: "tenants", label: "Clients", icon: <Building2 size={16} /> },
+    69→  { key: "billing", label: "Billing", icon: <CreditCard size={16} /> },
+    70→  { key: "plans", label: "Plans & pricing", icon: <Layers size={16} /> },
+    71→  { key: "website", label: "Website", icon: <Globe size={16} /> },
+    72→  { key: "team", label: "Platform team", icon: <Users size={16} /> },
+    73→  { key: "system", label: "System", icon: <Server size={16} /> },
+    74→  { key: "account", label: "My account", icon: <UserCog size={16} /> },
+    75→];
+    76→
+    77→export function roleLabel(role?: string | null): string {
+    78→  if (!role) return "Team";
+    79→  if (role === "platform_admin") return "Super admin";
+    80→  if (role === "platform_manager") return "Manager";
+    81→  if (role === "platform_observer") return "Observer";
+    82→  if (role === "owner") return "Business owner";
+    83→  return role.charAt(0).toUpperCase() + role.slice(1);
+    84→}
+    85→
+    86→export function AdminConsole() {
+    87→  const { user, logout, refresh } = useSession();
+    88→  const { route, navigate } = useRouter();
+    89→  const view = (NAV.some((n) => n.key === route.view) ? route.view : "platform") as ViewKey;
+    90→  const setView = (v: ViewKey) => navigate({ surface: "admin", view: v });
+    91→  const [navOpen, setNavOpen] = useState(false);
+    92→  const isSuper = user?.role === "platform_admin";
+    93→  const canManageTeam = isSuper || hasPerm(user?.permissions, "team_manage");
+    94→  const canOperate = isSuper || user?.role === "platform_manager" || (user?.role === "member" && (user?.permissions?.length || 0) > 0);
+    95→  const initials = (user?.name || "OP").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+    96→
+    97→  return (
+    98→    <div className="skin skin-admin flex h-screen bg-brand-deep text-white">
+    99→      <aside
+   100→        className={cn(
+   101→          "fixed inset-y-0 left-0 z-40 flex w-[240px] flex-col border-r border-white/10 bg-brand transition-transform lg:static lg:translate-x-0",
+   102→          navOpen ? "translate-x-0" : "-translate-x-full"
+   103→        )}
+   104→      >
+   105→        <div className="px-5 pb-5 pt-6">
+   106→          <BrandLogo height={30} plate />
+   107→        </div>
+   108→        <div className="mx-4 mb-5 rounded-xl border border-mint/25 bg-mint/10 px-3 py-2.5">
+   109→          <p className="text-[10.5px] font-semibold uppercase tracking-wider text-mint">Platform operator</p>
+   110→          <p className="mt-0.5 text-[13px] font-semibold text-white">Sensiblee HQ</p>
+   111→        </div>
+   112→        <nav className="flex-1 space-y-1 px-3" aria-label="Admin sections">
+   113→          {NAV.map((n) => (
+   114→            <button
+   115→              key={n.key}
+   116→              onClick={() => { setView(n.key); setNavOpen(false); }}
+   117→              className={cn(
+   118→                "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors",
+   119→                view === n.key ? "bg-mint text-brand-deep shadow-sm" : "text-white/55 hover:bg-white/5 hover:text-white"
+   120→              )}
+   121→              aria-current={view === n.key ? "page" : undefined}
+   122→            >
+   123→              {n.icon}
+   124→              {n.label}
+   125→              {n.key === "tenants" && <span className="ml-auto rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-bold text-white/70">live</span>}
+   126→            </button>
+   127→          ))}
+   128→        </nav>
+   129→        <div className="border-t border-white/10 p-3">
+   130→          <div className="flex items-center gap-2.5 px-2 py-2">
+   131→            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-mint text-[11px] font-bold text-brand-deep">{initials}</span>
+   132→            <div className="min-w-0 flex-1 leading-tight">
+   133→              <p className="truncate text-[12.5px] font-semibold">{user?.name || "Ops Console"}</p>
+   134→              <p className="truncate text-[11px] text-white/40">{user?.email || "ops@sensiblee.in"}</p>
+   135→            </div>
+   136→            <button onClick={async () => { await logout(); navigate({ surface: "admin" }); }} title="Sign out" className="rounded-lg p-1.5 text-white/40 hover:bg-white/5 hover:text-white">
+   137→              <LogOut size={14} />
+   138→            </button>
+   139→            <button onClick={() => navigate({ surface: "home" })} title="Back to website" className="rounded-lg p-1.5 text-white/40 hover:bg-white/5 hover:text-white">
+   140→              <ExternalLink size={14} />
+   141→            </button>
+   142→          </div>
+   143→        </div>
+   144→      </aside>
+   145→      {navOpen && <button className="fixed inset-0 z-30 bg-black/50 lg:hidden" aria-label="Close menu" onClick={() => setNavOpen(false)} />}
+   146→
+   147→      <div className="flex min-w-0 flex-1 flex-col">
+   148→        <header className="flex items-center gap-3 border-b border-white/10 bg-brand-deep/80 px-4 py-3 backdrop-blur lg:px-7">
+   149→          <button className="rounded-lg p-2 text-white/60 hover:bg-white/5 lg:hidden" onClick={() => setNavOpen(true)} aria-label="Open menu">
+   150→            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+   151→          </button>
+   152→          <div>
+   153→            <h2 className="text-[14.5px] font-semibold">
+   154→              {view === "platform" && "Platform overview"}
+   155→              {view === "tenants" && "Client management"}
+   156→              {view === "billing" && "Subscriptions & billing"}
+   157→              {view === "plans" && "Plans & pricing"}
+   158→              {view === "website" && "Website content (CMS)"}
+   159→              {view === "team" && "Platform team"}
+   160→              {view === "system" && "System health"}
+   161→              {view === "account" && "My account"}
+   162→            </h2>
+   163→            <p className="text-[11.5px] text-white/40">Sensiblee operations · {roleLabel(user?.role)}{!canOperate && " · read-only"}</p>
+   164→          </div>
+   165→          <Badge className="ml-auto border-mint/30 bg-mint/10 text-mint hover:bg-mint/10">All systems operational</Badge>
+   166→          <ThemeToggle chrome="dark" />
+   167→        </header>
+   168→
+   169→        <main className="flex-1 overflow-y-auto px-4 py-5 lg:px-7 lg:py-6">
+   170→          <div className="mx-auto max-w-[1200px]">
+   171→            {view === "platform" && <PlatformView onGo={setView} canOperate={canOperate} />}
+   172→            {view === "tenants" && <TenantsView canOperate={canOperate} isSuper={isSuper} />}
+   173→            {view === "billing" && <BillingView canOperate={canOperate} />}
+   174→            {view === "plans" && <PlansView canOperate={canOperate} />}
+   175→            {view === "website" && <WebsiteView canOperate={canOperate} />}
+   176→            {view === "team" && <TeamView canManage={canManageTeam} />}
+   177→            {view === "system" && <SystemView canOperate={canOperate} />}
+   178→            {view === "account" && <AccountView onRefresh={refresh} />}
+   179→          </div>
+   180→        </main>
+   181→      </div>
+   182→    </div>
+   183→  );
+   184→}
+   185→
+   186→/* --------------------------- Platform overview --------------------------- */
+   187→
+   188→function PlatformView({ onGo, canOperate }: { onGo: (v: ViewKey) => void; canOperate: boolean }) {
+   189→  const data = useApiData<AdminOverview>("/api/admin/overview");
+   190→  if (data.loading || !data.data) {
+   191→    return (
+   192→      <div className="space-y-5">
+   193→        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   194→          {[0, 1, 2, 3].map((i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-brand" />)}
+   195→        </div>
+   196→        <div className="h-72 animate-pulse rounded-2xl bg-brand" />
+   197→      </div>
+   198→    );
+   199→  }
+   200→  const d = data.data;
+   201→  const k = d.kpis;
+   202→  const maxMrr = Math.max(...d.topTenants.map((t) => t.reviews), 1);
+   203→  const costPct = Math.min(100, Math.round((d.aiUsage.costInr / d.aiUsage.budgetInr) * 100));
+   204→
+   205→  return (
+   206→    <div className="space-y-5">
+   207→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   208→        <DarkStat label="MRR" value={k.mrr} delta="+23%" hint={`${k.active} active of ${k.tenants} clients`} />
+   209→        <DarkStat label="Active clients" value={`${k.active} / ${k.tenants}`} hint={`${d.watchlist.trials.length} trials in flight`} icon={<Building2 size={15} />} />
+   210→        <DarkStat label="Reviews processed" value={k.reviewsProcessed} hint="lifetime across all clients" icon={<Zap size={15} />} />
+   211→        <DarkStat label="WhatsApp messages" value={k.waMessages} hint="30d · quality rating high" icon={<Send size={15} />} />
+   212→      </div>
+   213→
+   214→      <div className="grid gap-5 xl:grid-cols-3">
+   215→        <div className="rounded-2xl border border-white/10 bg-brand p-5 xl:col-span-2">
+   216→          <div className="mb-4 flex items-start justify-between">
+   217→            <div>
+   218→              <h3 className="text-[15px] font-semibold">Momentum — settled invoices by month</h3>
+   219→              <p className="mt-0.5 text-xs text-white/40">₹ lakh per month · Razorpay settled</p>
+   220→            </div>
+   221→            <Button size="sm" variant="outline" className="h-8 border-white/15 bg-transparent text-[12px] text-white/70 hover:bg-white/5 hover:text-white" onClick={() => onGo("billing")}>
+   222→              Open billing <Wallet size={13} className="ml-1" />
+   223→            </Button>
+   224→          </div>
+   225→          <MrrChart data={d.mrrSeries} />
+   226→        </div>
+   227→
+   228→        <div className="space-y-5">
+   229→          <div className="rounded-2xl border border-amber-300/20 bg-amber-soft/10 p-4">
+   230→            <h3 className="flex items-center gap-2 text-[13.5px] font-semibold text-amber-300">
+   231→              <Gauge size={15} /> Collections watchlist
+   232→            </h3>
+   233→            <div className="mt-3 space-y-2">
+   234→              {d.watchlist.due.map((t) => (
+   235→                <div key={t.id} className="flex items-center justify-between rounded-xl bg-brand-deep/60 px-3 py-2.5 text-[12.5px]">
+   236→                  <div>
+   237→                    <p className="font-semibold text-white">{t.business}</p>
+   238→                    <p className="text-[11px] text-white/40">auto-debit failed · in dunning</p>
+   239→                  </div>
+   240→                  <span className="font-bold text-amber-300">{inr(t.mrr)}</span>
+   241→                </div>
+   242→              ))}
+   243→              {d.watchlist.trials.map((t) => (
+   244→                <div key={t.id} className="flex items-center justify-between rounded-xl bg-brand-deep/60 px-3 py-2.5 text-[12.5px]">
+   245→                  <div>
+   246→                    <p className="font-semibold text-white">{t.business}</p>
+   247→                    <p className="text-[11px] text-white/40">trial ends in {t.trialEndsIn ?? "—"} days</p>
+   248→                  </div>
+   249→                  <span className="font-semibold text-mint">convert?</span>
+   250→                </div>
+   251→              ))}
+   252→              {d.watchlist.due.length === 0 && d.watchlist.trials.length === 0 && (
+   253→                <p className="rounded-xl bg-brand-deep/60 px-3 py-2.5 text-[12.5px] text-white/40">Nothing overdue — collections clean.</p>
+   254→              )}
+   255→            </div>
+   256→          </div>
+   257→
+   258→          <div className="rounded-2xl border border-white/10 bg-brand p-4">
+   259→            <h3 className="text-[13.5px] font-semibold">AI cost control</h3>
+   260→            <div className="mt-3">
+   261→              <div className="mb-1 flex justify-between text-[12px] text-white/50">
+   262→                <span>{inr(d.aiUsage.costInr)} of {inr(d.aiUsage.budgetInr)}</span>
+   263→                <span className="text-mint">{costPct}%</span>
+   264→              </div>
+   265→              <div className="h-2 rounded-full bg-brand-deep"><div className="h-full rounded-full bg-mint" style={{ width: `${Math.max(costPct, 2)}%` }} /></div>
+   266→              <p className="mt-2 text-[11.5px] leading-relaxed text-white/40">
+   267→                {(d.aiUsage.tokens / 1000).toFixed(1)}k tokens · {d.aiUsage.drafts.toLocaleString("en-IN")} drafts this month across clients. Budget guardrail pauses batch jobs, never live replies.
+   268→              </p>
+   269→            </div>
+   270→          </div>
+   271→        </div>
+   272→      </div>
+   273→
+   274→      {/* demo pipeline */}
+   275→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+   276→        <div className="mb-4 flex items-center justify-between">
+   277→          <h3 className="text-[15px] font-semibold">Demo pipeline</h3>
+   278→          <Badge className="border-mint/30 bg-mint/10 text-mint hover:bg-mint/10">{d.demoRequests.newCount} new</Badge>
+   279→        </div>
+   280→        <div className="space-y-2">
+   281→          {d.demoRequests.items.map((r) => (
+   282→            <div key={r.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-brand-deep/50 px-3.5 py-3 text-[12.5px]">
+   283→              <div className="min-w-0 flex-1">
+   284→                <p className="font-semibold text-white">{r.company} <span className="font-normal text-white/40">· {r.name}</span></p>
+   285→                <p className="truncate text-[11px] text-white/40">{r.email} {r.outlets ? `· ${r.outlets}` : ""} · {r.date}</p>
+   286→              </div>
+   287→              <span className={cn(
+   288→                "rounded-full px-2 py-0.5 text-[10.5px] font-bold capitalize",
+   289→                r.status === "new" ? "bg-mint/15 text-mint" : r.status === "contacted" ? "bg-amber-soft/20 text-amber-300" : "bg-white/10 text-white/60"
+   290→              )}>{r.status}</span>
+   291→              {r.status === "new" && (
+   292→                <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2.5 text-[11px] text-white/70 hover:bg-white/5 hover:text-white" disabled={!canOperate}
+   293→                  onClick={async () => { await api.patch(`/api/demo-requests/${r.id}`, { status: "contacted" }); data.reload(); }}>
+   294→                  Mark contacted
+   295→                </Button>
+   296→              )}
+   297→            </div>
+   298→          ))}
+   299→          {d.demoRequests.items.length === 0 && (
+   300→            <p className="rounded-xl bg-brand-deep/50 px-3.5 py-3 text-[12.5px] text-white/40">No demo requests yet — the contact form feeds this pipeline.</p>
+   301→          )}
+   302→        </div>
+   303→      </div>
+   304→
+   305→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+   306→        <div className="mb-4 flex items-center justify-between">
+   307→          <h3 className="text-[15px] font-semibold">Top clients by reviews processed</h3>
+   308→          <Button size="sm" variant="outline" className="h-8 border-white/15 bg-transparent text-[12px] text-white/70 hover:bg-white/5 hover:text-white" onClick={() => onGo("tenants")}>
+   309→            Manage clients <Users size={13} className="ml-1" />
+   310→          </Button>
+   311→        </div>
+   312→        <div className="space-y-2.5">
+   313→          {d.topTenants.map((t) => (
+   314→            <div key={t.id} className="flex items-center gap-3">
+   315→              <span className="w-40 shrink-0 truncate text-[12.5px] font-medium text-white/80">{t.business}</span>
+   316→              <div className="h-5 flex-1 overflow-hidden rounded-md bg-brand-deep">
+   317→                <div className="flex h-full items-center justify-end rounded-md bg-gradient-to-r from-mint-deep to-mint pr-2 text-[10px] font-bold text-brand-deep" style={{ width: `${(t.reviews / maxMrr) * 100}%` }}>
+   318→                  {t.reviews.toLocaleString("en-IN")}
+   319→                </div>
+   320→              </div>
+   321→              <Badge variant="outline" className="border-white/15 text-white/50">{t.plan}</Badge>
+   322→            </div>
+   323→          ))}
+   324→        </div>
+   325→      </div>
+   326→    </div>
+   327→  );
+   328→}
+   329→
+   330→function DarkStat({ label, value, delta, hint, icon }: { label: string; value: string; delta?: string; hint?: string; icon?: React.ReactNode }) {
+   331→  return (
+   332→    <div className="rounded-2xl border border-white/10 bg-brand p-4 transition-colors hover:border-mint/30">
+   333→      <div className="flex items-center gap-2 text-white/50">
+   334→        {icon}
+   335→        <span className="text-[12.5px] font-medium">{label}</span>
+   336→        {delta && <span className="ml-auto rounded-full bg-mint/15 px-1.5 py-0.5 text-[11px] font-semibold text-mint">{delta}</span>}
+   337→      </div>
+   338→      <div className="mt-3 text-[24px] font-bold leading-none">{value}</div>
+   339→      {hint && <div className="mt-1.5 text-[11.5px] text-white/35">{hint}</div>}
+   340→    </div>
+   341→  );
+   342→}
+   343→
+   344→/* -------------------------------- Tenants -------------------------------- */
+   345→
+   346→type TenantDetail = {
+   347→  tenant: TenantVM;
+   348→  detail: {
+   349→    mrrSeries: { m: string; mrr: number }[];
+   350→    usage: { label: string; used: number; quota: number; unit: string; warn?: boolean }[];
+   351→    health: { label: string; score: number }[];
+   352→    activity: { t: string; label: string; desc: string }[];
+   353→    contact: { person: string; role: string; phone: string; email: string };
+   354→    gstin: string;
+   355→    nextInvoice: string;
+   356→    trialDaysLeft: number | null;
+   357→  };
+   358→};
+   359→
+   360→function TenantsView({ canOperate, isSuper }: { canOperate: boolean; isSuper: boolean }) {
+   361→  const { toast } = useToast();
+   362→  const tenants = useApiData<{ tenants: TenantVM[] }>("/api/admin/tenants");
+   363→  const [selected, setSelected] = useState<TenantVM | null>(null);
+   364→  const [query, setQuery] = useState("");
+   365→  const filtered = (tenants.data?.tenants || []).filter(
+   366→    (t) => t.business.toLowerCase().includes(query.toLowerCase()) || t.owner.toLowerCase().includes(query.toLowerCase())
+   367→  );
+   368→
+   369→  return (
+   370→    <div className="space-y-5">
+   371→      <div className="flex flex-wrap items-center justify-between gap-3">
+   372→        <input
+   373→          placeholder="Search clients…"
+   374→          value={query}
+   375→          onChange={(e) => setQuery(e.target.value)}
+   376→          className="h-9 w-64 rounded-xl border border-white/10 bg-brand px-3.5 text-[13px] text-white placeholder:text-white/30 outline-none focus:border-mint/50"
+   377→        />
+   378→        <Badge className="border-mint/30 bg-mint/10 text-mint hover:bg-mint/10">{filtered.length} clients</Badge>
+   379→      </div>
+   380→
+   381→      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-brand">
+   382→        <table className="w-full min-w-[760px] text-left text-[13px]">
+   383→          <thead>
+   384→            <tr className="border-b border-white/10 text-[11px] uppercase tracking-wider text-white/35">
+   385→              <th className="px-5 py-3 font-medium">Business</th>
+   386→              <th className="px-3 py-3 font-medium">Plan</th>
+   387→              <th className="px-3 py-3 font-medium">Locations</th>
+   388→              <th className="px-3 py-3 font-medium">MRR</th>
+   389→              <th className="px-3 py-3 font-medium">Reviews</th>
+   390→              <th className="px-3 py-3 font-medium">Status</th>
+   391→              <th className="px-5 py-3 text-right font-medium">Actions</th>
+   392→            </tr>
+   393→          </thead>
+   394→          <tbody>
+   395→            {filtered.map((t) => (
+   396→              <tr key={t.id} className="border-b border-white/5 last:border-0 transition-colors hover:bg-white/[0.03]">
+   397→                <td className="px-5 py-3.5">
+   398→                  <p className="font-semibold text-white">{t.business}</p>
+   399→                  <p className="text-[11.5px] text-white/40">{t.owner} · since {t.since}</p>
+   400→                </td>
+   401→                <td className="px-3 py-3.5"><Badge variant="outline" className="border-white/15 text-white/70">{t.plan}</Badge></td>
+   402→                <td className="px-3 py-3.5 text-white/60">{t.locations}</td>
+   403→                <td className="px-3 py-3.5 font-semibold text-mint">{inr(t.mrr)}</td>
+   404→                <td className="px-3 py-3.5 text-white/60">{t.reviews.toLocaleString("en-IN")}</td>
+   405→                <td className="px-3 py-3.5"><AdminStatus status={t.status} /></td>
+   406→                <td className="px-5 py-3.5 text-right">
+   407→                  <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2.5 text-[11.5px] text-white/60 hover:bg-white/5 hover:text-white"
+   408→                    onClick={() => setSelected(t)}>
+   409→                    Manage
+   410→                  </Button>
+   411→                </td>
+   412→              </tr>
+   413→            ))}
+   414→          </tbody>
+   415→        </table>
+   416→      </div>
+   417→
+   418→      <div className="grid gap-4 md:grid-cols-3">
+   419→        <DarkCard icon={<Users size={16} />} title="Roles & access" desc="Super admin, platform managers and read-only observers — plus owner-defined roles inside each client workspace. Every action audit-logged." />
+   420→        <DarkCard icon={<KeyRound size={16} />} title="Impersonation" desc={isSuper ? "Support can enter a client workspace with a consent banner + time-boxed session." : "Time-boxed support sessions — super admin only."} />
+   421→        <DarkCard icon={<Activity size={16} />} title="Client health" desc="Sync failures, low adoption, quota warnings — surfaced before churn calls." />
+   422→      </div>
+   423→
+   424→      <TenantDrawer tenant={selected} onClose={() => setSelected(null)} onChanged={() => tenants.reload()} toast={toast} canOperate={canOperate} isSuper={isSuper} />
+   425→    </div>
+   426→  );
+   427→}
+   428→
+   429→function AdminStatus({ status }: { status: string }) {
+   430→  const map: Record<string, string> = {
+   431→    active: "bg-mint/15 text-mint",
+   432→    trial: "bg-amber-soft/15 text-amber-300",
+   433→    past_due: "bg-red-400/15 text-red-300",
+   434→    suspended: "bg-white/10 text-white/50",
+   435→  };
+   436→  const label = status === "past_due" ? "Past due" : status.charAt(0).toUpperCase() + status.slice(1);
+   437→  return <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold", map[status])}>{label}</span>;
+   438→}
+   439→
+   440→function DarkCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
+   441→  return (
+   442→    <div className="rounded-2xl border border-white/10 bg-brand p-4">
+   443→      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-mint/15 text-mint">{icon}</span>
+   444→      <h4 className="mt-3 text-[13.5px] font-semibold">{title}</h4>
+   445→      <p className="mt-1 text-[12px] leading-relaxed text-white/40">{desc}</p>
+   446→    </div>
+   447→  );
+   448→}
+   449→
+   450→/* -------------------------------- Billing -------------------------------- */
+   451→
+   452→type BillingPayload = { invoices: InvoiceVM[]; stats: { settledMonth: number; failed: number; overdueAmount: number; annualContracts: number } };
+   453→
+   454→function BillingView({ canOperate }: { canOperate: boolean }) {
+   455→  const { toast } = useToast();
+   456→  const data = useApiData<BillingPayload>("/api/admin/invoices");
+   457→  const [busyId, setBusyId] = useState<string | null>(null);
+   458→
+   459→  const act = async (id: string, action: "remind" | "mark-paid", tenant: string) => {
+   460→    setBusyId(id);
+   461→    try {
+   462→      await api.patch(`/api/admin/invoices/${id}`, { action });
+   463→      toast({
+   464→        title: action === "remind" ? "Payment link sent" : "Invoice settled",
+   465→        description: action === "remind" ? `WhatsApp link dispatched to ${tenant}'s billing contact.` : `${tenant} — subscription reactivated if it was paused.`,
+   466→      });
+   467→      data.reload();
+   468→    } catch (e) {
+   469→      toast({ title: "Action failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   470→    } finally {
+   471→      setBusyId(null);
+   472→    }
+   473→  };
+   474→
+   475→  if (data.loading || !data.data) return <div className="h-64 animate-pulse rounded-2xl bg-brand" />;
+   476→  const d = data.data;
+   477→
+   478→  return (
+   479→    <div className="space-y-5">
+   480→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   481→        <DarkStat label="Settled (this month)" value={inr(d.stats.settledMonth)} hint="Razorpay · T+2 settlement" icon={<Landmark size={15} />} />
+   482→        <DarkStat label="Failed payments" value={String(d.stats.failed)} hint={d.stats.failed ? `${inr(d.stats.overdueAmount)} overdue` : "all clean"} icon={<Wallet size={15} />} />
+   483→        <DarkStat label="Invoices issued" value={String(d.invoices.length)} hint="lifetime" icon={<Layers size={15} />} />
+   484→        <DarkStat label="Dunning ladder" value={d.stats.failed ? "active" : "idle"} hint="retry 1/3/5/7 · WhatsApp links" icon={<RefreshCw size={15} />} />
+   485→      </div>
+   486→
+   487→      {d.invoices.filter((p) => p.status === "overdue").map((p) => (
+   488→        <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/20 bg-red-400/10 p-4">
+   489→          <div className="text-[13px]">
+   490→            <p className="font-semibold text-red-300">Auto-debit failed — {p.tenant}</p>
+   491→            <p className="mt-0.5 text-[12px] text-white/50">{p.method} · {p.date} · {p.remindersSent} reminder{p.remindersSent === 1 ? "" : "s"} sent · smart dunning armed</p>
+   492→          </div>
+   493→          <Button size="sm" className="h-8 rounded-xl bg-mint text-[12px] text-brand-deep hover:bg-mint/90" disabled={busyId === p.id || !canOperate} onClick={() => act(p.id, "remind", p.tenant)}>
+   494→            Send WhatsApp payment link
+   495→          </Button>
+   496→        </div>
+   497→      ))}
+   498→
+   499→      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-brand">
+   500→        <table className="w-full min-w-[680px] text-left text-[13px]">
+   501→          <thead>
+   502→            <tr className="border-b border-white/10 text-[11px] uppercase tracking-wider text-white/35">
+   503→              <th className="px-5 py-3 font-medium">Invoice</th>
+   504→              <th className="px-3 py-3 font-medium">Client</th>
+   505→              <th className="px-3 py-3 font-medium">Amount</th>
+   506→              <th className="px-3 py-3 font-medium">Method</th>
+   507→              <th className="px-3 py-3 font-medium">Status</th>
+   508→              <th className="px-5 py-3 text-right font-medium">Actions</th>
+   509→            </tr>
+   510→          </thead>
+   511→          <tbody>
+   512→            {d.invoices.map((p) => (
+   513→              <tr key={p.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.03]">
+   514→                <td className="px-5 py-3 font-mono text-[11.5px] text-white/50">{p.number}</td>
+   515→                <td className="px-3 py-3 font-medium text-white/85">{p.tenant}</td>
+   516→                <td className="px-3 py-3 font-semibold">{inr(p.amount)}</td>
+   517→                <td className="px-3 py-3 text-white/50">{p.method}</td>
+   518→                <td className="px-3 py-3">
+   519→                  <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize",
+   520→                    p.status === "paid" ? "bg-mint/15 text-mint" : p.status === "overdue" ? "bg-red-400/15 text-red-300" : "bg-white/10 text-white/60")}>
+   521→                    {p.status}
+   522→                  </span>
+   523→                </td>
+   524→                <td className="px-5 py-3 text-right">
+   525→                  <span className="inline-flex items-center gap-1.5">
+   526→                    <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2 text-[11px] text-white/70 hover:bg-white/5 hover:text-white"
+   527→                      onClick={() => {
+   528→                        const a = document.createElement("a");
+   529→                        a.href = `/api/admin/invoices/${p.id}/pdf`;
+   530→                        a.download = `sensiblee-invoice-${p.number}.pdf`;
+   531→                        document.body.appendChild(a);
+   532→                        a.click();
+   533→                        a.remove();
+   534→                      }}>
+   535→                      <Download size={11} className="mr-1" /> PDF
+   536→                    </Button>
+   537→                    {p.status !== "paid" && (
+   538→                      <>
+   539→                        <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2 text-[11px] text-white/70 hover:bg-white/5 hover:text-white"
+   540→                          disabled={busyId === p.id || !canOperate} onClick={() => act(p.id, "remind", p.tenant)}>
+   541→                          Remind
+   542→                        </Button>
+   543→                        <Button size="sm" variant="outline" className="h-7 border-mint/30 bg-transparent px-2 text-[11px] text-mint hover:bg-mint/10"
+   544→                          disabled={busyId === p.id || !canOperate} onClick={() => act(p.id, "mark-paid", p.tenant)}>
+   545→                          Mark paid
+   546→                        </Button>
+   547→                      </>
+   548→                    )}
+   549→                  </span>
+   550→                </td>
+   551→              </tr>
+   552→            ))}
+   553→          </tbody>
+   554→        </table>
+   555→      </div>
+   556→
+   557→      <div className="grid gap-4 md:grid-cols-3">
+   558→        <DarkCard icon={<RefreshCw size={16} />} title="Proration engine" desc="Mid-cycle upgrades bill per day immediately; downgrades become invoice credit." />
+   559→        <DarkCard icon={<Wallet size={16} />} title="Dunning ladder" desc="Retries day 1/3/5/7, WhatsApp payment links, auto-downgrade before suspension." />
+   560→        <DarkCard icon={<Webhook size={16} />} title="Razorpay events" desc="Signature-verified webhooks reconcile invoices within 30 seconds." />
+   561→      </div>
+   562→    </div>
+   563→  );
+   564→}
+   565→
+   566→/* ----------------------------- Plans & pricing ---------------------------- */
+   567→
+   568→type PlanRow = { id: string; name: string; monthlyInr: number; halfYearlyInr: number; annualInr: number; blurb: string; features: string[]; popular: boolean };
+   569→
+   570→function PlansView({ canOperate }: { canOperate: boolean }) {
+   571→  const { toast } = useToast();
+   572→  const data = useApiData<{ plans: PlanRow[] }>("/api/admin/plans");
+   573→  const [edits, setEdits] = useState<Record<string, { monthlyInr: number; halfYearlyInr: number; annualInr: number }>>({});
+   574→  const [savingId, setSavingId] = useState<string | null>(null);
+   575→
+   576→  const save = async (p: PlanRow) => {
+   577→    const e = edits[p.id];
+   578→    if (!e) return;
+   579→    setSavingId(p.id);
+   580→    try {
+   581→      await api.patch("/api/admin/plans", { id: p.id, monthlyInr: e.monthlyInr, halfYearlyInr: e.halfYearlyInr, annualInr: e.annualInr });
+   582→      toast({ title: `${p.name} updated`, description: "Public pricing page reflects instantly." });
+   583→      data.reload();
+   584→    } catch (err) {
+   585→      toast({ title: "Save failed", description: err instanceof Error ? err.message : "", variant: "destructive" });
+   586→    } finally {
+   587→      setSavingId(null);
+   588→    }
+   589→  };
+   590→
+   591→  if (data.loading || !data.data) return <div className="h-64 animate-pulse rounded-2xl bg-brand" />;
+   592→
+   593→  return (
+   594→    <div className="space-y-5">
+   595→      <div className="grid gap-4 lg:grid-cols-3">
+   596→        {data.data.plans.map((p) => {
+   597→          const e = edits[p.id] || { monthlyInr: p.monthlyInr, halfYearlyInr: p.halfYearlyInr, annualInr: p.annualInr };
+   598→          const dirty = e.monthlyInr !== p.monthlyInr || e.halfYearlyInr !== p.halfYearlyInr || e.annualInr !== p.annualInr;
+   599→          return (
+   600→            <div key={p.id} className={cn("relative rounded-2xl border p-5", p.popular ? "border-mint/60 bg-brand ring-1 ring-mint/30" : "border-white/10 bg-brand")}>
+   601→              {p.popular && (
+   602→                <span className="absolute -top-2.5 left-5 rounded-full bg-mint px-2.5 py-0.5 text-[10.5px] font-bold text-brand-deep">Most popular</span>
+   603→              )}
+   604→              <div className="flex items-baseline justify-between">
+   605→                <h3 className="text-[16px] font-bold">{p.name}</h3>
+   606→                <p className="text-[22px] font-bold text-mint">
+   607→                  ₹{e.monthlyInr.toLocaleString("en-IN")}<span className="text-[12px] font-medium text-white/40">/mo</span>
+   608→                </p>
+   609→              </div>
+   610→              <p className="mt-1 text-[12.5px] text-white/45">{p.blurb}</p>
+   611→              <ul className="mt-4 space-y-2">
+   612→                {p.features.map((f) => (
+   613→                  <li key={f} className="flex items-start gap-2 text-[12.5px] text-white/70">
+   614→                    <Check size={13} className="mt-0.5 shrink-0 text-mint" /> {f}
+   615→                  </li>
+   616→                ))}
+   617→              </ul>
+   618→              <div className="mt-4 grid grid-cols-3 gap-2">
+   619→                <label className="block">
+   620→                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">Monthly ₹</span>
+   621→                  <input type="number" value={e.monthlyInr} onChange={(ev) => setEdits((m) => ({ ...m, [p.id]: { ...e, monthlyInr: Number(ev.target.value) } }))}
+   622→                    className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-brand-deep/60 px-2.5 text-[12.5px] text-white outline-none focus:border-mint/50" />
+   623→                </label>
+   624→                <label className="block">
+   625→                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">Half-yr ₹</span>
+   626→                  <input type="number" value={e.halfYearlyInr} onChange={(ev) => setEdits((m) => ({ ...m, [p.id]: { ...e, halfYearlyInr: Number(ev.target.value) } }))}
+   627→                    className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-brand-deep/60 px-2.5 text-[12.5px] text-white outline-none focus:border-mint/50" />
+   628→                </label>
+   629→                <label className="block">
+   630→                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">Annual ₹</span>
+   631→                  <input type="number" value={e.annualInr} onChange={(ev) => setEdits((m) => ({ ...m, [p.id]: { ...e, annualInr: Number(ev.target.value) } }))}
+   632→                    className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-brand-deep/60 px-2.5 text-[12.5px] text-white outline-none focus:border-mint/50" />
+   633→                </label>
+   634→              </div>
+   635→              <Button size="sm" className={cn("mt-3 h-9 w-full rounded-xl text-[12.5px]", p.popular ? "bg-mint text-brand-deep hover:bg-mint/90" : "border border-white/15 bg-transparent text-white hover:bg-white/5")}
+   636→                disabled={!canOperate || !dirty || savingId === p.id} onClick={() => save(p)}>
+   637→                {!canOperate ? "Read-only" : savingId === p.id ? "Saving…" : dirty ? "Save pricing" : "Saved"}
+   638→              </Button>
+   639→            </div>
+   640→          );
+   641→        })}
+   642→      </div>
+   643→
+   644→      <div className="grid gap-4 md:grid-cols-2">
+   645→        <DarkCard icon={<CreditCard size={16} />} title="Checkout" desc="Razorpay subscription sessions created from the admin or public pricing page; GST invoices auto-issued." />
+   646→        <DarkCard icon={<Gauge size={16} />} title="Quota display" desc="Clients see live meters for drafts, WhatsApp messages and locations — no surprise overage." />
+   647→      </div>
+   648→    </div>
+   649→  );
+   650→}
+   651→
+   652→/* --------------------------------- System -------------------------------- */
+   653→
+   654→type SystemPayload = {
+   655→  jobs: { name: string; desc: string; state: string; queue: string; latency: string }[];
+   656→  events: { id: string; type: string; name: string; state: string; detail: string | null; t: string }[];
+   657→  connectors: { google: string; whatsapp: string };
+   658→};
+   659→
+   660→type FlagsPayload = {
+   661→  tenantTotal: number;
+   662→  flags: { key: string; label: string; description: string; enabled: boolean; optIns: number }[];
+   663→};
+   664→
+   665→type GatewaysPayload = {
+   666→  gateways: {
+   667→    provider: string;
+   668→    label: string;
+   669→    description: string;
+   670→    enabled: boolean;
+   671→    keyId: string;
+   672→    keySecretMasked: string;
+   673→    webhookSecretMasked: string;
+   674→    hasCredentials: boolean;
+   675→    provisioned: { tenantId: string; tenantName: string; mode: string; status: string; accountRef: string }[];
+   676→  }[];
+   677→  tenants: { id: string; name: string; planId: string; mrrInr: number }[];
+   678→};
+   679→
+   680→function SystemView({ canOperate }: { canOperate: boolean }) {
+   681→  const { toast } = useToast();
+   682→  const data = useApiData<SystemPayload>("/api/admin/system");
+   683→  const flagsData = useApiData<FlagsPayload>("/api/admin/flags");
+   684→  const gatewaysData = useApiData<GatewaysPayload>("/api/admin/gateways");
+   685→  const [running, setRunning] = useState<string | null>(null);
+   686→  const [flagBusy, setFlagBusy] = useState<string | null>(null);
+   687→  const [gwBusy, setGwBusy] = useState<string | null>(null);
+   688→  const [cfgOpen, setCfgOpen] = useState<string | null>(null);
+   689→  const [cfgDraft, setCfgDraft] = useState<Record<string, { keyId: string; keySecret: string; webhookSecret: string }>>({});
+   690→  const [provDraft, setProvDraft] = useState<Record<string, { tenantId: string; mode: string; accountRef: string }>>({});
+   691→  const gwInput = "h-8 w-full rounded-lg border border-white/10 bg-brand-deep/60 px-2.5 text-[12px] text-white placeholder:text-white/25 outline-none transition-colors focus:border-mint/50";
+   692→
+   693→  const toggleGateway = async (provider: string, enabled: boolean, label: string) => {
+   694→    setGwBusy(provider);
+   695→    try {
+   696→      await api.patch(`/api/admin/gateways/${provider}`, { enabled });
+   697→      toast({
+   698→        title: `${label} turned ${enabled ? "on" : "off"}`,
+   699→        description: enabled
+   700→          ? "Workspaces can now be provisioned on this gateway."
+   701→          : "Collection is suspended for provisioned workspaces — links are preserved.",
+   702→      });
+   703→      gatewaysData.reload();
+   704→    } catch (e) {
+   705→      toast({ title: "Could not update gateway", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   706→    } finally {
+   707→      setGwBusy(null);
+   708→    }
+   709→  };
+   710→
+   711→  const saveGatewayCreds = async (provider: string) => {
+   712→    setGwBusy(provider);
+   713→    try {
+   714→      const d = cfgDraft[provider] || { keyId: "", keySecret: "", webhookSecret: "" };
+   715→      await api.patch(`/api/admin/gateways/${provider}`, { keyId: d.keyId, keySecret: d.keySecret, webhookSecret: d.webhookSecret });
+   716→      toast({ title: "Credentials saved", description: "Secrets are stored write-only — every read shows only the masked tail." });
+   717→      gatewaysData.reload();
+   718→    } catch (e) {
+   719→      toast({ title: "Could not save credentials", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   720→    } finally {
+   721→      setGwBusy(null);
+   722→    }
+   723→  };
+   724→
+   725→  const provisionTenant = async (provider: string) => {
+   726→    setGwBusy(provider);
+   727→    try {
+   728→      const p = provDraft[provider] || { tenantId: "", mode: "test", accountRef: "" };
+   729→      await api.post(`/api/admin/gateways/${provider}/provision`, p);
+   730→      toast({ title: "Workspace provisioned", description: "Billing for this workspace now flows through the gateway." });
+   731→      setProvDraft((m) => ({ ...m, [provider]: { tenantId: "", mode: "test", accountRef: "" } }));
+   732→      gatewaysData.reload();
+   733→    } catch (e) {
+   734→      toast({ title: "Could not provision workspace", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   735→    } finally {
+   736→      setGwBusy(null);
+   737→    }
+   738→  };
+   739→
+   740→  const updateProvision = async (provider: string, tenantId: string, patch: { status?: string; mode?: string }) => {
+   741→    setGwBusy(provider);
+   742→    try {
+   743→      await api.patch(`/api/admin/gateways/${provider}/provision`, { tenantId, ...patch });
+   744→      gatewaysData.reload();
+   745→    } catch (e) {
+   746→      toast({ title: "Could not update provisioning", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   747→    } finally {
+   748→      setGwBusy(null);
+   749→    }
+   750→  };
+   751→
+   752→  const unprovisionTenant = async (provider: string, tenantId: string, tenantName: string) => {
+   753→    setGwBusy(provider);
+   754→    try {
+   755→      await api.del(`/api/admin/gateways/${provider}/provision?tenantId=${tenantId}`);
+   756→      toast({ title: `${tenantName} unprovisioned`, description: "The workspace falls back to manual invoicing until a gateway is provisioned again." });
+   757→      gatewaysData.reload();
+   758→    } catch (e) {
+   759→      toast({ title: "Could not unprovision workspace", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   760→    } finally {
+   761→      setGwBusy(null);
+   762→    }
+   763→  };
+   764→
+   765→  const runJob = async (name: string) => {
+   766→    setRunning(name);
+   767→    try {
+   768→      await api.post("/api/admin/system", { name });
+   769→      toast({ title: `${name} completed`, description: "Event recorded in the system log." });
+   770→      data.reload();
+   771→    } finally {
+   772→      setRunning(null);
+   773→    }
+   774→  };
+   775→
+   776→  const toggleFlag = async (key: string, enabled: boolean, label: string) => {
+   777→    setFlagBusy(key);
+   778→    try {
+   779→      const res = await api.patch<{ flag: { optIns: number; effectiveCount: number } }>(`/api/admin/flags/${key}`, { enabled });
+   780→      toast({
+   781→        title: `${label} turned ${enabled ? "on" : "off"} platform-wide`,
+   782→        description: `${res.flag.effectiveCount} of ${res.flag.optIns} opted-in tenant${res.flag.optIns === 1 ? "" : "s"} effectively ${enabled ? "live" : "suspended"}. Opt-ins are preserved.`,
+   783→      });
+   784→      flagsData.reload();
+   785→    } catch (e) {
+   786→      toast({ title: "Could not update flag", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   787→    } finally {
+   788→      setFlagBusy(null);
+   789→    }
+   790→  };
+   791→
+   792→  if (data.loading || !data.data) return <div className="h-64 animate-pulse rounded-2xl bg-brand" />;
+   793→  const d = data.data;
+   794→
+   795→  return (
+   796→    <div className="space-y-5">
+   797→      <div className="flex flex-wrap items-center gap-2">
+   798→        <Badge className={cn("capitalize", d.connectors.google === "live" ? "border-mint/30 bg-mint/10 text-mint" : "border-amber-300/30 bg-amber-soft/10 text-amber-300")}>
+   799→          Google connector: {d.connectors.google}
+   800→        </Badge>
+   801→        <Badge className={cn("capitalize", d.connectors.whatsapp === "live" ? "border-mint/30 bg-mint/10 text-mint" : "border-amber-300/30 bg-amber-soft/10 text-amber-300")}>
+   802→          WhatsApp connector: {d.connectors.whatsapp}
+   803→        </Badge>
+   804→        <span className="text-[11.5px] text-white/40">simulated mode keeps the loop alive until API credentials are set (README-DEPLOY).</span>
+   805→      </div>
+   806→
+   807→      <div className="grid gap-4 lg:grid-cols-3">
+   808→        {d.jobs.map((j) => (
+   809→          <div key={j.name} className={cn("rounded-2xl border p-4", j.state === "healthy" ? "border-white/10 bg-brand" : "border-amber-300/25 bg-amber-soft/5")}>
+   810→            <div className="flex items-center justify-between">
+   811→              <p className="font-mono text-[13px] font-semibold text-white">{j.name}</p>
+   812→              <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold", j.state === "healthy" ? "bg-mint/15 text-mint" : "bg-amber-soft/15 text-amber-300")}>
+   813→                <span className={cn("h-1.5 w-1.5 rounded-full", j.state === "healthy" ? "animate-pulse bg-mint" : "bg-amber-300")} />
+   814→                {j.state}
+   815→              </span>
+   816→            </div>
+   817→            <p className="mt-1.5 text-[12px] text-white/45">{j.desc}</p>
+   818→            <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-[11.5px] text-white/40">
+   819→              <span>{j.queue}</span>
+   820→              <span>{j.latency}</span>
+   821→            </div>
+   822→            <Button size="sm" variant="outline" className="mt-3 h-7 w-full border-white/15 bg-transparent text-[11px] text-white/60 hover:bg-white/5 hover:text-white"
+   823→              disabled={!canOperate || running === j.name} onClick={() => runJob(j.name)}>
+   824→              {!canOperate ? "Read-only" : running === j.name ? "Running…" : "Run manual cycle"}
+   825→            </Button>
+   826→          </div>
+   827→        ))}
+   828→      </div>
+   829→
+   830→      {/* Feature flags — system master switches */}
+   831→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+   832→        <div className="flex items-start justify-between gap-3">
+   833→          <div>
+   834→            <h3 className="flex items-center gap-2 text-[15px] font-semibold"><ToggleLeft size={16} className="text-mint" /> Feature flags</h3>
+   835→            <p className="mt-0.5 text-xs text-white/40">Master switches per capability — tenants opt in from their Settings; opt-ins are preserved when a flag is off</p>
+   836→          </div>
+   837→          <Badge className="shrink-0 border-white/10 bg-white/5 text-[10.5px] text-white/60">{flagsData.data?.tenantTotal ?? "—"} tenants</Badge>
+   838→        </div>
+   839→        <div className="mt-4 grid gap-3 lg:grid-cols-3">
+   840→          {(flagsData.data?.flags || []).map((f) => (
+   841→            <div key={f.key} className={cn("rounded-xl border p-3.5", f.enabled ? "border-mint/25 bg-mint/[0.04]" : "border-white/10 bg-brand-deep/40")}>
+   842→              <div className="flex items-start justify-between gap-2">
+   843→                <div className="min-w-0">
+   844→                  <p className="text-[12.5px] font-bold text-white/85">{f.label}</p>
+   845→                  <p className="mt-0.5 text-[10.5px] leading-relaxed text-white/40">{f.description}</p>
+   846→                </div>
+   847→                <Switch
+   848→                  checked={f.enabled}
+   849→                  disabled={!canOperate || flagBusy === f.key}
+   850→                  onCheckedChange={(v) => toggleFlag(f.key, v, f.label)}
+   851→                />
+   852→              </div>
+   853→              <div className="mt-2.5 flex items-center justify-between border-t border-white/5 pt-2 text-[10.5px]">
+   854→                <span className={cn("font-semibold", f.enabled ? "text-mint" : "text-amber-300")}>{f.enabled ? "ON" : "OFF"} platform-wide</span>
+   855→                <span className="text-white/40">{f.optIns} opt-in{f.optIns === 1 ? "" : "s"}</span>
+   856→              </div>
+   857→            </div>
+   858→          ))}
+   859→          {flagsData.data && flagsData.data.flags.length === 0 && (
+   860→            <p className="text-[12px] text-white/40">No flags defined yet.</p>
+   861→          )}
+   862→        </div>
+   863→      </div>
+   864→
+   865→      {/* Payment gateways — registry + per-workspace provisioning */}
+   866→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+   867→        <div className="flex items-start justify-between gap-3">
+   868→          <div>
+   869→            <h3 className="flex items-center gap-2 text-[15px] font-semibold"><CreditCard size={16} className="text-mint" /> Payment gateways</h3>
+   870→            <p className="mt-0.5 text-xs text-white/40">Collection rails for subscription billing — credentials are write-only and shown masked; provisioning a workspace links its invoices to the gateway</p>
+   871→          </div>
+   872→          <Badge className="shrink-0 border-white/10 bg-white/5 text-[10.5px] text-white/60">{gatewaysData.data?.gateways.length ?? "—"} gateways</Badge>
+   873→        </div>
+   874→
+   875→        <div className="mt-4 space-y-3">
+   876→          {(gatewaysData.data?.gateways || []).map((g) => {
+   877→            const expanded = cfgOpen === g.provider;
+   878→            const draft = cfgDraft[g.provider] || { keyId: "", keySecret: "", webhookSecret: "" };
+   879→            const prov = provDraft[g.provider] || { tenantId: "", mode: "test", accountRef: "" };
+   880→            const busyKey = gwBusy === g.provider;
+   881→            return (
+   882→              <div key={g.provider} className={cn("rounded-xl border p-4", g.enabled ? "border-mint/25 bg-mint/[0.04]" : "border-white/10 bg-brand-deep/40")}>
+   883→                <div className="flex flex-wrap items-start justify-between gap-3">
+   884→                  <div className="min-w-0">
+   885→                    <div className="flex flex-wrap items-center gap-2">
+   886→                      <p className="text-[13.5px] font-bold text-white/85">{g.label}</p>
+   887→                      <span className="rounded-md bg-white/5 px-1.5 py-0.5 font-mono text-[10px] uppercase text-white/40">{g.provider}</span>
+   888→                      {g.provisioned.length > 0 && (
+   889→                        <span className="rounded-full bg-mint/15 px-2 py-0.5 text-[10.5px] font-semibold text-mint">{g.provisioned.length} provisioned</span>
+   890→                      )}
+   891→                    </div>
+   892→                    <p className="mt-1 max-w-2xl text-[11.5px] leading-relaxed text-white/40">{g.description}</p>
+   893→                    <p className="mt-1.5 text-[11px] text-white/50">
+   894→                      {g.hasCredentials ? (
+   895→                        <>
+   896→                          Key ID <span className="font-mono text-white/70">{g.keyId}</span>
+   897→                          {" · "}Secret <span className="font-mono text-white/70">{g.keySecretMasked}</span>
+   898→                          {g.webhookSecretMasked && (<>{" · "}Webhook <span className="font-mono text-white/70">{g.webhookSecretMasked}</span></>)}
+   899→                        </>
+   900→                      ) : g.keyId ? (
+   901→                        <span className="text-amber-300">Key ID saved — add the key secret to start collecting</span>
+   902→                      ) : (
+   903→                        <span className="text-amber-300">No credentials set — configure before going live</span>
+   904→                      )}
+   905→                    </p>
+   906→                  </div>
+   907→                  <div className="flex shrink-0 items-center gap-2">
+   908→                    <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2.5 text-[11px] text-white/60 hover:bg-white/5 hover:text-white"
+   909→                      onClick={() => {
+   910→                        if (expanded) { setCfgOpen(null); return; }
+   911→                        setCfgOpen(g.provider);
+   912→                        setCfgDraft((m) => ({ ...m, [g.provider]: { keyId: g.keyId, keySecret: "", webhookSecret: "" } }));
+   913→                      }}>
+   914→                      {expanded ? "Close" : (<><KeyRound size={12} className="mr-1.5" /> Configure</>)}
+   915→                    </Button>
+   916→                    <Switch checked={g.enabled} disabled={!canOperate || busyKey} onCheckedChange={(v) => toggleGateway(g.provider, v, g.label)} />
+   917→                  </div>
+   918→                </div>
+   919→
+   920→                {expanded && (
+   921→                  <div className="mt-3 rounded-lg border border-white/10 bg-brand-deep/60 p-3.5">
+   922→                    <div className="grid gap-2.5 sm:grid-cols-3">
+   923→                      <label className="block">
+   924→                        <span className="text-[10.5px] font-semibold uppercase tracking-wider text-white/40">Key ID</span>
+   925→                        <input value={draft.keyId} onChange={(e) => setCfgDraft((m) => ({ ...m, [g.provider]: { ...draft, keyId: e.target.value } }))} placeholder="rzp_test_xxxxxxxx" className={cn(gwInput, "mt-1")} />
+   926→                      </label>
+   927→                      <label className="block">
+   928→                        <span className="text-[10.5px] font-semibold uppercase tracking-wider text-white/40">
+   929→                          Key secret{g.keySecretMasked ? <span className="ml-1 normal-case text-white/30">saved {g.keySecretMasked}</span> : <span className="ml-1 normal-case text-white/30">not set</span>}
+   930→                        </span>
+   931→                        <input type="password" value={draft.keySecret} onChange={(e) => setCfgDraft((m) => ({ ...m, [g.provider]: { ...draft, keySecret: e.target.value } }))} placeholder={g.keySecretMasked ? "Leave empty to keep" : "Paste secret"} className={cn(gwInput, "mt-1")} />
+   932→                      </label>
+   933→                      <label className="block">
+   934→                        <span className="text-[10.5px] font-semibold uppercase tracking-wider text-white/40">
+   935→                          Webhook secret{g.webhookSecretMasked ? <span className="ml-1 normal-case text-white/30">saved {g.webhookSecretMasked}</span> : <span className="ml-1 normal-case text-white/30">not set</span>}
+   936→                        </span>
+   937→                        <input type="password" value={draft.webhookSecret} onChange={(e) => setCfgDraft((m) => ({ ...m, [g.provider]: { ...draft, webhookSecret: e.target.value } }))} placeholder={g.webhookSecretMasked ? "Leave empty to keep" : "Paste secret"} className={cn(gwInput, "mt-1")} />
+   938→                      </label>
+   939→                    </div>
+   940→                    <div className="mt-3 flex flex-wrap items-center gap-2">
+   941→                      <Button size="sm" className="h-8 rounded-lg bg-mint px-3 text-[11.5px] font-semibold text-brand-deep hover:bg-mint/85"
+   942→                        disabled={!canOperate || busyKey} onClick={() => saveGatewayCreds(g.provider)}>
+   943→                        Save credentials
+   944→                      </Button>
+   945→                      <span className="text-[10.5px] text-white/35">Secrets are stored server-side and never returned by the API — only the last 4 characters are ever shown.</span>
+   946→                    </div>
+   947→                  </div>
+   948→                )}
+   949→
+   950→                {g.provisioned.length > 0 && (
+   951→                  <div className="mt-3 space-y-1.5">
+   952→                    {g.provisioned.map((p) => (
+   953→                      <div key={p.tenantId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-brand-deep/50 px-3 py-2 text-[11.5px]">
+   954→                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+   955→                          <span className="font-semibold text-white/85">{p.tenantName}</span>
+   956→                          <span className={cn("rounded-full px-1.5 py-0.5 text-[9.5px] font-bold", p.mode === "live" ? "bg-mint text-brand-deep" : "bg-white/10 text-white/60")}>{p.mode.toUpperCase()}</span>
+   957→                          <span className={cn("text-[10.5px] font-semibold", p.status === "active" ? "text-mint" : "text-amber-300")}>{p.status}</span>
+   958→                          {p.accountRef && <span className="font-mono text-[10px] text-white/35">{p.accountRef}</span>}
+   959→                        </div>
+   960→                        <div className="flex shrink-0 items-center gap-1.5">
+   961→                          <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2 text-[10.5px] text-white/60 hover:bg-white/5 hover:text-white"
+   962→                            disabled={!canOperate || busyKey}
+   963→                            onClick={() => updateProvision(g.provider, p.tenantId, { status: p.status === "active" ? "paused" : "active" })}>
+   964→                            {p.status === "active" ? (<><Pause size={11} className="mr-1" /> Pause</>) : (<><Play size={11} className="mr-1" /> Resume</>)}
+   965→                          </Button>
+   966→                          <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2 text-[10.5px] text-red-300 hover:bg-red-400/10 hover:text-red-200"
+   967→                            disabled={!canOperate || busyKey}
+   968→                            onClick={() => unprovisionTenant(g.provider, p.tenantId, p.tenantName)}>
+   969→                            <Trash2 size={11} className="mr-1" /> Remove
+   970→                          </Button>
+   971→                        </div>
+   972→                      </div>
+   973→                    ))}
+   974→                  </div>
+   975→                )}
+   976→
+   977→                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/5 pt-3">
+   978→                  <select value={prov.tenantId} disabled={!g.enabled}
+   979→                    onChange={(e) => setProvDraft((m) => ({ ...m, [g.provider]: { ...prov, tenantId: e.target.value } }))}
+   980→                    className={cn(gwInput, "h-8 w-48 disabled:opacity-40")}>
+   981→                    <option value="">Select workspace…</option>
+   982→                    {(gatewaysData.data?.tenants || [])
+   983→                      .filter((t) => !g.provisioned.some((p) => p.tenantId === t.id))
+   984→                      .map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+   985→                  </select>
+   986→                  <select value={prov.mode} disabled={!g.enabled}
+   987→                    onChange={(e) => setProvDraft((m) => ({ ...m, [g.provider]: { ...prov, mode: e.target.value } }))}
+   988→                    className={cn(gwInput, "h-8 w-32 disabled:opacity-40")}>
+   989→                    <option value="test">Test mode</option>
+   990→                    <option value="live">Live mode</option>
+   991→                  </select>
+   992→                  <input value={prov.accountRef} disabled={!g.enabled}
+   993→                    onChange={(e) => setProvDraft((m) => ({ ...m, [g.provider]: { ...prov, accountRef: e.target.value } }))}
+   994→                    placeholder="Account ref (merchant ID)" className={cn(gwInput, "h-8 w-52 disabled:opacity-40")} />
+   995→                  <Button size="sm" className="h-8 rounded-lg border border-mint/40 bg-mint/10 px-3 text-[11.5px] font-semibold text-mint hover:bg-mint/20"
+   996→                    disabled={!canOperate || busyKey || !g.enabled || !prov.tenantId} onClick={() => provisionTenant(g.provider)}>
+   997→                    Provision workspace
+   998→                  </Button>
+   999→                  {!g.enabled && <span className="text-[10.5px] text-amber-300">Switch {g.label} on to provision workspaces</span>}
+  1000→                </div>
+  1001→              </div>
+  1002→            );
+  1003→          })}
+  1004→          {gatewaysData.data && gatewaysData.data.gateways.length === 0 && (
+  1005→            <p className="text-[12px] text-white/40">No gateways registered yet.</p>
+  1006→          )}
+  1007→        </div>
+  1008→      </div>
+  1009→
+  1010→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+  1011→        <h3 className="text-[15px] font-semibold">Event log</h3>
+  1012→        <p className="mt-0.5 text-xs text-white/40">Deploys, job cycles, billing signals and incidents — newest first</p>
+  1013→        <div className="mt-4 space-y-2">
+  1014→          {d.events.map((e) => (
+  1015→            <div key={e.id} className="flex items-start gap-3 rounded-xl bg-brand-deep/50 px-3.5 py-2.5 text-[12.5px]">
+  1016→              <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full",
+  1017→                e.state === "ok" ? "bg-mint" : e.state === "warn" ? "bg-amber-300" : "bg-red-400")} />
+  1018→              <div className="min-w-0 flex-1">
+  1019→                <p className="font-semibold text-white/85">{e.name} <span className="font-normal uppercase text-white/30">· {e.type}</span></p>
+  1020→                {e.detail && <p className="truncate text-[11.5px] text-white/40">{e.detail}</p>}
+  1021→              </div>
+  1022→              <span className="shrink-0 font-mono text-[10.5px] text-white/25">{e.t}</span>
+  1023→            </div>
+  1024→          ))}
+  1025→        </div>
+  1026→      </div>
+  1027→
+  1028→      <div className="grid gap-4 md:grid-cols-3">
+  1029→        <DarkCard icon={<Server size={16} />} title="Single-VPS deployment" desc="Docker Compose on Hostinger: nginx, app, worker, Postgres, Redis. Nightly encrypted backups, 2-hour restore target." />
+  1030→        <DarkCard icon={<KeyRound size={16} />} title="Secrets & keys" desc="Google OAuth, WhatsApp HSM templates, Razorpay webhooks — rotated quarterly, least-privilege scopes." />
+  1031→        <DarkCard icon={<Activity size={16} />} title="Audit trail" desc="Every admin action, login and impersonation event is immutable-logged and exportable." />
+  1032→      </div>
+  1033→    </div>
+  1034→  );
+  1035→}
+  1036→
+  1037→/* ----------------------------- Tenant drawer ----------------------------- */
+  1038→
+  1039→function TenantDrawer({ tenant, onClose, onChanged, toast, canOperate, isSuper }: {
+  1040→  tenant: TenantVM | null;
+  1041→  onClose: () => void;
+  1042→  onChanged: () => void;
+  1043→  toast: ReturnType<typeof useToast>["toast"];
+  1044→  canOperate: boolean;
+  1045→  isSuper: boolean;
+  1046→}) {
+  1047→  const { navigate } = useRouter();
+  1048→  const { refresh } = useSession();
+  1049→  const open = tenant !== null;
+  1050→  const [busy, setBusy] = useState(false);
+  1051→  const [planPicking, setPlanPicking] = useState(false);
+  1052→  const detail = useApiData<TenantDetail>(tenant ? `/api/admin/tenants/${tenant.id}` : null);
+  1053→
+  1054→  const patchTenant = async (data: { status?: string; planId?: string }, label: string) => {
+  1055→    if (!tenant) return;
+  1056→    setBusy(true);
+  1057→    try {
+  1058→      await api.patch(`/api/admin/tenants/${tenant.id}`, data);
+  1059→      toast({ title: label, description: `${tenant.business} updated.` });
+  1060→      detail.reload();
+  1061→      onChanged();
+  1062→    } catch (e) {
+  1063→      toast({ title: "Update failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+  1064→    } finally {
+  1065→      setBusy(false);
+  1066→    }
+  1067→  };
+  1068→
+  1069→  const impersonate = async () => {
+  1070→    if (!tenant) return;
+  1071→    setBusy(true);
+  1072→    try {
+  1073→      await api.post(`/api/admin/tenants/${tenant.id}/impersonate`);
+  1074→      await refresh();
+  1075→      toast({ title: "Impersonation started", description: `Time-boxed 30-min session into ${tenant.business}. Audit-logged.` });
+  1076→      onClose();
+  1077→      navigate({ surface: "client" });
+  1078→    } catch (e) {
+  1079→      toast({ title: "Could not start session", description: e instanceof Error ? e.message : "", variant: "destructive" });
+  1080→    } finally {
+  1081→      setBusy(false);
+  1082→    }
+  1083→  };
+  1084→
+  1085→  const t = detail.data?.tenant || tenant;
+  1086→  const d = detail.data?.detail;
+  1087→
+  1088→  return (
+  1089→    <div className={cn("fixed inset-0 z-50", !open && "pointer-events-none")} aria-hidden={!open}>
+  1090→      <button
+  1091→        onClick={onClose}
+  1092→        aria-label="Close client details"
+  1093→        tabIndex={open ? 0 : -1}
+  1094→        className={cn("absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300", open ? "opacity-100" : "opacity-0")}
+  1095→      />
+  1096→      <aside
+  1097→        className={cn(
+  1098→          "absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-white/10 bg-brand shadow-2xl transition-transform duration-300 ease-out",
+  1099→          open ? "translate-x-0" : "translate-x-full"
+  1100→        )}
+  1101→        role="dialog"
+  1102→        aria-label="Client details"
+  1103→      >
+  1104→        {t && d && (
+  1105→          <TenantDrawerBody
+  1106→            tenant={t}
+  1107→            detail={d}
+  1108→            busy={busy}
+  1109→            planPicking={planPicking}
+  1110→            setPlanPicking={setPlanPicking}
+  1111→            onPatch={patchTenant}
+  1112→            onImpersonate={impersonate}
+  1113→            onClose={onClose}
+  1114→            toast={toast}
+  1115→            canOperate={canOperate}
+  1116→            isSuper={isSuper}
+  1117→          />
+  1118→        )}
+  1119→        {tenant && detail.loading && (
+  1120→          <div className="flex flex-1 items-center justify-center">
+  1121→            <RefreshCw size={22} className="animate-spin text-mint" />
+  1122→          </div>
+  1123→        )}
+  1124→      </aside>
+  1125→    </div>
+  1126→  );
+  1127→}
+  1128→
+  1129→function TenantDrawerBody({ tenant: t, detail: d, busy, planPicking, setPlanPicking, onPatch, onImpersonate, onClose, toast, canOperate, isSuper }: {
+  1130→  tenant: TenantVM;
+  1131→  detail: TenantDetail["detail"];
+  1132→  busy: boolean;
+  1133→  planPicking: boolean;
+  1134→  setPlanPicking: (v: boolean) => void;
+  1135→  onPatch: (data: { status?: string; planId?: string }, label: string) => void;
+  1136→  onImpersonate: () => void;
+  1137→  onClose: () => void;
+  1138→  toast: ReturnType<typeof useToast>["toast"];
+  1139→  canOperate: boolean;
+  1140→  isSuper: boolean;
+  1141→}) {
+  1142→  const maxMrr = Math.max(...d.mrrSeries.map((p) => p.mrr), 0.01);
+  1143→  const points = d.mrrSeries.map((p, i) => `${(i / Math.max(d.mrrSeries.length - 1, 1)) * 264},${54 - (p.mrr / maxMrr) * 44}`).join(" ");
+  1144→  const plans = ["starter", "growth", "multi"];
+  1145→
+  1146→  return (
+  1147→    <>
+  1148→      <header className="flex items-start justify-between border-b border-white/10 px-5 py-4">
+  1149→        <div className="flex items-center gap-3">
+  1150→          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint/15 text-[13px] font-bold text-mint">
+  1151→            {t.business.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+  1152→          </span>
+  1153→          <div>
+  1154→            <p className="text-[14.5px] font-bold text-white">{t.business}</p>
+  1155→            <p className="text-[11.5px] text-white/40">{t.owner} · since {t.since}</p>
+  1156→          </div>
+  1157→          <AdminStatus status={t.status} />
+  1158→        </div>
+  1159→        <button onClick={onClose} className="rounded-lg p-2 text-white/40 transition-colors hover:bg-white/5 hover:text-white" aria-label="Close">
+  1160→          <X size={16} />
+  1161→        </button>
+  1162→      </header>
+  1163→
+  1164→      <div className="flex-1 space-y-4 overflow-y-auto p-5">
+  1165→        {/* plan + mrr */}
+  1166→        <div className="rounded-2xl border border-white/10 bg-brand-deep/40 p-4">
+  1167→          <div className="flex items-center justify-between">
+  1168→            <div>
+  1169→              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Plan · MRR</p>
+  1170→              <p className="mt-1 text-[22px] font-bold text-mint">{inr(t.mrr)}<span className="ml-1.5 text-[11.5px] font-medium text-white/40">/ month</span></p>
+  1171→            </div>
+  1172→            <Badge variant="outline" className="border-mint/40 bg-mint/10 text-mint hover:bg-mint/10">{t.plan} plan</Badge>
+  1173→          </div>
+  1174→          <svg viewBox="0 0 264 58" className="mt-3 w-full" aria-hidden>
+  1175→            <polyline points={points} fill="none" stroke="#88d6a0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  1176→            {d.mrrSeries.length > 0 && (
+  1177→              <circle cx="264" cy={54 - (d.mrrSeries[d.mrrSeries.length - 1].mrr / maxMrr) * 44} r="3.5" fill="#88d6a0" />
+  1178→            )}
+  1179→          </svg>
+  1180→          <div className="flex justify-between font-mono text-[9.5px] text-white/25">
+  1181→            <span>{d.mrrSeries[0]?.m || "—"}</span>
+  1182→            <span>latest</span>
+  1183→          </div>
+  1184→          <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-[11.5px]">
+  1185→            <span className="text-white/40">Next invoice</span>
+  1186→            <span className={cn("font-semibold", t.status === "past_due" ? "text-amber-300" : "text-white/80")}>{d.nextInvoice}</span>
+  1187→          </div>
+  1188→        </div>
+  1189→
+  1190→        {/* status banners + controls */}
+  1191→        {t.status === "past_due" && (
+  1192→          <div className="rounded-2xl border border-red-400/25 bg-red-400/10 p-3.5 text-[12px]">
+  1193→            <p className="font-semibold text-red-300">Dunning in progress</p>
+  1194→            <p className="mt-0.5 text-white/50">AI generation and WhatsApp sending are paused. Suspension auto-scheduled unless a retry succeeds.</p>
+  1195→            <Button size="sm" className="mt-2.5 h-7 rounded-lg bg-mint px-3 text-[11.5px] font-semibold text-brand-deep hover:bg-mint/90"
+  1196→              onClick={() => toast({ title: "Payment link sent", description: `Fresh Razorpay link dispatched to ${d.contact.person} on WhatsApp.` })}>
+  1197→              Send payment link
+  1198→            </Button>
+  1199→          </div>
+  1200→        )}
+  1201→        {t.status === "trial" && (
+  1202→          <div className="rounded-2xl border border-amber-300/25 bg-amber-soft/10 p-3.5 text-[12px]">
+  1203→            <p className="font-semibold text-amber-300">Trial · {d.trialDaysLeft ?? "—"} days left</p>
+  1204→            <p className="mt-0.5 text-white/50">Conversion nudge is armed for day −3. Usage is tracked against the Starter quota.</p>
+  1205→          </div>
+  1206→        )}
+  1207→        <div className="flex flex-wrap gap-2">
+  1208→          {t.status !== "active" && (
+  1209→            <Button size="sm" variant="outline" className="h-8 rounded-xl border-mint/30 bg-transparent px-3 text-[11.5px] text-mint hover:bg-mint/10" disabled={busy || !canOperate}
+  1210→              onClick={() => onPatch({ status: "active" }, "Client activated")}>
+  1211→              <Check size={12} className="mr-1" /> Activate
+  1212→            </Button>
+  1213→          )}
+  1214→          {t.status !== "suspended" && (
+  1215→            <Button size="sm" variant="outline" className="h-8 rounded-xl border-white/15 bg-transparent px-3 text-[11.5px] text-white/70 hover:bg-white/5 hover:text-white" disabled={busy || !canOperate}
+  1216→              onClick={() => onPatch({ status: "suspended" }, "Client suspended")}>
+  1217→              Suspend
+  1218→            </Button>
+  1219→          )}
+  1220→          {planPicking ? (
+  1221→            <span className="flex gap-1.5">
+  1222→              {plans.map((pid) => (
+  1223→                <Button key={pid} size="sm" variant="outline" className="h-8 rounded-xl border-white/15 bg-transparent px-2.5 text-[11px] capitalize text-white/70 hover:bg-white/5 hover:text-white"
+  1224→                  disabled={busy || !canOperate || t.plan.toLowerCase() === pid}
+  1225→                  onClick={() => { onPatch({ planId: pid }, "Plan changed"); setPlanPicking(false); }}>
+  1226→                  {pid}{t.plan.toLowerCase() === pid ? " ✓" : ""}
+  1227→                </Button>
+  1228→              ))}
+  1229→            </span>
+  1230→          ) : (
+  1231→            <Button size="sm" variant="outline" className="h-8 rounded-xl border-white/15 bg-transparent px-3 text-[11.5px] text-white/70 hover:bg-white/5 hover:text-white" disabled={!canOperate} onClick={() => setPlanPicking(true)}>
+  1232→              <Layers size={12} className="mr-1" /> Change plan
+  1233→            </Button>
+  1234→          )}
+  1235→        </div>
+  1236→
+  1237→        {/* usage */}
+  1238→        <div className="rounded-2xl border border-white/10 bg-brand-deep/40 p-4">
+  1239→          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Usage this month</p>
+  1240→          <div className="mt-3 space-y-3">
+  1241→            {d.usage.map((u) => {
+  1242→              const pct = Math.min(100, Math.round((u.used / Math.max(u.quota, 1)) * 100));
+  1243→              return (
+  1244→                <div key={u.label}>
+  1245→                  <div className="flex items-baseline justify-between text-[11.5px]">
+  1246→                    <span className="font-medium text-white/70">{u.label}</span>
+  1247→                    <span className={cn("font-mono", u.warn ? "text-amber-300" : "text-white/40")}>
+  1248→                      {u.used.toLocaleString("en-IN")} / {u.quota.toLocaleString("en-IN")}
+  1249→                    </span>
+  1250→                  </div>
+  1251→                  <div className="mt-1 h-1.5 rounded-full bg-white/10">
+  1252→                    <div className={cn("h-full rounded-full", u.warn ? "bg-amber-300" : "bg-mint")} style={{ width: `${pct}%` }} />
+  1253→                  </div>
+  1254→                  <p className="mt-0.5 text-[10px] text-white/30">{u.unit}</p>
+  1255→                </div>
+  1256→              );
+  1257→            })}
+  1258→          </div>
+  1259→        </div>
+  1260→
+  1261→        {/* reputation health */}
+  1262→        <div className="rounded-2xl border border-white/10 bg-brand-deep/40 p-4">
+  1263→          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Reputation health</p>
+  1264→          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+  1265→            {d.health.map((h) => (
+  1266→              <div key={h.label}>
+  1267→                <div className="flex items-baseline justify-between text-[11px]">
+  1268→                  <span className="truncate text-white/60">{h.label}</span>
+  1269→                  <span className="font-bold text-white">{h.score}</span>
+  1270→                </div>
+  1271→                <div className="mt-1 h-1.5 rounded-full bg-white/10">
+  1272→                  <div className={cn("h-full rounded-full", h.score >= 85 ? "bg-mint" : h.score >= 70 ? "bg-amber-300" : "bg-red-400")} style={{ width: `${h.score}%` }} />
+  1273→                </div>
+  1274→              </div>
+  1275→            ))}
+  1276→          </div>
+  1277→          {d.health.length > 0 && (
+  1278→            <p className="mt-3 text-[10.5px] text-white/30">Composite health score: {Math.round(d.health.reduce((s, h) => s + h.score, 0) / d.health.length)}/100</p>
+  1279→          )}
+  1280→        </div>
+  1281→
+  1282→        {/* activity */}
+  1283→        <div className="rounded-2xl border border-white/10 bg-brand-deep/40 p-4">
+  1284→          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Recent activity</p>
+  1285→          <div className="mt-3 space-y-3.5">
+  1286→            {d.activity.map((a, i) => (
+  1287→              <div key={i} className="relative flex gap-3 pl-1">
+  1288→                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-mint ring-4 ring-mint/10" />
+  1289→                {i < d.activity.length - 1 && <span className="absolute left-[4.5px] top-5 h-full w-px bg-white/10" />}
+  1290→                <div className="pb-0.5">
+  1291→                  <p className="text-[12px] font-semibold capitalize text-white/85">{a.label}</p>
+  1292→                  <p className="text-[11px] leading-snug text-white/40">{a.desc}</p>
+  1293→                  <p className="mt-0.5 font-mono text-[10px] text-white/25">{a.t}</p>
+  1294→                </div>
+  1295→              </div>
+  1296→            ))}
+  1297→            {d.activity.length === 0 && <p className="text-[12px] text-white/40">No activity recorded yet.</p>}
+  1298→          </div>
+  1299→        </div>
+  1300→
+  1301→        {/* contact + compliance */}
+  1302→        <div className="rounded-2xl border border-white/10 bg-brand-deep/40 p-4 text-[12px]">
+  1303→          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Account</p>
+  1304→          <div className="mt-2.5 space-y-1.5 text-white/60">
+  1305→            <p>{d.contact.person} · {d.contact.role}</p>
+  1306→            <p className="font-mono text-[11.5px]">{d.contact.phone} · {d.contact.email}</p>
+  1307→            <p className="text-white/40">GSTIN {d.gstin} · invoices auto-issued with GST breakup</p>
+  1308→          </div>
+  1309→        </div>
+  1310→
+  1311→        {/* actions */}
+  1312→        <div className="grid grid-cols-3 gap-2">
+  1313→          <Button size="sm" className="h-9 rounded-xl bg-mint text-[11.5px] font-semibold text-brand-deep hover:bg-mint/90" disabled={busy || !isSuper} title={isSuper ? "Start a time-boxed support session" : "Super admin only"} onClick={onImpersonate}>
+  1314→            <UserPlus size={12} className="mr-1" /> Impersonate
+  1315→          </Button>
+  1316→          <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/15 bg-transparent text-[11.5px] text-white/70 hover:bg-white/5 hover:text-white"
+  1317→            onClick={() => toast({ title: "Billing view", description: `Invoices and dunning for ${t.business} — see the Billing tab.` })}>
+  1318→            <Wallet size={12} className="mr-1" /> Billing
+  1319→          </Button>
+  1320→          <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/15 bg-transparent text-[11.5px] text-white/70 hover:bg-white/5 hover:text-white"
+  1321→            onClick={() => toast({ title: "Support note", description: `Internal note appended to ${t.business}'s account.` })}>
+  1322→            <Activity size={12} className="mr-1" /> Note
+  1323→          </Button>
+  1324→        </div>
+  1325→      </div>
+  1326→    </>
+  1327→  );
+  1328→}
+  1329→
+  1330→/* ----------------------------- Platform team ----------------------------- */
+  1331→
+  1332→type StaffMember = { id: string; name: string; email: string; role: string; invitePending: boolean; lastLoginAt: string | null; initials: string };
+  1333→
+  1334→// Platform admin team — roles defined by the platform administrator (super admin).
+  1335→// Managers operate the console; observers are read-only.
+  1336→function TeamView({ canManage }: { canManage: boolean }) {
+  1337→  const { toast } = useToast();
+  1338→  const team = useApiData<{ team: (StaffMember & { roleName?: string | null })[] }>("/api/admin/team");
+  1339→  const rolesData = useApiData<{ roles: RoleRow[]; catalog: PermissionDef[] }>("/api/admin/team/roles");
+  1340→  const [inviteOpen, setInviteOpen] = useState(false);
+  1341→  const [invite, setInvite] = useState<{ name: string; email: string; role: string; roleId: string }>({ name: "", email: "", role: "platform_manager", roleId: "" });
+  1342→  const [editingId, setEditingId] = useState<string | null>(null);
+  1343→  const [rolesOpen, setRolesOpen] = useState(false);
+  1344→  const [busy, setBusy] = useState(false);
+  1345→
+  1346→  const customRoles = rolesData.data?.roles || [];
+  1347→  const roleCatalog = rolesData.data?.catalog || [];
+  1348→
+  1349→  const sendInvite = async () => {
+  1350→    setBusy(true);
+  1351→    try {
+  1352→      const res = await api.post<{ invite: { email: string; tempPassword: string } }>("/api/admin/team", {
+  1353→        name: invite.name,
+  1354→        email: invite.email,
+  1355→        ...(invite.roleId ? { roleId: invite.roleId } : { role: invite.role }),
+  1356→      });
+  1357→      toast({ title: "Invite created", description: `${res.invite.email} · temp password: ${res.invite.tempPassword}` });
+  1358→      setInvite({ name: "", email: "", role: "platform_manager", roleId: "" });
+  1359→      setInviteOpen(false);
+  1360→      team.reload();
+  1361→      rolesData.reload();
+  1362→    } catch (e) {
+  1363→      toast({ title: "Invite failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+  1364→    } finally {
+  1365→      setBusy(false);
+  1366→    }
+  1367→  };
+  1368→
+  1369→  const saveMember = async (id: string, payload: { name?: string; email?: string; role?: string; roleId?: string | null }) => {
+  1370→    try {
+  1371→      await api.patch(`/api/admin/team/${id}`, payload);
+  1372→      team.reload();
+  1373→      toast({ title: "Team member updated", description: "Their role and access change immediately." });
+  1374→      setEditingId(null);
+  1375→    } catch (e) {
+  1376→      toast({ title: "Could not update member", description: e instanceof Error ? e.message : "", variant: "destructive" });
+  1377→    }
+  1378→  };
+  1379→
+  1380→  const removeMember = async (m: { id: string; name: string }) => {
+  1381→    try {
+  1382→      await api.del(`/api/admin/team/${m.id}`);
+  1383→      team.reload();
+  1384→      toast({ title: "Team member removed", description: `${m.name} no longer has platform access.` });
+  1385→    } catch (e) {
+  1386→      toast({ title: "Could not remove", description: e instanceof Error ? e.message : "", variant: "destructive" });
+  1387→    }
+  1388→  };
+  1389→
+  1390→  const createRole = async (payload: { name: string; description: string; permissions: string[] }) => {
+  1391→    try {
+  1392→      await api.post("/api/admin/team/roles", payload);
+  1393→      rolesData.reload();
+  1394→      toast({ title: "Role created", description: `${payload.name} is now available on invites and member editing.` });
+  1395→    } catch (e) {
+  1396→      toast({ title: "Could not create role", description: e instanceof Error ? e.message : "", variant: "destructive" });
+  1397→    }
+  1398→  };
+  1399→
+  1400→  const updateRole = async (id: string, payload: { name: string; description: string; permissions: string[] }) => {
+  1401→    try {
+  1402→      await api.put(`/api/admin/team/roles/${id}`, payload);
+  1403→      rolesData.reload();
+  1404→      team.reload();
+  1405→      toast({ title: "Role updated", description: "Everyone on this role gets the new permissions immediately." });
+  1406→    } catch (e) {
+  1407→      toast({ title: "Could not update role", description: e instanceof Error ? e.message : "", variant: "destructive" });
+  1408→    }
+  1409→  };
+  1410→
+  1411→  const deleteRole = async (role: RoleRow) => {
+  1412→    try {
+  1413→      await api.del(`/api/admin/team/roles/${role.id}`);
+  1414→      rolesData.reload();
+  1415→      toast({ title: "Role deleted", description: `${role.name} removed.` });
+  1416→    } catch (e) {
+  1417→      toast({ title: "Could not delete role", description: e instanceof Error ? e.message : "", variant: "destructive" });
+  1418→    }
+  1419→  };
+  1420→
+  1421→  const staff = team.data?.team || [];
+  1422→  const memberLabel = (m: { role: string; roleName?: string | null }) => m.roleName || roleLabel(m.role);
+  1423→
+  1424→  return (
+  1425→    <div className="space-y-5">
+  1426→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+  1427→        <div className="flex flex-wrap items-center justify-between gap-3">
+  1428→          <div>
+  1429→            <h3 className="text-[15px] font-semibold">Admin team members</h3>
+  1430→            <p className="mt-0.5 text-[12px] text-white/40">
+  1431→              Roles are defined here by the platform administrator — presets or custom permission sets.
+  1432→            </p>
+  1433→          </div>
+  1434→          <Badge className="border-mint/30 bg-mint/10 text-mint hover:bg-mint/10">{staff.length} account{staff.length === 1 ? "" : "s"}</Badge>
+  1435→        </div>
+  1436→
+  1437→        <div className="mt-4 space-y-2">
+  1438→          {staff.map((m) => (
+  1439→            <div key={m.id}>
+  1440→              <div className="flex flex-wrap items-center gap-3 rounded-xl bg-brand-deep/50 px-3.5 py-3">
+  1441→                <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11.5px] font-bold", m.role === "platform_admin" ? "bg-mint text-brand-deep" : m.roleName ? "bg-mint/20 text-mint" : m.invitePending ? "bg-white/15 text-white/60" : "bg-white/10 text-white")}>{m.initials}</span>
+  1442→                <div className="min-w-0 flex-1">
+  1443→                  <p className="truncate text-[13px] font-semibold text-white">
+  1444→                    {m.name} {m.invitePending && <span className="text-[10.5px] font-bold uppercase text-amber-300">· invite pending</span>}
+  1445→                  </p>
+  1446→                  <p className="truncate text-[11px] text-white/40">{m.email}{m.lastLoginAt ? ` · last sign-in ${new Date(m.lastLoginAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : ""}</p>
+  1447→                </div>
+  1448→                <span className={cn(
+  1449→                  "shrink-0 rounded-full px-2.5 py-1 text-[10.5px] font-bold",
+  1450→                  m.role === "platform_admin" ? "bg-mint/15 text-mint" : m.roleName ? "bg-mint/15 text-mint" : m.role === "platform_manager" ? "bg-white/10 text-white/80" : "bg-white/5 text-white/50"
+  1451→                )}>
+  1452→                  {memberLabel(m)}
+  1453→                </span>
+  1454→                {canManage && m.role !== "platform_admin" && (
+  1455→                  <>
+  1456→                    <button onClick={() => setEditingId(editingId === m.id ? null : m.id)} className="rounded-lg p-1.5 text-white/40 hover:bg-white/5 hover:text-white" aria-label={`Edit ${m.name}`}>
+  1457→                      <Pencil size={13} />
+  1458→                    </button>
+  1459→                    {editingId !== m.id && (
+  1460→                      <button onClick={() => removeMember(m)} className="rounded-lg p-1.5 text-white/30 hover:bg-white/5 hover:text-red-300" aria-label={`Remove ${m.name}`}>
+  1461→                        <X size={13} />
+  1462→                      </button>
+  1463→                    )}
+  1464→                  </>
+  1465→                )}
+  1466→              </div>
+  1467→              {canManage && editingId === m.id && (
+  1468→                <MemberEditor
+  1469→                  dark
+  1470→                  member={{ id: m.id, name: m.name, email: m.email, role: m.role, roleName: m.roleName || null, invitePending: m.invitePending, initials: m.initials }}
+  1471→                  presets={[["platform_manager", "Manager — operate the console"], ["platform_observer", "Observer — read-only"]]}
+  1472→                  customRoles={customRoles}
+  1473→                  onSave={(payload) => saveMember(m.id, payload)}
+  1474→                  onCancel={() => setEditingId(null)}
+  1475→                />
+  1476→              )}
+  1477→            </div>
+  1478→          ))}
+  1479→          {team.loading && <div className="h-24 animate-pulse rounded-xl bg-brand-deep/50" />}
+  1480→        </div>
+  1481→
+  1482→        {canManage ? (
+  1483→          inviteOpen ? (
+  1484→            <div className="mt-4 space-y-2.5 rounded-2xl border border-mint/25 bg-brand-deep/60 p-4">
+  1485→              <div className="grid gap-3 sm:grid-cols-2">
+  1486→                <label className="block">
+  1487→                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">Name</span>
+  1488→                  <input value={invite.name} onChange={(e) => setInvite((i) => ({ ...i, name: e.target.value }))} placeholder="Meera Krishnan"
+  1489→                    className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-brand px-3 text-[12.5px] text-white placeholder:text-white/30 outline-none focus:border-mint/50" />
+  1490→                </label>
+  1491→                <label className="block">
+  1492→                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">Work email</span>
+  1493→                  <input value={invite.email} onChange={(e) => setInvite((i) => ({ ...i, email: e.target.value }))} placeholder="teammate@sensiblee.in"
+  1494→                    className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-brand px-3 text-[12.5px] text-white placeholder:text-white/30 outline-none focus:border-mint/50" />
+  1495→                </label>
+  1496→              </div>
+  1497→              <div className="flex flex-wrap items-center gap-2">
+  1498→                <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">Role</span>
+  1499→                {[["platform_manager", "Manager — operate the console"], ["platform_observer", "Observer — read-only"]].map(([r, label]) => (
+  1500→                  <button key={r} onClick={() => setInvite((i) => ({ ...i, role: r, roleId: "" }))}
+  1501→                    className={cn("rounded-full px-3 py-1.5 text-[11.5px] font-semibold", !invite.roleId && invite.role === r ? "bg-mint text-brand-deep" : "bg-white/5 text-white/60 hover:text-white", invite.roleId && "opacity-40")}>
+  1502→                    {label}
+  1503→                  </button>
+  1504→                ))}
+  1505→                {customRoles.map((r) => (
+  1506→                  <button key={r.id} onClick={() => setInvite((i) => ({ ...i, roleId: i.roleId === r.id ? "" : r.id }))}
+  1507→                    className={cn("rounded-full px-3 py-1.5 text-[11.5px] font-semibold", invite.roleId === r.id ? "bg-mint text-brand-deep" : "bg-mint/10 text-mint hover:bg-mint/20")}>
+  1508→                    {r.name}
+  1509→                  </button>
+  1510→                ))}
+  1511→              </div>
+  1512→              <div className="flex gap-2 pt-1">
+  1513→                <Button size="sm" className="h-9 flex-1 rounded-xl bg-mint text-[12.5px] font-semibold text-brand-deep hover:bg-mint/90" disabled={busy || !invite.email.includes("@")} onClick={sendInvite}>
+  1514→                  <UserPlus size={13} className="mr-1.5" /> Create invite
+  1515→                </Button>
+  1516→                <Button size="sm" variant="ghost" className="h-9 rounded-xl text-[12.5px] text-white/60 hover:bg-white/5 hover:text-white" onClick={() => setInviteOpen(false)}>Cancel</Button>
+  1517→              </div>
+  1518→              <p className="text-[10.5px] leading-relaxed text-white/30">Production emails the invite; here you get a one-time temp password to share privately.</p>
+  1519→            </div>
+  1520→          ) : (
+  1521→            <Button size="sm" variant="outline" className="mt-4 h-9 w-full rounded-xl border-white/15 bg-transparent text-[12.5px] text-white/70 hover:bg-white/5 hover:text-white sm:w-auto sm:px-5" onClick={() => setInviteOpen(true)}>
+  1522→              <UserPlus size={14} className="mr-1.5" /> Invite team member
+  1523→            </Button>
+  1524→          )
+  1525→        ) : (
+  1526→          <p className="mt-4 rounded-xl bg-brand-deep/50 px-3.5 py-3 text-[12px] text-white/40">
+  1527→            Your role does not include team management — ask a super admin for changes.
+  1528→          </p>
+  1529→        )}
+  1530→
+  1531→        {canManage && (
+  1532→          <div className="mt-4">
+  1533→            <button onClick={() => setRolesOpen(!rolesOpen)} className="flex w-full items-center justify-between rounded-xl bg-white/5 px-3.5 py-2.5 text-left transition-colors hover:bg-white/10">
+  1534→              <span className="flex items-center gap-2 text-[12.5px] font-semibold text-white">
+  1535→                <ShieldCheck size={14} className="text-mint" /> Roles &amp; permissions
+  1536→                <span className="text-[10.5px] font-bold text-white/40">{customRoles.length} custom role{customRoles.length === 1 ? "" : "s"}</span>
+  1537→              </span>
+  1538→              <span className="text-[11px] text-white/40">{rolesOpen ? "Hide" : "Manage"}</span>
+  1539→            </button>
+  1540→            {rolesOpen && (
+  1541→              <div className="mt-2">
+  1542→                <RolesPanel
+  1543→                  dark
+  1544→                  roles={customRoles}
+  1545→                  catalog={roleCatalog}
+  1546→                  onCreate={createRole}
+  1547→                  onUpdate={updateRole}
+  1548→                  onDelete={deleteRole}
+  1549→                />
+  1550→              </div>
+  1551→            )}
+  1552→          </div>
+  1553→        )}
+  1554→      </div>
+  1555→
+  1556→      <div className="grid gap-4 md:grid-cols-3">
+  1557→        <DarkCard icon={<ShieldCheck size={16} />} title="Role model" desc="Super admin → everything incl. this team. Presets: manager (operate) and observer (read-only) — or build custom roles with exact permissions." />
+  1558→        <DarkCard icon={<KeyRound size={16} />} title="Private by default" desc="This console and its URL are known only to Sensiblee platform staff — never advertised." />
+  1559→        <DarkCard icon={<Activity size={16} />} title="Audited" desc="Invites, role changes, removals and every console mutation land in the audit trail." />
+  1560→      </div>
+  1561→    </div>
+  1562→  );
+  1563→}
+  1564→
+  1565→/* ------------------------------ My account ------------------------------ */
+  1566→
+  1567→type AccountPayload = { account: { name: string; email: string; phone: string; role: string; lastLoginAt: string | null } };
+  1568→
+  1569→// Personal profile + password for platform staff (super admin, managers, observers)
+  1570→function AccountView({ onRefresh }: { onRefresh: () => Promise<unknown> }) {
+  1571→  const { toast } = useToast();
+  1572→  const { user } = useSession();
+  1573→  const account = useApiData<AccountPayload>("/api/account");
+  1574→  const [profile, setProfile] = useState({ name: "", email: "", phone: "" });
+  1575→  const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
+  1576→  const [savingProfile, setSavingProfile] = useState(false);
+  1577→  const [savingPw, setSavingPw] = useState(false);
+  1578→  const [loaded, setLoaded] = useState(false);
+  1579→
+  1580→  useEffect(() => {
+  1581→    if (account.data && !loaded) {
+  1582→      const a = account.data.account;
+  1583→      setProfile({ name: a.name, email: a.email, phone: a.phone });
+  1584→      setLoaded(true);
+  1585→    }
+  1586→  }, [account.data, loaded]);
+  1587→
+  1588→  const saveProfile = async () => {
+  1589→    setSavingProfile(true);
+  1590→    try {
+  1591→      await api.patch("/api/account", profile);
+  1592→      await onRefresh();
+  1593→      account.reload();
+  1594→      toast({ title: "Profile updated", description: "Your name, email and mobile number are saved." });
+  1595→    } catch (e) {
+  1596→      toast({ title: "Could not update profile", description: e instanceof Error ? e.message : "", variant: "destructive" });
+  1597→    } finally {
+  1598→      setSavingProfile(false);
+  1599→    }
+  1600→  };
+  1601→
+  1602→  const changePassword = async () => {
+  1603→    if (pw.next.length < 8) {
+  1604→      toast({ title: "Password too short", description: "Use at least 8 characters.", variant: "destructive" });
+  1605→      return;
+  1606→    }
+  1607→    if (pw.next !== pw.confirm) {
+  1608→      toast({ title: "Passwords don’t match", description: "Re-enter the new password confirmation.", variant: "destructive" });
+  1609→      return;
+  1610→    }
+  1611→    setSavingPw(true);
+  1612→    try {
+  1613→      await api.post("/api/account/password", { currentPassword: pw.current, newPassword: pw.next });
+  1614→      setPw({ current: "", next: "", confirm: "" });
+  1615→      toast({ title: "Password changed", description: "Use the new password at your next sign-in." });
+  1616→    } catch (e) {
+  1617→      toast({ title: "Could not change password", description: e instanceof Error ? e.message : "", variant: "destructive" });
+  1618→    } finally {
+  1619→      setSavingPw(false);
+  1620→    }
+  1621→  };
+  1622→
+  1623→  const darkInput = "h-10 w-full rounded-xl border border-white/10 bg-brand-deep/60 px-3 text-[13px] text-white placeholder:text-white/25 outline-none transition-colors focus:border-mint/50";
+  1624→  const DarkField = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  1625→    <label className="block">
+  1626→      <span className="text-[10.5px] font-bold uppercase tracking-wider text-white/35">{label}</span>
+  1627→      <div className="mt-1.5">{children}</div>
+  1628→    </label>
+  1629→  );
+  1630→
+  1631→  return (
+  1632→    <div className="grid gap-5 lg:grid-cols-2">
+  1633→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+  1634→        <div className="flex items-center gap-3">
+  1635→          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint/15 text-mint"><UserCog size={17} /></span>
+  1636→          <div>
+  1637→            <h3 className="text-[14.5px] font-semibold">Your profile</h3>
+  1638→            <p className="text-[11.5px] text-white/40">{roleLabel(user?.role)} · last sign-in {user ? "tracked" : "—"}</p>
+  1639→          </div>
+  1640→        </div>
+  1641→        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+  1642→          <DarkField label="Full name"><input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} className={darkInput} /></DarkField>
+  1643→          <DarkField label="Mobile number"><input value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} placeholder="+91 98xxx xxxxx" className={darkInput} /></DarkField>
+  1644→          <div className="sm:col-span-2">
+  1645→            <DarkField label="Email (used for sign-in)"><input type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} className={darkInput} /></DarkField>
+  1646→          </div>
+  1647→        </div>
+  1648→        <div className="mt-4 flex justify-end">
+  1649→          <Button size="sm" className="h-9 rounded-xl bg-mint px-4 text-[12.5px] font-semibold text-brand-deep hover:bg-mint/90" onClick={saveProfile} disabled={savingProfile || !loaded}>
+  1650→            {savingProfile ? <RefreshCw size={13} className="mr-1.5 animate-spin" /> : <Check size={13} className="mr-1.5" />}
+  1651→            {savingProfile ? "Saving…" : "Save profile"}
+  1652→          </Button>
+  1653→        </div>
+  1654→      </div>
+  1655→
+  1656→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+  1657→        <div className="flex items-center gap-3">
+  1658→          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint/15 text-mint"><KeyRound size={17} /></span>
+  1659→          <div>
+  1660→            <h3 className="text-[14.5px] font-semibold">Sign-in & security</h3>
+  1661→            <p className="text-[11.5px] text-white/40">Change your own password — other logins are unaffected</p>
+  1662→          </div>
+  1663→        </div>
+  1664→        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+  1665→          <DarkField label="Current password"><input type="password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} autoComplete="current-password" className={darkInput} /></DarkField>
+  1666→          <DarkField label="New password"><input type="password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} placeholder="8+ characters" autoComplete="new-password" className={darkInput} /></DarkField>
+  1667→          <DarkField label="Confirm"><input type="password" value={pw.confirm} onChange={(e) => setPw({ ...pw, confirm: e.target.value })} autoComplete="new-password" className={darkInput} /></DarkField>
+  1668→        </div>
+  1669→        <div className="mt-4 flex items-center justify-end">
+  1670→          <Button size="sm" className="h-9 rounded-xl bg-mint px-4 text-[12.5px] font-semibold text-brand-deep hover:bg-mint/90" onClick={changePassword} disabled={savingPw || !pw.current || !pw.next || !pw.confirm}>
+  1671→            {savingPw ? <RefreshCw size={13} className="mr-1.5 animate-spin" /> : <ShieldCheck size={13} className="mr-1.5" />}
+  1672→            {savingPw ? "Updating…" : "Update password"}
+  1673→          </Button>
+  1674→        </div>
+  1675→      </div>
+  1676→    </div>
+  1677→  );
+  1678→}
+  1679→
+  1680→void StatCard;
+  1681→

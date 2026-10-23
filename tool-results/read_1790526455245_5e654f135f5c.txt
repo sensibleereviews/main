@@ -1,0 +1,565 @@
+     1→// Sensiblee marketing home — brand hero, live product preview, stats, modules, testimonials
+     2→"use client";
+     3→
+     4→import { useState } from "react";
+     5→import { Button } from "@/components/ui/button";
+     6→import { useApiData } from "@/lib/client";
+     7→import { useRouter } from "@/lib/router";
+     8→import { useCmsPage, useCmsFaqs, useCmsTestimonials, useCmsPosts } from "@/lib/cms-context";
+     9→import type { HomeContent } from "@/lib/cms-defaults";
+    10→import { blogPostUrlView } from "@/lib/route-shared";
+    11→import { StarRating, GoogleG, WhatsAppIcon } from "./brand";
+    12→import { BRAND_LOGOS } from "./brand-logos";
+    13→import { CtaBand } from "./marketing-pages";
+    14→import { cn, Sparkles, ArrowRight, Check, Quote, Play, ChevronDown, Clock, Building2, Hotel, UtensilsCrossed, Coffee, Stethoscope, Scissors, Dumbbell, ShoppingBag, GraduationCap } from "./deps";
+    15→
+    16→const INDUSTRY_ICONS: Record<string, React.ReactNode> = {
+    17→  hotel: <Hotel size={18} />,
+    18→  restaurant: <UtensilsCrossed size={18} />,
+    19→  cafe: <Coffee size={18} />,
+    20→  clinic: <Stethoscope size={18} />,
+    21→  salon: <Scissors size={18} />,
+    22→  gym: <Dumbbell size={18} />,
+    23→  retail: <ShoppingBag size={18} />,
+    24→  school: <GraduationCap size={18} />,
+    25→};
+    26→const MODULE_ICONS = [
+    27→  <GoogleG key="m-a" size={17} />,
+    28→  <WhatsAppIcon key="m-b" size={17} className="text-mint-deep" />,
+    29→  <Sparkles key="m-c" size={17} className="text-mint-deep" />,
+    30→  <StarRating key="m-d" value={5} size={13} />,
+    31→];
+    32→
+    33→type HomeNav = {
+    34→  onNavigate: (v: string) => void;
+    35→  onOpenApp: () => void;
+    36→  onOpenAdmin: () => void;
+    37→  onOpenGuest: () => void;
+    38→  onWatchDemo: () => void;
+    39→};
+    40→
+    41→export function HomePage({ nav }: { nav: HomeNav }) {
+    42→  const { onNavigate, onOpenApp, onWatchDemo } = nav;
+    43→  const { navigate } = useRouter();
+    44→  const [openFaq, setOpenFaq] = useState<number | null>(null);
+    45→  const c = useCmsPage<HomeContent>("home");
+    46→  const faqs = useCmsFaqs("home");
+    47→  const testimonials = useCmsTestimonials();
+    48→  const recentPosts = useCmsPosts().slice(0, 3);
+    49→  const { data: plansData } = useApiData<{ plans: { id: string; name: string; monthlyInr: number; blurb: string; popular: boolean }[] }>("/api/plans");
+    50→  const teaserPlans = plansData?.plans?.length
+    51→    ? plansData.plans
+    52→    : [
+    53→        { id: "starter", name: "Starter", monthlyInr: 1099, blurb: "Single location getting its Google presence in order.", popular: false },
+    54→        { id: "growth", name: "Growth", monthlyInr: 2499, blurb: "Busy single site that lives on its reputation.", popular: true },
+    55→        { id: "multi", name: "Enterprise", monthlyInr: 4999, blurb: "Multi-branch brands running reputation as a program.", popular: false },
+    56→      ];
+    57→
+    58→  return (
+    59→    <main className="flex-1">
+    60→      {/* Hero */}
+    61→      <section className="relative overflow-hidden">
+    62→        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-mint/15 blur-3xl" />
+    63→        <div className="pointer-events-none absolute -left-16 top-64 h-56 w-56 rounded-full bg-amber-soft/60 blur-3xl" />
+    64→        <div className="mx-auto max-w-6xl px-5 pb-8 pt-14 text-center lg:pt-20">
+    65→          <span className="inline-flex items-center gap-2 rounded-full border border-mint/40 bg-mint-soft px-3.5 py-1.5 text-[11.5px] font-semibold uppercase tracking-[0.12em] text-mint-deep">
+    66→            <Sparkles size={13} /> {c.heroEyebrow}
+    67→          </span>
+    68→          <h1 className="mx-auto mt-5 max-w-4xl text-5xl font-bold leading-[1.06] tracking-tight lg:text-[56px]">
+    69→            {c.heroTitleA} <span className="text-mint-deep">{c.heroAccentA}</span>.<br />
+    70→            {c.heroTitleB} <span className="relative inline-block">{c.heroAccentB}
+    71→              <svg className="absolute -bottom-1.5 left-0 w-full" viewBox="0 0 220 10" fill="none" aria-hidden>
+    72→                <path d="M3 7 C 60 2, 160 2, 217 6" stroke="#88D6A0" strokeWidth="5" strokeLinecap="round" />
+    73→              </svg>
+    74→            </span>
+    75→          </h1>
+    76→          <p className="mx-auto mt-5 max-w-xl text-[15.5px] leading-relaxed text-neutral-500">
+    77→            {c.heroSub}
+    78→          </p>
+    79→          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+    80→            <Button size="lg" className="h-12 rounded-2xl bg-mint px-6 text-[14.5px] font-bold text-brand-deep shadow-[0_4px_14px_rgba(136,214,160,0.4)] hover:bg-mint/90" onClick={() => onNavigate("signup")}>
+    81→              Try for Free <ArrowRight size={15} className="ml-1.5" />
+    82→            </Button>
+    83→            <Button size="lg" variant="outline" className="h-12 rounded-2xl border-brand/20 px-6 text-[14.5px] font-semibold hover:bg-white" onClick={onWatchDemo}>
+    84→              <Play size={15} className="mr-2 fill-mint-deep text-mint-deep" /> Watch Demo
+    85→            </Button>
+    86→            <Button size="lg" variant="ghost" className="h-12 rounded-2xl px-4 text-[14px] font-semibold text-neutral-600 hover:bg-white hover:text-brand" onClick={() => onOpenApp()}>
+    87→              <Building2 size={15} className="mr-2 text-mint-deep" /> Sign In
+    88→            </Button>
+    89→          </div>
+    90→          <p className="mt-4 text-[12px] text-neutral-400">
+    91→            {c.heroNote}
+    92→          </p>
+    93→          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12px] text-neutral-400">
+    94→            <button onClick={() => onNavigate("stories")} className="font-semibold text-mint-deep hover:underline">
+    95→              See customer stories <ArrowRight size={11} className="ml-0.5 inline" />
+    96→            </button>
+    97→            <span className="hidden h-1 w-1 rounded-full bg-neutral-300 sm:inline-block" />
+    98→            <button onClick={() => onNavigate("security")} className="hover:text-brand">
+    99→              Security &amp; trust
+   100→            </button>
+   101→          </div>
+   102→        </div>
+   103→
+   104→        {/* Product preview */}
+   105→        <div className="mx-auto max-w-4xl px-5 pb-10">
+   106→          <HeroPreview onOpenApp={onOpenApp} />
+   107→        </div>
+   108→
+   109→        {/* Stats strip */}
+   110→        <div className="mx-auto max-w-5xl px-5 pb-10">
+   111→          <div className="grid grid-cols-2 gap-3 rounded-3xl border border-neutral-200/70 bg-white p-5 sm:grid-cols-4 lg:p-6">
+   112→            {c.stats.map((s) => (
+   113→              <div key={s.l} className="text-center">
+   114→                <p className="text-[26px] font-bold tracking-tight text-brand">{s.v}</p>
+   115→                <p className="mt-0.5 text-[11.5px] leading-snug text-neutral-400">{s.l}</p>
+   116→              </div>
+   117→            ))}
+   118→          </div>
+   119→        </div>
+   120→      </section>
+   121→
+   122→      {/* Client logo carousel — social proof strip */}
+   123→      <section aria-label="Clients we serve" className="mx-auto max-w-6xl px-5 pb-10 pt-3">
+   124→        <p className="text-center text-[13px] font-bold uppercase tracking-[0.18em] text-neutral-500">
+   125→          {c.trustedLabel}
+   126→        </p>
+   127→        <div
+   128→          className="marquee-strip relative mt-6 overflow-hidden"
+   129→          style={{
+   130→            maskImage: "linear-gradient(90deg, transparent, black 10%, black 90%, transparent)",
+   131→            WebkitMaskImage: "linear-gradient(90deg, transparent, black 10%, black 90%, transparent)",
+   132→          }}
+   133→        >
+   134→          <div className="flex w-max animate-marquee motion-reduce:!animate-none">
+   135→            {[0, 1].map((copy) => (
+   136→              <div
+   137→                key={copy}
+   138→                aria-hidden={copy === 1}
+   139→                className="flex shrink-0 items-center gap-14 pr-14 sm:gap-16 sm:pr-16"
+   140→              >
+   141→                {BRAND_LOGOS.map((l) => (
+   142→                  <span
+   143→                    key={l.name}
+   144→                    title={l.name}
+   145→                    className="shrink-0 text-neutral-500 transition-colors duration-300 hover:text-brand"
+   146→                  >
+   147→                    {l.svg}
+   148→                  </span>
+   149→                ))}
+   150→              </div>
+   151→            ))}
+   152→          </div>
+   153→        </div>
+   154→      </section>
+   155→
+   156→      {/* The platform in a nutshell */}
+   157→      <section className="mx-auto max-w-4xl px-5 py-8">
+   158→        <div className="relative overflow-hidden rounded-3xl border border-neutral-200/70 bg-white p-7 lg:p-10">
+   159→          <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-mint/10 blur-3xl" />
+   160→          <span className="inline-flex items-center gap-2 rounded-full border border-mint/40 bg-mint-soft px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-mint-deep">
+   161→            <Sparkles size={12} /> {c.overviewSection.eyebrow}
+   162→          </span>
+   163→          <h2 className="mt-4 text-[26px] font-bold tracking-tight lg:text-[30px]">{c.overviewSection.title}</h2>
+   164→          <p className="mt-3 max-w-2xl text-[14px] font-medium leading-relaxed text-brand/80">{c.overviewSection.sub}</p>
+   165→          <div className="mt-5 space-y-4 border-l-2 border-mint/50 pl-5 text-[13.5px] leading-relaxed text-neutral-600">
+   166→            {c.overview.map((p, i) => (
+   167→              <p key={i}>{p}</p>
+   168→            ))}
+   169→          </div>
+   170→        </div>
+   171→      </section>
+   172→
+   173→      {/* Watch Demo video + Try for Free — two-column CTA section */}
+   174→      <section id="demo-video" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-8">
+   175→        <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+   176→          {/* Column 1 — Watch Demo (video) */}
+   177→          <div className="overflow-hidden rounded-3xl border border-neutral-200/70 bg-white shadow-[0_12px_36px_-18px_rgba(16,24,40,0.25)]">
+   178→            <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-3.5">
+   179→              <h3 className="flex items-center gap-2 text-[16px] font-bold">
+   180→                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-mint-soft">
+   181→                  <Play size={13} className="fill-mint-deep text-mint-deep" />
+   182→                </span>
+   183→                Watch Demo
+   184→              </h3>
+   185→              <span className="rounded-full bg-mint-soft px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-wider text-mint-deep">2-minute product tour</span>
+   186→            </div>
+   187→            <video
+   188→              controls
+   189→              preload="metadata"
+   190→              poster="/demo/demo-poster.png"
+   191→              className="aspect-video w-full bg-brand object-cover"
+   192→              aria-label="Sensiblee product demo video"
+   193→            >
+   194→              <source src="/demo/sensiblee-demo.mp4" type="video/mp4" />
+   195→              <source src="/demo/sensiblee-demo.webm" type="video/webm" />
+   196→              Your browser does not support the video tag.
+   197→            </video>
+   198→          </div>
+   199→
+   200→          {/* Column 2 — Try Sensiblee for free */}
+   201→          <div className="flex flex-col rounded-3xl bg-brand p-6 text-white lg:p-7">
+   202→            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-mint/15 px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mint">
+   203→              <Sparkles size={12} /> Start today
+   204→            </span>
+   205→            <h3 className="mt-3.5 text-[24px] font-bold leading-tight tracking-tight">{c.trialCard.title}</h3>
+   206→            <p className="mt-2 text-[13px] leading-relaxed text-white/60">
+   207→              {c.trialCard.sub}
+   208→            </p>
+   209→            <ul className="mt-4 space-y-2.5 text-[13px] text-white/80">
+   210→              {c.trialCard.points.map((f) => (
+   211→                <li key={f} className="flex items-start gap-2.5">
+   212→                  <span className="mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-mint text-brand-deep"><Check size={11} /></span>
+   213→                  {f}
+   214→                </li>
+   215→              ))}
+   216→            </ul>
+   217→            <div className="mt-auto pt-5">
+   218→              <Button className="h-12 w-full rounded-2xl bg-mint text-[14.5px] font-bold text-brand-deep hover:bg-mint/90" onClick={() => onNavigate("signup")}>
+   219→                Try for Free <ArrowRight size={15} className="ml-1.5" />
+   220→              </Button>
+   221→              <p className="mt-2.5 text-center text-[11.5px] text-white/45">
+   222→                Prefer a walkthrough first? <button onClick={() => onNavigate("contact")} className="font-semibold text-mint hover:underline">Talk to us</button>
+   223→              </p>
+   224→            </div>
+   225→          </div>
+   226→        </div>
+   227→      </section>
+   228→
+   229→      {/* Modules */}
+   230→      <section className="mx-auto max-w-6xl px-5 py-8">
+   231→        <SectionHead
+   232→          eyebrow={c.modulesSection.eyebrow}
+   233→          title={c.modulesSection.title}
+   234→          sub={c.modulesSection.sub}
+   235→          action={c.modulesSection.action ? { label: c.modulesSection.action, onClick: () => onNavigate("features") } : undefined}
+   236→        />
+   237→        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+   238→          {c.modules.map((m, i) => (
+   239→            <button
+   240→              key={m.title}
+   241→              onClick={() => onNavigate("features")}
+   242→              className="group rounded-2xl border border-neutral-200/70 bg-white p-5 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all hover:-translate-y-0.5 hover:shadow-lg"
+   243→            >
+   244→              <div className="flex items-center justify-between">
+   245→                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface transition-colors group-hover:bg-mint-soft">{MODULE_ICONS[i % MODULE_ICONS.length]}</span>
+   246→                <span className="text-[11px] font-bold uppercase tracking-widest text-neutral-300">Module {"ABCD"[i % 4]}</span>
+   247→              </div>
+   248→              <h3 className="mt-3.5 text-[16.5px] font-bold">{m.title}</h3>
+   249→              <p className="mt-1.5 text-[12.5px] leading-relaxed text-neutral-500">{m.desc}</p>
+   250→            </button>
+   251→          ))}
+   252→        </div>
+   253→      </section>
+   254→
+   255→      {/* How it works teaser */}
+   256→      <section className="mx-auto max-w-6xl px-5 py-8">
+   257→        <SectionHead
+   258→          eyebrow={c.howSection.eyebrow}
+   259→          title={c.howSection.title}
+   260→          sub={c.howSection.sub}
+   261→          action={c.howSection.action ? { label: c.howSection.action, onClick: () => onNavigate("how") } : undefined}
+   262→        />
+   263→        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+   264→          {c.steps.map((s, i) => (
+   265→            <div key={s.t} className="relative rounded-2xl border border-neutral-200/70 bg-white p-5">
+   266→              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-[14px] font-bold text-white">{i + 1}</span>
+   267→              <h3 className="mt-3 text-[16px] font-bold">{s.t}</h3>
+   268→              <p className="mt-1 text-[12.5px] leading-relaxed text-neutral-500">{s.d}</p>
+   269→              {i < c.steps.length - 1 && (
+   270→                <ArrowRight size={15} className="absolute -right-2.5 top-1/2 hidden -translate-y-1/2 text-mint lg:block" />
+   271→              )}
+   272→            </div>
+   273→          ))}
+   274→        </div>
+   275→      </section>
+   276→
+   277→      {/* Industries */}
+   278→      <section className="mx-auto max-w-6xl px-5 py-8">
+   279→        <SectionHead
+   280→          eyebrow={c.industriesSection.eyebrow}
+   281→          title={c.industriesSection.title}
+   282→          sub={c.industriesSection.sub}
+   283→        />
+   284→        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+   285→          {c.industries.map((ind) => (
+   286→            <div
+   287→              key={ind.name}
+   288→              className="group rounded-2xl border border-neutral-200/70 bg-white p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+   289→            >
+   290→              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint-soft text-mint-deep transition-colors group-hover:bg-mint/30">
+   291→                {INDUSTRY_ICONS[ind.icon] || <Building2 size={18} />}
+   292→              </span>
+   293→              <h3 className="mt-3 text-[14px] font-bold text-brand">{ind.name}</h3>
+   294→              <p className="mt-1 text-[11.5px] leading-relaxed text-neutral-500">{ind.ex}</p>
+   295→            </div>
+   296→          ))}
+   297→        </div>
+   298→      </section>
+   299→
+   300→      {/* Testimonials */}
+   301→      <section className="mx-auto max-w-6xl px-5 py-8">
+   302→        <SectionHead
+   303→          eyebrow={c.testimonialsSection.eyebrow}
+   304→          title={c.testimonialsSection.title}
+   305→          sub={c.testimonialsSection.sub}
+   306→        />
+   307→        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+   308→          {testimonials.map((t) => (
+   309→            <figure key={t.id} className="flex flex-col rounded-2xl border border-neutral-200/70 bg-white p-6">
+   310→              <Quote size={20} className="text-mint" />
+   311→              <blockquote className="mt-3 flex-1 text-[13.5px] leading-relaxed text-neutral-600">“{t.quote}”</blockquote>
+   312→              <figcaption className="mt-5 flex items-center gap-3 border-t border-neutral-100 pt-4">
+   313→                {t.mediaUrl ? (
+   314→                  <img src={t.mediaUrl} alt={t.name} className="h-10 w-10 shrink-0 rounded-full object-cover" />
+   315→                ) : (
+   316→                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand text-[13px] font-bold text-white">
+   317→                    {t.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+   318→                  </span>
+   319→                )}
+   320→                <div className="min-w-0 flex-1">
+   321→                  <p className="truncate text-[13px] font-bold">{t.name}</p>
+   322→                  <p className="truncate text-[11px] text-neutral-400">{t.role}</p>
+   323→                </div>
+   324→                <StarRating value={t.stars} size={11} />
+   325→              </figcaption>
+   326→            </figure>
+   327→          ))}
+   328→        </div>
+   329→      </section>
+   330→
+   331→      {/* Pricing teaser — live from the plans API */}
+   332→      <section className="mx-auto max-w-6xl px-5 py-8">
+   333→        <SectionHead
+   334→          eyebrow={c.pricingSection.eyebrow}
+   335→          title={c.pricingSection.title}
+   336→          sub={c.pricingSection.sub}
+   337→          action={c.pricingSection.action ? { label: c.pricingSection.action, onClick: () => onNavigate("pricing") } : undefined}
+   338→        />
+   339→        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+   340→          {teaserPlans.map((p) => (
+   341→            <div
+   342→              key={p.id}
+   343→              className={cn(
+   344→                "flex flex-col rounded-3xl border p-6",
+   345→                p.popular ? "border-mint/50 bg-brand text-white shadow-xl lg:-translate-y-2" : "border-neutral-200/70 bg-white"
+   346→              )}
+   347→            >
+   348→              <div className="flex items-center justify-between">
+   349→                <h3 className="text-[16px] font-bold">{p.name}</h3>
+   350→                {p.popular && <span className="rounded-full bg-mint px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-deep">Popular</span>}
+   351→              </div>
+   352→              <div className="mt-3 flex items-baseline gap-1.5">
+   353→                <span className="text-[30px] font-bold tracking-tight">₹{p.monthlyInr.toLocaleString("en-IN")}</span>
+   354→                <span className={cn("text-[12px]", p.popular ? "text-white/50" : "text-neutral-400")}>/month</span>
+   355→              </div>
+   356→              <p className={cn("mt-2 text-[12.5px]", p.popular ? "text-white/60" : "text-neutral-500")}>{p.blurb}</p>
+   357→              <Button
+   358→                className={cn(
+   359→                  "mt-5 h-11 w-full rounded-2xl text-[13px] font-semibold",
+   360→                  p.popular ? "bg-mint text-brand-deep hover:bg-mint/90" : "bg-brand text-white hover:bg-brand-deep"
+   361→                )}
+   362→                onClick={() => onNavigate("signup")}
+   363→              >
+   364→                Try for Free
+   365→              </Button>
+   366→            </div>
+   367→          ))}
+   368→        </div>
+   369→      </section>
+   370→
+   371→      {/* FAQs */}
+   372→      <section className="mx-auto max-w-6xl px-5 py-8">
+   373→        <SectionHead
+   374→          eyebrow={c.faqSection.eyebrow}
+   375→          title={c.faqSection.title}
+   376→          sub={c.faqSection.sub}
+   377→          action={c.faqSection.action ? { label: c.faqSection.action, onClick: () => onNavigate("knowledge") } : undefined}
+   378→        />
+   379→        <div className="mt-6 grid gap-3 lg:grid-cols-2">
+   380→          {faqs.map((f, i) => {
+   381→            const open = openFaq === i;
+   382→            return (
+   383→              <div
+   384→                key={f.id}
+   385→                className={cn(
+   386→                  "h-fit rounded-2xl border bg-white transition-colors",
+   387→                  open ? "border-mint/60 shadow-[0_8px_24px_-12px_rgba(63,145,99,0.25)]" : "border-neutral-200/70"
+   388→                )}
+   389→              >
+   390→                <button
+   391→                  onClick={() => setOpenFaq(open ? null : i)}
+   392→                  aria-expanded={open}
+   393→                  className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+   394→                >
+   395→                  <span className="text-[14px] font-semibold text-brand">{f.question}</span>
+   396→                  <ChevronDown size={16} className={cn("shrink-0 text-mint-deep transition-transform", open && "rotate-180")} />
+   397→                </button>
+   398→                {open && <p className="px-5 pb-4 text-[13px] leading-relaxed text-neutral-500">{f.answer}</p>}
+   399→              </div>
+   400→            );
+   401→          })}
+   402→        </div>
+   403→      </section>
+   404→
+   405→      {/* Recent blogs — newest three articles from the CMS */}
+   406→      <section className="mx-auto max-w-6xl px-5 py-8">
+   407→        <SectionHead
+   408→          eyebrow={c.blogsSection.eyebrow}
+   409→          title={c.blogsSection.title}
+   410→          sub={c.blogsSection.sub}
+   411→          action={c.blogsSection.action ? { label: c.blogsSection.action, onClick: () => onNavigate("blog") } : undefined}
+   412→        />
+   413→        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+   414→          {recentPosts.map((p) => (
+   415→            <button
+   416→              key={p.id}
+   417→              onClick={() => navigate({ surface: "blog", view: blogPostUrlView(p) })}
+   418→              className="group flex flex-col rounded-3xl border border-neutral-200/70 bg-white p-6 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all hover:-translate-y-0.5 hover:shadow-lg"
+   419→            >
+   420→              <div className="flex flex-wrap items-center gap-2.5 text-[11.5px] text-neutral-400">
+   421→                <span className="rounded-full bg-mint-soft px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-mint-deep">{p.tag}</span>
+   422→                <span className="flex items-center gap-1"><Clock size={12} /> {new Date(p.publishedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} · {p.readTime}</span>
+   423→              </div>
+   424→              <h3 className="mt-3 text-[18px] font-bold leading-snug tracking-tight text-brand">{p.title}</h3>
+   425→              <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-neutral-500">{p.excerpt}</p>
+   426→              <span className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand">
+   427→                Read article <ArrowRight size={14} className="text-mint-deep transition-transform group-hover:translate-x-0.5" />
+   428→              </span>
+   429→            </button>
+   430→          ))}
+   431→        </div>
+   432→      </section>
+   433→
+   434→      <CtaBand onWatchDemo={onWatchDemo} note={c.ctaNote} />
+   435→    </main>
+   436→  );
+   437→}
+   438→
+   439→function SectionHead({ eyebrow, title, sub, action }: {
+   440→  eyebrow: string; title: string; sub: string;
+   441→  action?: { label: string; onClick: () => void };
+   442→}) {
+   443→  return (
+   444→    <div className="mx-auto max-w-2xl text-center">
+   445→      <span className="inline-flex items-center gap-2 rounded-full border border-mint/50 bg-mint-soft px-4 py-1.5 text-[15px] font-extrabold uppercase tracking-[0.14em] text-mint-deep shadow-[0_2px_10px_rgba(136,214,160,0.25)]">
+   446→        <span className="h-1.5 w-1.5 rounded-full bg-mint-deep" aria-hidden />
+   447→        {eyebrow}
+   448→        <span className="h-1.5 w-1.5 rounded-full bg-mint-deep" aria-hidden />
+   449→      </span>
+   450→      <h2 className="mt-3.5 text-[26px] font-extrabold leading-[1.14] tracking-tight text-brand lg:text-[30px]">{title}</h2>
+   451→      <p className="mx-auto mt-2.5 max-w-xl text-[14px] leading-relaxed text-neutral-500">{sub}</p>
+   452→      {action && (
+   453→        <button onClick={action.onClick} className="group mx-auto mt-4 flex items-center justify-center gap-1.5 text-[13.5px] font-semibold text-brand">
+   454→          {action.label}
+   455→          <ArrowRight size={14} className="text-mint-deep transition-transform group-hover:translate-x-0.5" />
+   456→        </button>
+   457→      )}
+   458→    </div>
+   459→  );
+   460→}
+   461→
+   462→function HeroPreview({ onOpenApp }: { onOpenApp: () => void }) {
+   463→  return (
+   464→    <div
+   465→      role="button"
+   466→      tabIndex={0}
+   467→      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenApp(); } }}
+   468→      onClick={onOpenApp}
+   469→      className="group relative block w-full cursor-pointer overflow-hidden rounded-3xl border border-neutral-200/80 bg-white text-left shadow-[0_24px_60px_-24px_rgba(16,24,40,0.25)] transition-transform hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-mint focus-visible:outline-none"
+   470→      aria-label="Open the client dashboard"
+   471→    >
+   472→      <div className="flex items-center gap-2 border-b border-neutral-100 bg-surface px-4 py-2.5">
+   473→        <span className="h-2.5 w-2.5 rounded-full bg-red-300" />
+   474→        <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
+   475→        <span className="h-2.5 w-2.5 rounded-full bg-mint" />
+   476→        <span className="ml-3 rounded-lg bg-white px-3 py-1 font-mono text-[10.5px] text-neutral-400">app.sensiblee.in · overview</span>
+   477→        <span className="ml-auto hidden rounded-full bg-mint-soft px-2.5 py-1 text-[10px] font-bold text-mint-deep sm:inline">LIVE APP →</span>
+   478→      </div>
+   479→
+   480→      <div className="grid sm:grid-cols-[56px_1fr]">
+   481→        <div className="flex flex-row justify-center gap-2 border-b border-neutral-100 bg-cream p-3 sm:flex-col sm:justify-start sm:border-b-0 sm:border-r">
+   482→          {[true, false, false, false, false].map((active, i) => (
+   483→            <span key={i} className={cn("h-8 w-8 rounded-xl", active ? "bg-brand" : "bg-neutral-100")} />
+   484→          ))}
+   485→        </div>
+   486→
+   487→        <div className="space-y-3 p-4 lg:p-5">
+   488→          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+   489→            {[
+   490→              { l: "Avg rating", v: "4.65", d: "+0.15" },
+   491→              { l: "Reviews / mo", v: "128", d: "+22%" },
+   492→              { l: "Response rate", v: "92%", d: "+7 pts" },
+   493→              { l: "AI drafts waiting", v: "5", d: "2 urgent" },
+   494→            ].map((c) => (
+   495→              <div key={c.l} className="rounded-2xl border border-neutral-100 bg-surface p-3">
+   496→                <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">{c.l}</p>
+   497→                <div className="mt-1 flex items-baseline gap-1.5">
+   498→                  <span className="text-[19px] font-bold">{c.v}</span>
+   499→                  <span className="text-[10.5px] font-semibold text-mint-deep">{c.d}</span>
+   500→                </div>
+   501→              </div>
+   502→            ))}
+   503→          </div>
+   504→
+   505→          <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
+   506→            <div className="rounded-2xl border border-neutral-100 bg-surface p-4">
+   507→              <div className="flex items-center justify-between">
+   508→                <p className="text-[12px] font-bold">Rating trend · 12 weeks</p>
+   509→                <span className="rounded-full bg-mint-soft px-2 py-0.5 text-[10px] font-bold text-mint-deep">▲ climbing</span>
+   510→              </div>
+   511→              <svg viewBox="0 0 320 84" className="mt-2 w-full" aria-hidden>
+   512→                <path d="M0 66 C 30 62, 55 58, 80 56 C 110 53, 135 50, 160 44 C 190 37, 215 34, 240 26 C 270 18, 295 14, 320 10"
+   513→                  fill="none" stroke="#88D6A0" strokeWidth="3.5" strokeLinecap="round" />
+   514→                <path d="M0 74 C 40 71, 80 68, 120 64 C 170 59, 240 50, 320 42"
+   515→                  fill="none" stroke="#FEF3C7" strokeWidth="3" strokeLinecap="round" strokeDasharray="1 7" />
+   516→                <circle cx="320" cy="10" r="5" fill="#88D6A0" />
+   517→                <circle cx="320" cy="10" r="9" fill="#88D6A0" opacity="0.25" />
+   518→              </svg>
+   519→              <div className="mt-1 flex justify-between font-mono text-[9.5px] text-neutral-300">
+   520→                <span>W1 · 4.1</span><span>W6 · 4.4</span><span>W12 · 4.65</span>
+   521→              </div>
+   522→            </div>
+   523→
+   524→            <div className="rounded-2xl border border-amber-200/70 bg-amber-soft/40 p-4">
+   525→              <div className="flex items-center justify-between">
+   526→                <span className="flex items-center gap-1.5 text-[11px] font-bold text-amber-deep">
+   527→                  <Sparkles size={12} /> AI draft ready
+   528→                </span>
+   529→                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-amber-deep">2★ · urgent</span>
+   530→              </div>
+   531→              <p className="mt-2 text-[11.5px] leading-relaxed text-neutral-600">
+   532→                “Waited 40 minutes despite a reservation…”
+   533→              </p>
+   534→              <div className="mt-2 rounded-xl bg-white/90 p-2.5 text-[11px] leading-relaxed text-neutral-600">
+   535→                “Rohit, we&apos;re truly sorry about the wait on Saturday — that is not the
+   536→                experience we intend…”
+   537→              </div>
+   538→              <div className="mt-2.5 flex gap-1.5">
+   539→                <span className="rounded-lg bg-brand px-2.5 py-1 text-[10px] font-bold text-white">Approve</span>
+   540→                <span className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-neutral-500">Edit</span>
+   541→                <span className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-neutral-500">Regenerate</span>
+   542→              </div>
+   543→            </div>
+   544→          </div>
+   545→
+   546→          <div className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-surface p-3">
+   547→            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-bold text-white">AS</span>
+   548→            <div className="min-w-0 flex-1">
+   549→              <div className="flex items-center gap-2">
+   550→                <p className="text-[12px] font-semibold">Ananya Sharma</p>
+   551→                <StarRating value={5} size={10} />
+   552→                <span className="hidden rounded-full bg-mint-soft px-2 py-0.5 text-[9.5px] font-bold text-mint-deep sm:inline">positive</span>
+   553→              </div>
+   554→              <p className="truncate text-[11.5px] text-neutral-500">“Staff arranged a surprise dessert plate without being asked…”</p>
+   555→            </div>
+   556→            <span className="hidden shrink-0 items-center gap-1 rounded-full bg-mint px-2.5 py-1 text-[10px] font-bold text-brand-deep sm:flex">
+   557→              <Check size={11} /> Replied
+   558→            </span>
+   559→          </div>
+   560→        </div>
+   561→      </div>
+   562→    </div>
+   563→  );
+   564→}
+   565→

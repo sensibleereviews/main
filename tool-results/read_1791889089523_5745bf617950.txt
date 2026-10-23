@@ -1,0 +1,452 @@
+   454→   454→function BillingView({ canOperate }: { canOperate: boolean }) {
+   455→   455→  const { toast } = useToast();
+   456→   456→  const data = useApiData<BillingPayload>("/api/admin/invoices");
+   457→   457→  const [busyId, setBusyId] = useState<string | null>(null);
+   458→   458→
+   459→   459→  const act = async (id: string, action: "remind" | "mark-paid", tenant: string) => {
+   460→   460→    setBusyId(id);
+   461→   461→    try {
+   462→   462→      await api.patch(`/api/admin/invoices/${id}`, { action });
+   463→   463→      toast({
+   464→   464→        title: action === "remind" ? "Payment link sent" : "Invoice settled",
+   465→   465→        description: action === "remind" ? `WhatsApp link dispatched to ${tenant}'s billing contact.` : `${tenant} — subscription reactivated if it was paused.`,
+   466→   466→      });
+   467→   467→      data.reload();
+   468→   468→    } catch (e) {
+   469→   469→      toast({ title: "Action failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   470→   470→    } finally {
+   471→   471→      setBusyId(null);
+   472→   472→    }
+   473→   473→  };
+   474→   474→
+   475→   475→  if (data.loading || !data.data) return <div className="h-64 animate-pulse rounded-2xl bg-brand" />;
+   476→   476→  const d = data.data;
+   477→   477→
+   478→   478→  return (
+   479→   479→    <div className="space-y-5">
+   480→   480→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   481→   481→        <DarkStat label="Settled (this month)" value={inr(d.stats.settledMonth)} hint="Razorpay · T+2 settlement" icon={<Landmark size={15} />} />
+   482→   482→        <DarkStat label="Failed payments" value={String(d.stats.failed)} hint={d.stats.failed ? `${inr(d.stats.overdueAmount)} overdue` : "all clean"} icon={<Wallet size={15} />} />
+   483→   483→        <DarkStat label="Invoices issued" value={String(d.invoices.length)} hint="lifetime" icon={<Layers size={15} />} />
+   484→   484→        <DarkStat label="Dunning ladder" value={d.stats.failed ? "active" : "idle"} hint="retry 1/3/5/7 · WhatsApp links" icon={<RefreshCw size={15} />} />
+   485→   485→      </div>
+   486→   486→
+   487→   487→      {d.invoices.filter((p) => p.status === "overdue").map((p) => (
+   488→   488→        <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/20 bg-red-400/10 p-4">
+   489→   489→          <div className="text-[13px]">
+   490→   490→            <p className="font-semibold text-red-300">Auto-debit failed — {p.tenant}</p>
+   491→   491→            <p className="mt-0.5 text-[12px] text-white/50">{p.method} · {p.date} · {p.remindersSent} reminder{p.remindersSent === 1 ? "" : "s"} sent · smart dunning armed</p>
+   492→   492→          </div>
+   493→   493→          <Button size="sm" className="h-8 rounded-xl bg-mint text-[12px] text-brand-deep hover:bg-mint/90" disabled={busyId === p.id || !canOperate} onClick={() => act(p.id, "remind", p.tenant)}>
+   494→   494→            Send WhatsApp payment link
+   495→   495→          </Button>
+   496→   496→        </div>
+   497→   497→      ))}
+   498→   498→
+   499→   499→      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-brand">
+   500→   500→        <table className="w-full min-w-[680px] text-left text-[13px]">
+   501→   501→          <thead>
+   502→   502→            <tr className="border-b border-white/10 text-[11px] uppercase tracking-wider text-white/35">
+   503→   503→              <th className="px-5 py-3 font-medium">Invoice</th>
+   504→   504→              <th className="px-3 py-3 font-medium">Client</th>
+   505→   505→              <th className="px-3 py-3 font-medium">Amount</th>
+   506→   506→              <th className="px-3 py-3 font-medium">Method</th>
+   507→   507→              <th className="px-3 py-3 font-medium">Status</th>
+   508→   508→              <th className="px-5 py-3 text-right font-medium">Actions</th>
+   509→   509→            </tr>
+   510→   510→          </thead>
+   511→   511→          <tbody>
+   512→   512→            {d.invoices.map((p) => (
+   513→   513→              <tr key={p.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.03]">
+   514→   514→                <td className="px-5 py-3 font-mono text-[11.5px] text-white/50">{p.number}</td>
+   515→   515→                <td className="px-3 py-3 font-medium text-white/85">{p.tenant}</td>
+   516→   516→                <td className="px-3 py-3 font-semibold">{inr(p.amount)}</td>
+   517→   517→                <td className="px-3 py-3 text-white/50">{p.method}</td>
+   518→   518→                <td className="px-3 py-3">
+   519→   519→                  <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize",
+   520→   520→                    p.status === "paid" ? "bg-mint/15 text-mint" : p.status === "overdue" ? "bg-red-400/15 text-red-300" : "bg-white/10 text-white/60")}>
+   521→   521→                    {p.status}
+   522→   522→                  </span>
+   523→   523→                </td>
+   524→   524→                <td className="px-5 py-3 text-right">
+   525→   525→                  <span className="inline-flex items-center gap-1.5">
+   526→   526→                    <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2 text-[11px] text-white/70 hover:bg-white/5 hover:text-white"
+   527→   527→                      onClick={() => {
+   528→   528→                        const a = document.createElement("a");
+   529→   529→                        a.href = `/api/admin/invoices/${p.id}/pdf`;
+   530→   530→                        a.download = `sensiblee-invoice-${p.number}.pdf`;
+   531→   531→                        document.body.appendChild(a);
+   532→   532→                        a.click();
+   533→   533→                        a.remove();
+   534→   534→                      }}>
+   535→   535→                      <Download size={11} className="mr-1" /> PDF
+   536→   536→                    </Button>
+   537→   537→                    {p.status !== "paid" && (
+   538→   538→                      <>
+   539→   539→                        <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2 text-[11px] text-white/70 hover:bg-white/5 hover:text-white"
+   540→   540→                          disabled={busyId === p.id || !canOperate} onClick={() => act(p.id, "remind", p.tenant)}>
+   541→   541→                          Remind
+   542→   542→                        </Button>
+   543→   543→                        <Button size="sm" variant="outline" className="h-7 border-mint/30 bg-transparent px-2 text-[11px] text-mint hover:bg-mint/10"
+   544→   544→                          disabled={busyId === p.id || !canOperate} onClick={() => act(p.id, "mark-paid", p.tenant)}>
+   545→   545→                          Mark paid
+   546→   546→                        </Button>
+   547→   547→                      </>
+   548→   548→                    )}
+   549→   549→                  </span>
+   550→   550→                </td>
+   551→   551→              </tr>
+   552→   552→            ))}
+   553→   553→          </tbody>
+   554→   554→        </table>
+   555→   555→      </div>
+   556→   556→
+   557→   557→      <div className="grid gap-4 md:grid-cols-3">
+   558→   558→        <DarkCard icon={<RefreshCw size={16} />} title="Proration engine" desc="Mid-cycle upgrades bill per day immediately; downgrades become invoice credit." />
+   559→   559→        <DarkCard icon={<Wallet size={16} />} title="Dunning ladder" desc="Retries day 1/3/5/7, WhatsApp payment links, auto-downgrade before suspension." />
+   560→   560→        <DarkCard icon={<Webhook size={16} />} title="Razorpay events" desc="Signature-verified webhooks reconcile invoices within 30 seconds." />
+   561→   561→      </div>
+   562→   562→    </div>
+   563→   563→  );
+   564→   564→}
+   565→   565→
+   566→   566→/* ----------------------------- Plans & pricing ---------------------------- */
+   567→   567→
+   568→   568→type PlanRow = { id: string; name: string; monthlyInr: number; halfYearlyInr: number; annualInr: number; blurb: string; features: string[]; popular: boolean };
+   569→   569→
+   570→   570→function PlansView({ canOperate }: { canOperate: boolean }) {
+   571→   571→  const { toast } = useToast();
+   572→   572→  const data = useApiData<{ plans: PlanRow[] }>("/api/admin/plans");
+   573→   573→  const [edits, setEdits] = useState<Record<string, { monthlyInr: number; halfYearlyInr: number; annualInr: number }>>({});
+   574→   574→  const [savingId, setSavingId] = useState<string | null>(null);
+   575→   575→
+   576→   576→  const save = async (p: PlanRow) => {
+   577→   577→    const e = edits[p.id];
+   578→   578→    if (!e) return;
+   579→   579→    setSavingId(p.id);
+   580→   580→    try {
+   581→   581→      await api.patch("/api/admin/plans", { id: p.id, monthlyInr: e.monthlyInr, halfYearlyInr: e.halfYearlyInr, annualInr: e.annualInr });
+   582→   582→      toast({ title: `${p.name} updated`, description: "Public pricing page reflects instantly." });
+   583→   583→      data.reload();
+   584→   584→    } catch (err) {
+   585→   585→      toast({ title: "Save failed", description: err instanceof Error ? err.message : "", variant: "destructive" });
+   586→   586→    } finally {
+   587→   587→      setSavingId(null);
+   588→   588→    }
+   589→   589→  };
+   590→   590→
+   591→   591→  if (data.loading || !data.data) return <div className="h-64 animate-pulse rounded-2xl bg-brand" />;
+   592→   592→
+   593→   593→  return (
+   594→   594→    <div className="space-y-5">
+   595→   595→      <div className="grid gap-4 lg:grid-cols-3">
+   596→   596→        {data.data.plans.map((p) => {
+   597→   597→          const e = edits[p.id] || { monthlyInr: p.monthlyInr, halfYearlyInr: p.halfYearlyInr, annualInr: p.annualInr };
+   598→   598→          const dirty = e.monthlyInr !== p.monthlyInr || e.halfYearlyInr !== p.halfYearlyInr || e.annualInr !== p.annualInr;
+   599→   599→          return (
+   600→   600→            <div key={p.id} className={cn("relative rounded-2xl border p-5", p.popular ? "border-mint/60 bg-brand ring-1 ring-mint/30" : "border-white/10 bg-brand")}>
+   601→   601→              {p.popular && (
+   602→   602→                <span className="absolute -top-2.5 left-5 rounded-full bg-mint px-2.5 py-0.5 text-[10.5px] font-bold text-brand-deep">Most popular</span>
+   603→   603→              )}
+   604→   604→              <div className="flex items-baseline justify-between">
+   605→   605→                <h3 className="text-[16px] font-bold">{p.name}</h3>
+   606→   606→                <p className="text-[22px] font-bold text-mint">
+   607→   607→                  ₹{e.monthlyInr.toLocaleString("en-IN")}<span className="text-[12px] font-medium text-white/40">/mo</span>
+   608→   608→                </p>
+   609→   609→              </div>
+   610→   610→              <p className="mt-1 text-[12.5px] text-white/45">{p.blurb}</p>
+   611→   611→              <ul className="mt-4 space-y-2">
+   612→   612→                {p.features.map((f) => (
+   613→   613→                  <li key={f} className="flex items-start gap-2 text-[12.5px] text-white/70">
+   614→   614→                    <Check size={13} className="mt-0.5 shrink-0 text-mint" /> {f}
+   615→   615→                  </li>
+   616→   616→                ))}
+   617→   617→              </ul>
+   618→   618→              <div className="mt-4 grid grid-cols-3 gap-2">
+   619→   619→                <label className="block">
+   620→   620→                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">Monthly ₹</span>
+   621→   621→                  <input type="number" value={e.monthlyInr} onChange={(ev) => setEdits((m) => ({ ...m, [p.id]: { ...e, monthlyInr: Number(ev.target.value) } }))}
+   622→   622→                    className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-brand-deep/60 px-2.5 text-[12.5px] text-white outline-none focus:border-mint/50" />
+   623→   623→                </label>
+   624→   624→                <label className="block">
+   625→   625→                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">Half-yr ₹</span>
+   626→   626→                  <input type="number" value={e.halfYearlyInr} onChange={(ev) => setEdits((m) => ({ ...m, [p.id]: { ...e, halfYearlyInr: Number(ev.target.value) } }))}
+   627→   627→                    className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-brand-deep/60 px-2.5 text-[12.5px] text-white outline-none focus:border-mint/50" />
+   628→   628→                </label>
+   629→   629→                <label className="block">
+   630→   630→                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">Annual ₹</span>
+   631→   631→                  <input type="number" value={e.annualInr} onChange={(ev) => setEdits((m) => ({ ...m, [p.id]: { ...e, annualInr: Number(ev.target.value) } }))}
+   632→   632→                    className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-brand-deep/60 px-2.5 text-[12.5px] text-white outline-none focus:border-mint/50" />
+   633→   633→                </label>
+   634→   634→              </div>
+   635→   635→              <Button size="sm" className={cn("mt-3 h-9 w-full rounded-xl text-[12.5px]", p.popular ? "bg-mint text-brand-deep hover:bg-mint/90" : "border border-white/15 bg-transparent text-white hover:bg-white/5")}
+   636→   636→                disabled={!canOperate || !dirty || savingId === p.id} onClick={() => save(p)}>
+   637→   637→                {!canOperate ? "Read-only" : savingId === p.id ? "Saving…" : dirty ? "Save pricing" : "Saved"}
+   638→   638→              </Button>
+   639→   639→            </div>
+   640→   640→          );
+   641→   641→        })}
+   642→   642→      </div>
+   643→   643→
+   644→   644→      <div className="grid gap-4 md:grid-cols-2">
+   645→   645→        <DarkCard icon={<CreditCard size={16} />} title="Checkout" desc="Razorpay subscription sessions created from the admin or public pricing page; GST invoices auto-issued." />
+   646→   646→        <DarkCard icon={<Gauge size={16} />} title="Quota display" desc="Clients see live meters for drafts, WhatsApp messages and locations — no surprise overage." />
+   647→   647→      </div>
+   648→   648→    </div>
+   649→   649→  );
+   650→   650→}
+   651→   651→
+   652→   652→/* --------------------------------- System -------------------------------- */
+   653→   653→
+   654→   654→type SystemPayload = {
+   655→   655→  jobs: { name: string; desc: string; state: string; queue: string; latency: string }[];
+   656→   656→  events: { id: string; type: string; name: string; state: string; detail: string | null; t: string }[];
+   657→   657→  connectors: { google: string; whatsapp: string };
+   658→   658→};
+   659→   659→
+   660→   660→type FlagsPayload = {
+   661→   661→  tenantTotal: number;
+   662→   662→  flags: { key: string; label: string; description: string; enabled: boolean; optIns: number }[];
+   663→   663→};
+   664→   664→
+   665→   665→type GatewaysPayload = {
+   666→   666→  gateways: {
+   667→   667→    provider: string;
+   668→   668→    label: string;
+   669→   669→    description: string;
+   670→   670→    enabled: boolean;
+   671→   671→    keyId: string;
+   672→   672→    keySecretMasked: string;
+   673→   673→    webhookSecretMasked: string;
+   674→   674→    hasCredentials: boolean;
+   675→   675→    provisioned: { tenantId: string; tenantName: string; mode: string; status: string; accountRef: string }[];
+   676→   676→  }[];
+   677→   677→  tenants: { id: string; name: string; planId: string; mrrInr: number }[];
+   678→   678→};
+   679→   679→
+   680→   680→function SystemView({ canOperate }: { canOperate: boolean }) {
+   681→   681→  const { toast } = useToast();
+   682→   682→  const data = useApiData<SystemPayload>("/api/admin/system");
+   683→   683→  const flagsData = useApiData<FlagsPayload>("/api/admin/flags");
+   684→   684→  const gatewaysData = useApiData<GatewaysPayload>("/api/admin/gateways");
+   685→   685→  const [running, setRunning] = useState<string | null>(null);
+   686→   686→  const [flagBusy, setFlagBusy] = useState<string | null>(null);
+   687→   687→  const [gwBusy, setGwBusy] = useState<string | null>(null);
+   688→   688→  const [cfgOpen, setCfgOpen] = useState<string | null>(null);
+   689→   689→  const [cfgDraft, setCfgDraft] = useState<Record<string, { keyId: string; keySecret: string; webhookSecret: string }>>({});
+   690→   690→  const [provDraft, setProvDraft] = useState<Record<string, { tenantId: string; mode: string; accountRef: string }>>({});
+   691→   691→  const gwInput = "h-8 w-full rounded-lg border border-white/10 bg-brand-deep/60 px-2.5 text-[12px] text-white placeholder:text-white/25 outline-none transition-colors focus:border-mint/50";
+   692→   692→
+   693→   693→  const toggleGateway = async (provider: string, enabled: boolean, label: string) => {
+   694→   694→    setGwBusy(provider);
+   695→   695→    try {
+   696→   696→      await api.patch(`/api/admin/gateways/${provider}`, { enabled });
+   697→   697→      toast({
+   698→   698→        title: `${label} turned ${enabled ? "on" : "off"}`,
+   699→   699→        description: enabled
+   700→   700→          ? "Workspaces can now be provisioned on this gateway."
+   701→   701→          : "Collection is suspended for provisioned workspaces — links are preserved.",
+   702→   702→      });
+   703→   703→      gatewaysData.reload();
+   704→   704→    } catch (e) {
+   705→   705→      toast({ title: "Could not update gateway", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   706→   706→    } finally {
+   707→   707→      setGwBusy(null);
+   708→   708→    }
+   709→   709→  };
+   710→   710→
+   711→   711→  const saveGatewayCreds = async (provider: string) => {
+   712→   712→    setGwBusy(provider);
+   713→   713→    try {
+   714→   714→      const d = cfgDraft[provider] || { keyId: "", keySecret: "", webhookSecret: "" };
+   715→   715→      await api.patch(`/api/admin/gateways/${provider}`, { keyId: d.keyId, keySecret: d.keySecret, webhookSecret: d.webhookSecret });
+   716→   716→      toast({ title: "Credentials saved", description: "Secrets are stored write-only — every read shows only the masked tail." });
+   717→   717→      gatewaysData.reload();
+   718→   718→    } catch (e) {
+   719→   719→      toast({ title: "Could not save credentials", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   720→   720→    } finally {
+   721→   721→      setGwBusy(null);
+   722→   722→    }
+   723→   723→  };
+   724→   724→
+   725→   725→  const provisionTenant = async (provider: string) => {
+   726→   726→    setGwBusy(provider);
+   727→   727→    try {
+   728→   728→      const p = provDraft[provider] || { tenantId: "", mode: "test", accountRef: "" };
+   729→   729→      await api.post(`/api/admin/gateways/${provider}/provision`, p);
+   730→   730→      toast({ title: "Workspace provisioned", description: "Billing for this workspace now flows through the gateway." });
+   731→   731→      setProvDraft((m) => ({ ...m, [provider]: { tenantId: "", mode: "test", accountRef: "" } }));
+   732→   732→      gatewaysData.reload();
+   733→   733→    } catch (e) {
+   734→   734→      toast({ title: "Could not provision workspace", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   735→   735→    } finally {
+   736→   736→      setGwBusy(null);
+   737→   737→    }
+   738→   738→  };
+   739→   739→
+   740→   740→  const updateProvision = async (provider: string, tenantId: string, patch: { status?: string; mode?: string }) => {
+   741→   741→    setGwBusy(provider);
+   742→   742→    try {
+   743→   743→      await api.patch(`/api/admin/gateways/${provider}/provision`, { tenantId, ...patch });
+   744→   744→      gatewaysData.reload();
+   745→   745→    } catch (e) {
+   746→   746→      toast({ title: "Could not update provisioning", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   747→   747→    } finally {
+   748→   748→      setGwBusy(null);
+   749→   749→    }
+   750→   750→  };
+   751→   751→
+   752→   752→  const unprovisionTenant = async (provider: string, tenantId: string, tenantName: string) => {
+   753→   753→    setGwBusy(provider);
+   754→   754→    try {
+   755→   755→      await api.del(`/api/admin/gateways/${provider}/provision?tenantId=${tenantId}`);
+   756→   756→      toast({ title: `${tenantName} unprovisioned`, description: "The workspace falls back to manual invoicing until a gateway is provisioned again." });
+   757→   757→      gatewaysData.reload();
+   758→   758→    } catch (e) {
+   759→   759→      toast({ title: "Could not unprovision workspace", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   760→   760→    } finally {
+   761→   761→      setGwBusy(null);
+   762→   762→    }
+   763→   763→  };
+   764→   764→
+   765→   765→  const runJob = async (name: string) => {
+   766→   766→    setRunning(name);
+   767→   767→    try {
+   768→   768→      await api.post("/api/admin/system", { name });
+   769→   769→      toast({ title: `${name} completed`, description: "Event recorded in the system log." });
+   770→   770→      data.reload();
+   771→   771→    } finally {
+   772→   772→      setRunning(null);
+   773→   773→    }
+   774→   774→  };
+   775→   775→
+   776→   776→  const toggleFlag = async (key: string, enabled: boolean, label: string) => {
+   777→   777→    setFlagBusy(key);
+   778→   778→    try {
+   779→   779→      const res = await api.patch<{ flag: { optIns: number; effectiveCount: number } }>(`/api/admin/flags/${key}`, { enabled });
+   780→   780→      toast({
+   781→   781→        title: `${label} turned ${enabled ? "on" : "off"} platform-wide`,
+   782→   782→        description: `${res.flag.effectiveCount} of ${res.flag.optIns} opted-in tenant${res.flag.optIns === 1 ? "" : "s"} effectively ${enabled ? "live" : "suspended"}. Opt-ins are preserved.`,
+   783→   783→      });
+   784→   784→      flagsData.reload();
+   785→   785→    } catch (e) {
+   786→   786→      toast({ title: "Could not update flag", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   787→   787→    } finally {
+   788→   788→      setFlagBusy(null);
+   789→   789→    }
+   790→   790→  };
+   791→   791→
+   792→   792→  if (data.loading || !data.data) return <div className="h-64 animate-pulse rounded-2xl bg-brand" />;
+   793→   793→  const d = data.data;
+   794→   794→
+   795→   795→  return (
+   796→   796→    <div className="space-y-5">
+   797→   797→      <div className="flex flex-wrap items-center gap-2">
+   798→   798→        <Badge className={cn("capitalize", d.connectors.google === "live" ? "border-mint/30 bg-mint/10 text-mint" : "border-amber-300/30 bg-amber-soft/10 text-amber-300")}>
+   799→   799→          Google connector: {d.connectors.google}
+   800→   800→        </Badge>
+   801→   801→        <Badge className={cn("capitalize", d.connectors.whatsapp === "live" ? "border-mint/30 bg-mint/10 text-mint" : "border-amber-300/30 bg-amber-soft/10 text-amber-300")}>
+   802→   802→          WhatsApp connector: {d.connectors.whatsapp}
+   803→   803→        </Badge>
+   804→   804→        <span className="text-[11.5px] text-white/40">simulated mode keeps the loop alive until API credentials are set (README-DEPLOY).</span>
+   805→   805→      </div>
+   806→   806→
+   807→   807→      <div className="grid gap-4 lg:grid-cols-3">
+   808→   808→        {d.jobs.map((j) => (
+   809→   809→          <div key={j.name} className={cn("rounded-2xl border p-4", j.state === "healthy" ? "border-white/10 bg-brand" : "border-amber-300/25 bg-amber-soft/5")}>
+   810→   810→            <div className="flex items-center justify-between">
+   811→   811→              <p className="font-mono text-[13px] font-semibold text-white">{j.name}</p>
+   812→   812→              <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold", j.state === "healthy" ? "bg-mint/15 text-mint" : "bg-amber-soft/15 text-amber-300")}>
+   813→   813→                <span className={cn("h-1.5 w-1.5 rounded-full", j.state === "healthy" ? "animate-pulse bg-mint" : "bg-amber-300")} />
+   814→   814→                {j.state}
+   815→   815→              </span>
+   816→   816→            </div>
+   817→   817→            <p className="mt-1.5 text-[12px] text-white/45">{j.desc}</p>
+   818→   818→            <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-[11.5px] text-white/40">
+   819→   819→              <span>{j.queue}</span>
+   820→   820→              <span>{j.latency}</span>
+   821→   821→            </div>
+   822→   822→            <Button size="sm" variant="outline" className="mt-3 h-7 w-full border-white/15 bg-transparent text-[11px] text-white/60 hover:bg-white/5 hover:text-white"
+   823→   823→              disabled={!canOperate || running === j.name} onClick={() => runJob(j.name)}>
+   824→   824→              {!canOperate ? "Read-only" : running === j.name ? "Running…" : "Run manual cycle"}
+   825→   825→            </Button>
+   826→   826→          </div>
+   827→   827→        ))}
+   828→   828→      </div>
+   829→   829→
+   830→   830→      {/* Feature flags — system master switches */}
+   831→   831→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+   832→   832→        <div className="flex items-start justify-between gap-3">
+   833→   833→          <div>
+   834→   834→            <h3 className="flex items-center gap-2 text-[15px] font-semibold"><ToggleLeft size={16} className="text-mint" /> Feature flags</h3>
+   835→   835→            <p className="mt-0.5 text-xs text-white/40">Master switches per capability — tenants opt in from their Settings; opt-ins are preserved when a flag is off</p>
+   836→   836→          </div>
+   837→   837→          <Badge className="shrink-0 border-white/10 bg-white/5 text-[10.5px] text-white/60">{flagsData.data?.tenantTotal ?? "—"} tenants</Badge>
+   838→   838→        </div>
+   839→   839→        <div className="mt-4 grid gap-3 lg:grid-cols-3">
+   840→   840→          {(flagsData.data?.flags || []).map((f) => (
+   841→   841→            <div key={f.key} className={cn("rounded-xl border p-3.5", f.enabled ? "border-mint/25 bg-mint/[0.04]" : "border-white/10 bg-brand-deep/40")}>
+   842→   842→              <div className="flex items-start justify-between gap-2">
+   843→   843→                <div className="min-w-0">
+   844→   844→                  <p className="text-[12.5px] font-bold text-white/85">{f.label}</p>
+   845→   845→                  <p className="mt-0.5 text-[10.5px] leading-relaxed text-white/40">{f.description}</p>
+   846→   846→                </div>
+   847→   847→                <Switch
+   848→   848→                  checked={f.enabled}
+   849→   849→                  disabled={!canOperate || flagBusy === f.key}
+   850→   850→                  onCheckedChange={(v) => toggleFlag(f.key, v, f.label)}
+   851→   851→                />
+   852→   852→              </div>
+   853→   853→              <div className="mt-2.5 flex items-center justify-between border-t border-white/5 pt-2 text-[10.5px]">
+   854→   854→                <span className={cn("font-semibold", f.enabled ? "text-mint" : "text-amber-300")}>{f.enabled ? "ON" : "OFF"} platform-wide</span>
+   855→   855→                <span className="text-white/40">{f.optIns} opt-in{f.optIns === 1 ? "" : "s"}</span>
+   856→   856→              </div>
+   857→   857→            </div>
+   858→   858→          ))}
+   859→   859→          {flagsData.data && flagsData.data.flags.length === 0 && (
+   860→   860→            <p className="text-[12px] text-white/40">No flags defined yet.</p>
+   861→   861→          )}
+   862→   862→        </div>
+   863→   863→      </div>
+   864→   864→
+   865→   865→      {/* Payment gateways — registry + per-workspace provisioning */}
+   866→   866→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+   867→   867→        <div className="flex items-start justify-between gap-3">
+   868→   868→          <div>
+   869→   869→            <h3 className="flex items-center gap-2 text-[15px] font-semibold"><CreditCard size={16} className="text-mint" /> Payment gateways</h3>
+   870→   870→            <p className="mt-0.5 text-xs text-white/40">Collection rails for subscription billing — credentials are write-only and shown masked; provisioning a workspace links its invoices to the gateway</p>
+   871→   871→          </div>
+   872→   872→          <Badge className="shrink-0 border-white/10 bg-white/5 text-[10.5px] text-white/60">{gatewaysData.data?.gateways.length ?? "—"} gateways</Badge>
+   873→   873→        </div>
+   874→   874→
+   875→   875→        <div className="mt-4 space-y-3">
+   876→   876→          {(gatewaysData.data?.gateways || []).map((g) => {
+   877→   877→            const expanded = cfgOpen === g.provider;
+   878→   878→            const draft = cfgDraft[g.provider] || { keyId: "", keySecret: "", webhookSecret: "" };
+   879→   879→            const prov = provDraft[g.provider] || { tenantId: "", mode: "test", accountRef: "" };
+   880→   880→            const busyKey = gwBusy === g.provider;
+   881→   881→            return (
+   882→   882→              <div key={g.provider} className={cn("rounded-xl border p-4", g.enabled ? "border-mint/25 bg-mint/[0.04]" : "border-white/10 bg-brand-deep/40")}>
+   883→   883→                <div className="flex flex-wrap items-start justify-between gap-3">
+   884→   884→                  <div className="min-w-0">
+   885→   885→                    <div className="flex flex-wrap items-center gap-2">
+   886→   886→                      <p className="text-[13.5px] font-bold text-white/85">{g.label}</p>
+   887→   887→                      <span className="rounded-md bg-white/5 px-1.5 py-0.5 font-mono text-[10px] uppercase text-white/40">{g.provider}</span>
+   888→   888→                      {g.provisioned.length > 0 && (
+   889→   889→                        <span className="rounded-full bg-mint/15 px-2 py-0.5 text-[10.5px] font-semibold text-mint">{g.provisioned.length} provisioned</span>
+   890→   890→                      )}
+   891→   891→                    </div>
+   892→   892→                    <p className="mt-1 max-w-2xl text-[11.5px] leading-relaxed text-white/40">{g.description}</p>
+   893→   893→                    <p className="mt-1.5 text-[11px] text-white/50">
+   894→   894→                      {g.hasCredentials ? (
+   895→   895→                        <>
+   896→   896→                          Key ID <span className="font-mono text-white/70">{g.keyId}</span>
+   897→   897→                          {" · "}Secret <span className="font-mono text-white/70">{g.keySecretMasked}</span>
+   898→   898→                          {g.webhookSecretMasked && (<>{" · "}Webhook <span className="font-mono text-white/70">{g.webhookSecretMasked}</span></>)}
+   899→   899→                        </>
+   900→   900→                      ) : g.keyId ? (
+   901→   901→                        <span className="text-amber-300">Key ID saved — add the key secret to start collecting</span>
+   902→   902→                      ) : (
+   903→   903→                        <span className="text-amber-300">No credentials set — configure before going live</span>
+
+[showing lines 454-903 of 1681; use offset=904 with limit to continue reading]

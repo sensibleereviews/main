@@ -1,0 +1,542 @@
+     1→     1→// Sensiblee client dashboard — Requests (Module B), AI Assistant (Module C),
+     2→     2→// Analytics (Module D), Locations views
+     3→     3→"use client";
+     4→     4→
+     5→     5→import { useState } from "react";
+     6→     6→import { Badge } from "@/components/ui/badge";
+     7→     7→import { Button } from "@/components/ui/button";
+     8→     8→import { Switch } from "@/components/ui/switch";
+     9→     9→import { Textarea } from "@/components/ui/textarea";
+    10→    10→import { useToast } from "@/hooks/use-toast";
+    11→    11→import {
+    12→    12→  AI_QUEUE,
+    13→    13→  CAMPAIGNS,
+    14→    14→  KEYWORDS,
+    15→    15→  LOCATIONS,
+    16→    16→  RATING_TREND,
+    17→    17→  SENTIMENT,
+    18→    18→  STAFF,
+    19→    19→} from "./data";
+    20→    20→import {
+    21→    21→  cn,
+    22→    22→  AlertTriangle,
+    23→    23→  Calendar,
+    24→    24→  Check,
+    25→    25→  Copy,
+    26→    26→  Download,
+    27→    27→  Mail,
+    28→    28→  Pencil,
+    29→    29→  Plus,
+    30→    30→  RefreshCw,
+    31→    31→  Send,
+    32→    32→  Sparkles,
+    33→    33→  Timer,
+    34→    34→  TrendingUp,
+    35→    35→} from "./deps";
+    36→    36→import { GoogleG, QrIcon, SentimentBadge, StarRating, StatusBadge, WhatsAppIcon } from "./brand";
+    37→    37→import {
+    38→    38→  ChartCard,
+    39→    39→  FunnelBars,
+    40→    40→  LocationCompareChart,
+    41→    41→  QrPattern,
+    42→    42→  RatingTrendChart,
+    43→    43→  SentimentDonut,
+    44→    44→  StatCard,
+    45→    45→} from "./widgets";
+    46→    46→
+    47→    47→/* ------------------------------- Requests ------------------------------- */
+    48→    48→
+    49→    49→const TEMPLATES = [
+    50→    50→  { id: "t1", name: "Post-dining thank you", body: "Hi {name}! Thank you for dining with us at Spice Route tonight. If you enjoyed your meal, a quick Google review means the world to our team. It takes 20 seconds — {review_link}" },
+    51→    51→  { id: "t2", name: "Delivery follow-up", body: "Hi {name}, thanks for ordering from Spice Route! How was everything? If the food hit the spot, we'd love a quick review here: {review_link}" },
+    52→    52→  { id: "t3", name: "Loyal regular note", body: "Hi {name}, you're one of our favourite regulars! Would you share your Spice Route experience with others? {review_link} — Thank you!" },
+    53→    53→];
+    54→    54→
+    55→    55→export function RequestsView() {
+    56→    56→  const { toast } = useToast();
+    57→    57→  const [template, setTemplate] = useState(TEMPLATES[0]);
+    58→    58→  const [audience, setAudience] = useState<string[]>(["Koramangala"]);
+    59→    59→  const [sendNow, setSendNow] = useState(true);
+    60→    60→
+    61→    61→  const toggleAudience = (loc: string) =>
+    62→    62→    setAudience((a) => (a.includes(loc) ? a.filter((x) => x !== loc) : [...a, loc]));
+    63→    63→
+    64→    64→  return (
+    65→    65→    <div className="space-y-5">
+    66→    66→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+    67→    67→        <StatCard label="Requests sent (30d)" value="1,958" delta="+18%" icon={<Send size={15} />} />
+    68→    68→        <StatCard label="Open / scan rate" value="94.4%" delta="+2 pts" icon={<WhatsAppIcon size={15} />} accent="mint" />
+    69→    69→        <StatCard label="Reviews generated" value="194" delta="+41" icon={<GoogleG size={15} />} />
+    70→    70→        <StatCard label="Conversion" value="9.9%" delta="+1.2 pts" icon={<TrendingUp size={15} />} accent="amber" />
+    71→    71→      </div>
+    72→    72→
+    73→    73→      <div className="grid gap-5 xl:grid-cols-5">
+    74→    74→        {/* WhatsApp composer */}
+    75→    75→        <div className="xl:col-span-3 space-y-5">
+    76→    76→          <ChartCard
+    77→    77→            title="New WhatsApp request campaign"
+    78→    78→            subtitle="Module B · compliant, template-based, quality-throttled"
+    79→    79→            right={<Badge className="bg-mint-soft text-mint-deep hover:bg-mint-soft ring-1 ring-mint/40">WhatsApp Business API</Badge>}
+    80→    80→          >
+    81→    81→            <div className="space-y-4">
+    82→    82→              <div>
+    83→    83→                <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">Template</p>
+    84→    84→                <div className="grid gap-2 sm:grid-cols-3">
+    85→    85→                  {TEMPLATES.map((t) => (
+    86→    86→                    <button
+    87→    87→                      key={t.id}
+    88→    88→                      onClick={() => setTemplate(t)}
+    89→    89→                      className={cn(
+    90→    90→                        "rounded-xl border p-3 text-left text-[13px] transition-all",
+    91→    91→                        template.id === t.id
+    92→    92→                          ? "border-mint-deep bg-mint-soft/60 ring-2 ring-mint/50"
+    93→    93→                          : "border-neutral-200 bg-white hover:border-neutral-300"
+    94→    94→                      )}
+    95→    95→                    >
+    96→    96→                      <span className="block font-semibold text-brand">{t.name}</span>
+    97→    97→                      <span className="mt-0.5 line-clamp-2 text-[11.5px] text-neutral-400">{t.body.slice(0, 60)}…</span>
+    98→    98→                    </button>
+    99→    99→                  ))}
+   100→   100→                </div>
+   101→   101→              </div>
+   102→   102→
+   103→   103→              <div>
+   104→   104→                <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">Audience — locations</p>
+   105→   105→                <div className="flex flex-wrap gap-2">
+   106→   106→                  {LOCATIONS.map((l) => (
+   107→   107→                    <button
+   108→   108→                      key={l.id}
+   109→   109→                      onClick={() => toggleAudience(l.name.split(" ")[2])}
+   110→   110→                      className={cn(
+   111→   111→                        "rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-all",
+   112→   112→                        audience.includes(l.name.split(" ")[2])
+   113→   113→                          ? "border-brand bg-brand text-white"
+   114→   114→                          : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
+   115→   115→                      )}
+   116→   116→                    >
+   117→   117→                      {l.name.replace("Spice Route ", "")}
+   118→   118→                    </button>
+   119→   119→                  ))}
+   120→   120→                  <button className="rounded-full border border-dashed border-neutral-300 px-3 py-1.5 text-[12.5px] font-medium text-neutral-400 hover:text-neutral-600">
+   121→   121→                    <Plus size={12} className="mr-1 inline" /> Tag: regulars
+   122→   122→                  </button>
+   123→   123→                </div>
+   124→   124→              </div>
+   125→   125→
+   126→   126→              <div className="grid gap-4 sm:grid-cols-2">
+   127→   127→                <div className="rounded-xl bg-surface p-3.5">
+   128→   128→                  <p className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">
+   129→   129→                    <Calendar size={12} /> Timing
+   130→   130→                  </p>
+   131→   131→                  <div className="space-y-2.5">
+   132→   132→                    <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+   133→   133→                      <input type="radio" checked={sendNow} onChange={() => setSendNow(true)} className="accent-mint-deep" />
+   134→   134→                      Send now (staggered over 2h)
+   135→   135→                    </label>
+   136→   136→                    <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+   137→   137→                      <input type="radio" checked={!sendNow} onChange={() => setSendNow(false)} className="accent-mint-deep" />
+   138→   138→                      Tomorrow 10:30 AM
+   139→   139→                    </label>
+   140→   140→                  </div>
+   141→   141→                </div>
+   142→   142→                <div className="rounded-xl bg-surface p-3.5">
+   143→   143→                  <p className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">
+   144→   144→                    <Timer size={12} /> Safeguards
+   145→   145→                  </p>
+   146→   146→                  <ul className="space-y-1.5 text-[12.5px] text-neutral-500">
+   147→   147→                    <li className="flex items-center gap-1.5"><Check size={12} className="text-mint-deep" /> Opt-out honoured automatically</li>
+   148→   148→                    <li className="flex items-center gap-1.5"><Check size={12} className="text-mint-deep" /> Max 1 request / guest / 30 days</li>
+   149→   149→                    <li className="flex items-center gap-1.5"><Check size={12} className="text-mint-deep" /> Email fallback if no WhatsApp</li>
+   150→   150→                  </ul>
+   151→   151→                </div>
+   152→   152→              </div>
+   153→   153→
+   154→   154→              <div className="flex items-center justify-between border-t border-neutral-100 pt-4">
+   155→   155→                <p className="text-[12.5px] text-neutral-400">
+   156→   156→                  Estimated reach: <span className="font-semibold text-brand">647 guests</span> · within plan quota
+   157→   157→                </p>
+   158→   158→                <Button
+   159→   159→                  className="bg-brand text-white hover:bg-brand-deep"
+   160→   160→                  onClick={() => toast({ title: "Campaign queued", description: `${template.name} → ${audience.join(", ") || "no audience selected"}` })}
+   161→   161→                >
+   162→   162→                  <Send size={14} className="mr-1.5" /> Launch campaign
+   163→   163→                </Button>
+   164→   164→              </div>
+   165→   165→            </div>
+   166→   166→          </ChartCard>
+   167→   167→
+   168→   168→          <ChartCard title="Recent campaigns" subtitle="Delivery → open → review performance">
+   169→   169→            <div className="overflow-x-auto">
+   170→   170→              <table className="w-full text-left text-[13px]">
+   171→   171→                <thead>
+   172→   172→                  <tr className="border-b border-neutral-100 text-[11.5px] uppercase tracking-wide text-neutral-400">
+   173→   173→                    <th className="pb-2 pr-3 font-medium">Campaign</th>
+   174→   174→                    <th className="pb-2 pr-3 font-medium">Channel</th>
+   175→   175→                    <th className="pb-2 pr-3 font-medium">Sent</th>
+   176→   176→                    <th className="pb-2 pr-3 font-medium">Reviews</th>
+   177→   177→                    <th className="pb-2 font-medium">Status</th>
+   178→   178→                  </tr>
+   179→   179→                </thead>
+   180→   180→                <tbody>
+   181→   181→                  {CAMPAIGNS.map((c) => (
+   182→   182→                    <tr key={c.id} className="border-b border-neutral-50 last:border-0">
+   183→   183→                      <td className="py-2.5 pr-3 font-medium text-brand">
+   184→   184→                        {c.name}
+   185→   185→                        <span className="block text-[11px] font-normal text-neutral-400">{c.location} · {c.date}</span>
+   186→   186→                      </td>
+   187→   187→                      <td className="py-2.5 pr-3">
+   188→   188→                        <span className="inline-flex items-center gap-1 text-neutral-600">
+   189→   189→                          {c.channel === "WhatsApp" ? <WhatsAppIcon size={13} className="text-mint-deep" /> : <QrIcon size={13} className="text-brand" />}
+   190→   190→                          {c.channel}
+   191→   191→                        </span>
+   192→   192→                      </td>
+   193→   193→                      <td className="py-2.5 pr-3 text-neutral-600">{c.sent.toLocaleString("en-IN")}</td>
+   194→   194→                      <td className="py-2.5 pr-3 font-semibold text-mint-deep">{c.reviews}</td>
+   195→   195→                      <td className="py-2.5"><StatusBadge status={c.status} /></td>
+   196→   196→                    </tr>
+   197→   197→                  ))}
+   198→   198→                </tbody>
+   199→   199→              </table>
+   200→   200→            </div>
+   201→   201→          </ChartCard>
+   202→   202→        </div>
+   203→   203→
+   204→   204→        {/* QR kit + funnel */}
+   205→   205→        <div className="space-y-5 xl:col-span-2">
+   206→   206→          <ChartCard title="Table QR kit" subtitle="Module B · consistent in-store companion">
+   207→   207→            <div className="flex items-center gap-4">
+   208→   208→              <div className="rounded-2xl border border-neutral-200 bg-cream p-2.5">
+   209→   209→                <QrPattern size={124} />
+   210→   210→              </div>
+   211→   211→              <div className="flex-1 text-[12.5px] leading-relaxed text-neutral-500">
+   212→   212→                <p className="font-semibold text-brand">scan → rate us in 2 taps</p>
+   213→   213→                <p className="mt-1">Branded landing with your logo, star pre-select and Google hand-off. Printed at 40×40 mm on table tents.</p>
+   214→   214→                <div className="mt-3 flex gap-2">
+   215→   215→                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => toast({ title: "QR kit downloading", description: "PNG + SVG + print PDF bundled" })}>
+   216→   216→                    <Download size={13} className="mr-1" /> Kit
+   217→   217→                  </Button>
+   218→   218→                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => toast({ title: "Link copied", description: "qr.sensiblee.in/spice-kor" })}>
+   219→   219→                    <Copy size={13} className="mr-1" /> Link
+   220→   220→                  </Button>
+   221→   221→                </div>
+   222→   222→              </div>
+   223→   223→            </div>
+   224→   224→          </ChartCard>
+   225→   225→
+   226→   226→          <ChartCard title="Request funnel" subtitle="Last 30 days · all channels">
+   227→   227→            <FunnelBars />
+   228→   228→          </ChartCard>
+   229→   229→
+   230→   230→          <div className="rounded-2xl border border-amber-200/70 bg-amber-soft/50 p-4">
+   231→   231→            <p className="flex items-center gap-1.5 text-[13px] font-semibold text-amber-deep">
+   232→   232→              <Mail size={14} /> Email fallback active
+   233→   233→            </p>
+   234→   234→            <p className="mt-1 text-[12.5px] leading-relaxed text-amber-deep/80">
+   235→   235→              12% of your contact book has no WhatsApp number. Sensiblee sends those guests a compliant email with the same review link.
+   236→   236→            </p>
+   237→   237→          </div>
+   238→   238→        </div>
+   239→   239→      </div>
+   240→   240→    </div>
+   241→   241→  );
+   242→   242→}
+   243→   243→
+   244→   244→/* ----------------------------- AI Assistant ----------------------------- */
+   245→   245→
+   246→   246→export function AiAssistantView() {
+   247→   247→  const { toast } = useToast();
+   248→   248→  const [drafts, setDrafts] = useState<Record<string, string>>(
+   249→   249→    Object.fromEntries(AI_QUEUE.map((i) => [i.id, i.draft]))
+   250→   250→  );
+   251→   251→  const [autoPilot, setAutoPilot] = useState(false);
+   252→   252→  const [approved, setApproved] = useState<string[]>([]);
+   253→   253→
+   254→   254→  const remaining = AI_QUEUE.filter((i) => !approved.includes(i.id));
+   255→   255→
+   256→   256→  return (
+   257→   257→    <div className="space-y-5">
+   258→   258→      <div className="grid gap-5 lg:grid-cols-3">
+   259→   259→        <div className="lg:col-span-2 rounded-2xl border border-neutral-200/70 bg-white p-5">
+   260→   260→          <div className="flex flex-wrap items-center justify-between gap-3">
+   261→   261→            <div>
+   262→   262→              <h3 className="flex items-center gap-2 text-[15px] font-semibold text-brand">
+   263→   263→                <Sparkles size={16} className="text-mint-deep" /> Approval queue
+   264→   264→                <Badge className="bg-amber-soft text-amber-deep hover:bg-amber-soft">{remaining.length} pending</Badge>
+   265→   265→              </h3>
+   266→   266→              <p className="mt-0.5 text-xs text-neutral-400">Module C · every reply is yours to approve, edit or regenerate</p>
+   267→   267→            </div>
+   268→   268→            <div className="flex items-center gap-2.5 rounded-xl bg-surface px-3 py-2">
+   269→   269→              <Switch checked={autoPilot} onCheckedChange={(v) => { setAutoPilot(v); toast({ title: v ? "Auto-pilot staged" : "Auto-pilot off", description: v ? "Phase 2 capability — replies above 0.95 confidence would post automatically. Disabled until you opt in." : "Back to manual approval for all replies." }); }} />
+   270→   270→              <div className="text-[12px] leading-tight">
+   271→   271→                <p className="font-semibold text-brand">Auto-pilot</p>
+   272→   272→                <p className="text-neutral-400">post ≥95% confidence</p>
+   273→   273→              </div>
+   274→   274→            </div>
+   275→   275→          </div>
+   276→   276→
+   277→   277→          <div className="mt-4 space-y-4">
+   278→   278→            {remaining.map((item) => (
+   279→   279→              <div key={item.id} className={cn("rounded-2xl border p-4", item.urgent ? "border-red-200 bg-red-50/30" : "border-neutral-200 bg-white")}>
+   280→   280→                <div className="flex flex-wrap items-center justify-between gap-2">
+   281→   281→                  <div className="flex items-center gap-2.5">
+   282→   282→                    <StarRating value={item.reviewStars} size={13} />
+   283→   283→                    <span className="text-[13px] font-semibold text-brand">{item.author}</span>
+   284→   284→                    <span className="text-[11.5px] text-neutral-400">{item.location} · {item.age} old</span>
+   285→   285→                    {item.urgent && <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10.5px] font-bold text-red-600"><AlertTriangle size={10} /> SLA 24h</span>}
+   286→   286→                  </div>
+   287→   287→                  <div className="flex items-center gap-2">
+   288→   288→                    <Badge variant="outline" className="text-[11px] text-neutral-500">{item.tone}</Badge>
+   289→   289→                    <span className="flex items-center gap-1 text-[11.5px] font-semibold text-mint-deep">
+   290→   290→                      <span className="h-1.5 w-1.5 rounded-full bg-mint-deep" />
+   291→   291→                      {Math.round(item.confidence * 100)}% confident
+   292→   292→                    </span>
+   293→   293→                  </div>
+   294→   294→                </div>
+   295→   295→                <p className="mt-2.5 rounded-lg bg-surface px-3 py-2 text-[13px] italic text-neutral-500">“{item.excerpt}”</p>
+   296→   296→                <Textarea
+   297→   297→                  value={drafts[item.id]}
+   298→   298→                  onChange={(e) => setDrafts((d) => ({ ...d, [item.id]: e.target.value }))}
+   299→   299→                  className="mt-3 min-h-[72px] border-mint/40 bg-mint-soft/25 text-[13.5px] leading-relaxed focus-visible:ring-mint/50"
+   300→   300→                  aria-label={`Suggested reply for ${item.author}`}
+   301→   301→                />
+   302→   302→                <div className="mt-3 flex flex-wrap items-center gap-2">
+   303→   303→                  <Button size="sm" className="h-8 bg-mint-deep text-white hover:bg-mint-deep/90"
+   304→   304→                    onClick={() => { setApproved((a) => [...a, item.id]); toast({ title: "Reply posted", description: `Published to Google for ${item.author}'s review.` }); }}>
+   305→   305→                    <Check size={13} className="mr-1" /> Approve & post
+   306→   306→                  </Button>
+   307→   307→                  <Button size="sm" variant="outline" className="h-8" onClick={() => toast({ title: "Edit mode", description: "Textarea unlocked — refine the draft inline." })}>
+   308→   308→                    <Pencil size={13} className="mr-1" /> Edit
+   309→   309→                  </Button>
+   310→   310→                  <Button size="sm" variant="outline" className="h-8" onClick={() => toast({ title: "Regenerating draft", description: "AI worker rewriting with a fresh tone." })}>
+   311→   311→                    <RefreshCw size={13} className="mr-1" /> Regenerate
+   312→   312→                  </Button>
+   313→   313→                  <span className="ml-auto text-[11px] text-neutral-400"> learns from every edit</span>
+   314→   314→                </div>
+   315→   315→              </div>
+   316→   316→            ))}
+   317→   317→            {remaining.length === 0 && (
+   318→   318→              <div className="rounded-2xl border border-dashed border-mint/50 bg-mint-soft/30 p-8 text-center">
+   319→   319→                <Check size={28} className="mx-auto text-mint-deep" />
+   320→   320→                <p className="mt-2 text-[15px] font-semibold text-brand">Inbox zero — every review answered</p>
+   321→   321→                <p className="text-[13px] text-neutral-500">New drafts appear within ~90 seconds of a review landing.</p>
+   322→   322→              </div>
+   323→   323→            )}
+   324→   324→          </div>
+   325→   325→        </div>
+   326→   326→
+   327→   327→        <div className="space-y-5">
+   328→   328→          <ChartCard title="Brand voice" subtitle="How the assistant writes as you">
+   329→   329→            <div className="space-y-3.5">
+   330→   330→              {[
+   331→   331→                { label: "Warmth", v: 80, cls: "bg-mint-deep" },
+   332→   332→                { label: "Formality", v: 45, cls: "bg-brand" },
+   333→   333→                { label: "Conciseness", v: 70, cls: "bg-amber-400" },
+   334→   334→              ].map((s) => (
+   335→   335→                <div key={s.label}>
+   336→   336→                  <div className="mb-1 flex justify-between text-[12.5px]"><span className="text-neutral-600">{s.label}</span><span className="font-semibold text-brand">{s.v}%</span></div>
+   337→   337→                  <div className="h-2 rounded-full bg-surface"><div className={cn("h-full rounded-full", s.cls)} style={{ width: `${s.v}%` }} /></div>
+   338→   338→                </div>
+   339→   339→              ))}
+   340→   340→              <div className="border-t border-neutral-100 pt-3">
+   341→   341→                <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">Learned phrases</p>
+   342→   342→                <div className="flex flex-wrap gap-1.5">
+   343→   343→                  {["“see you soon”", "“our pleasure”", "valet tie-up", "“regulars”"].map((p) => (
+   344→   344→                    <span key={p} className="rounded-full bg-mint-soft px-2.5 py-1 text-[11.5px] font-medium text-mint-deep">{p}</span>
+   345→   345→                  ))}
+   346→   346→                </div>
+   347→   347→              </div>
+   348→   348→            </div>
+   349→   349→          </ChartCard>
+   350→   350→
+   351→   351→          <ChartCard title="This month" subtitle="Assistant performance">
+   352→   352→            <div className="grid grid-cols-2 gap-3">
+   353→   353→              <StatCard label="Drafts generated" value="284" hint="96% accepted with or without edits" accent="mint" />
+   354→   354→              <StatCard label="Median approval" value="38s" hint="from draft to posted" accent="amber" />
+   355→   355→              <StatCard label="Negatives answered <4h" value="9 of 10" accent="coral" />
+   356→   356→              <StatCard label="Est. hours saved" value="21h" accent="slate" />
+   357→   357→            </div>
+   358→   358→          </ChartCard>
+   359→   359→        </div>
+   360→   360→      </div>
+   361→   361→    </div>
+   362→   362→  );
+   363→   363→}
+   364→   364→
+   365→   365→/* ------------------------------- Analytics ------------------------------ */
+   366→   366→
+   367→   367→export function AnalyticsView() {
+   368→   368→  return (
+   369→   369→    <div className="space-y-5">
+   370→   370→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   371→   371→        <StatCard label="Reputation health" value="87 / 100" delta="+6" icon={<TrendingUp size={15} />} hint="rating, freshness, response mix" />
+   372→   372→        <StatCard label="Positive sentiment" value="68%" delta="+4 pts" icon={<Sparkles size={15} />} accent="mint" />
+   373→   373→        <StatCard label="Median response time" value="3h 12m" delta="-41m" icon={<Timer size={15} />} accent="amber" />
+   374→   374→        <StatCard label="Reviews at risk" value="2" hint="unanswered >24h" icon={<AlertTriangle size={15} />} accent="coral" />
+   375→   375→      </div>
+   376→   376→
+   377→   377→      <div className="grid gap-5 xl:grid-cols-3">
+   378→   378→        <ChartCard title="Rating & volume — 12 weeks" subtitle="All locations · weekly grain" className="xl:col-span-2">
+   379→   379→          <RatingTrendChart data={RATING_TREND} />
+   380→   380→        </ChartCard>
+   381→   381→        <ChartCard title="Sentiment split" subtitle="AI-classified on every sync">
+   382→   382→          <SentimentDonut data={SENTIMENT} />
+   383→   383→        </ChartCard>
+   384→   384→      </div>
+   385→   385→
+   386→   386→      <div className="grid gap-5 xl:grid-cols-3">
+   387→   387→        <ChartCard title="Location comparison" subtitle="Average rating this quarter">
+   388→   388→          <LocationCompareChart
+   389→   389→            data={[
+   390→   390→              { name: "Koramangala", rating: 4.7 },
+   391→   391→              { name: "Indiranagar", rating: 4.5 },
+   392→   392→              { name: "HSR Layout", rating: 4.3 },
+   393→   393→            ]}
+   394→   394→          />
+   395→   395→        </ChartCard>
+   396→   396→
+   397→   397→        <ChartCard title="What guests talk about" subtitle="Keyword themes with sentiment">
+   398→   398→          <div className="flex flex-wrap gap-2">
+   399→   399→            {KEYWORDS.map((k) => (
+   400→   400→              <span
+   401→   401→                key={k.word}
+   402→   402→                className={cn(
+   403→   403→                  "rounded-full px-3 py-1.5 text-[12.5px] font-medium",
+   404→   404→                  k.sentiment === "positive" && "bg-mint-soft text-mint-deep",
+   405→   405→                  k.sentiment === "neutral" && "bg-amber-soft text-amber-deep",
+   406→   406→                  k.sentiment === "negative" && "bg-red-50 text-red-600"
+   407→   407→                )}
+   408→   408→              >
+   409→   409→                {k.word} <span className="ml-1 text-[10.5px] opacity-60">{k.count}</span>
+   410→   410→              </span>
+   411→   411→            ))}
+   412→   412→          </div>
+   413→   413→        </ChartCard>
+   414→   414→
+   415→   415→        <ChartCard title="Staff mentioned by guests" subtitle="Reputation score from review mentions">
+   416→   416→          <div className="space-y-3">
+   417→   417→            {STAFF.map((s) => (
+   418→   418→              <div key={s.name}>
+   419→   419→                <div className="mb-1 flex items-center justify-between text-[12.5px]">
+   420→   420→                  <span className="text-neutral-600">{s.name}</span>
+   421→   421→                  <span className="flex items-center gap-2">
+   422→   422→                    <span className="text-[11px] text-neutral-400">{s.mentions} mentions</span>
+   423→   423→                    <span className={cn("font-semibold", s.trend.startsWith("+") ? "text-mint-deep" : "text-red-500")}>{s.trend}</span>
+   424→   424→                    <span className="font-bold text-brand">{s.score}</span>
+   425→   425→                  </span>
+   426→   426→                </div>
+   427→   427→                <div className="h-2 rounded-full bg-surface">
+   428→   428→                  <div className={cn("h-full rounded-full", s.score >= 90 ? "bg-mint-deep" : s.score >= 85 ? "bg-mint" : "bg-amber-400")} style={{ width: `${s.score}%` }} />
+   429→   429→                </div>
+   430→   430→              </div>
+   431→   431→            ))}
+   432→   432→          </div>
+   433→   433→        </ChartCard>
+   434→   434→      </div>
+   435→   435→    </div>
+   436→   436→  );
+   437→   437→}
+   438→   438→
+   439→   439→/* ------------------------------- Locations ------------------------------ */
+   440→   440→
+   441→   441→export function LocationsView() {
+   442→   442→  const { toast } = useToast();
+   443→   443→  return (
+   444→   444→    <div className="space-y-5">
+   445→   445→      <div className="grid gap-4 lg:grid-cols-3">
+   446→   446→        {LOCATIONS.map((l) => (
+   447→   447→          <div key={l.id} className="rounded-2xl border border-neutral-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+   448→   448→            <div className="flex items-start justify-between">
+   449→   449→              <div className="flex items-center gap-3">
+   450→   450→                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-white"><GoogleG size={18} /></span>
+   451→   451→                <div>
+   452→   452→                  <h3 className="text-[14.5px] font-semibold leading-tight text-brand">{l.name}</h3>
+   453→   453→                  <p className="text-[12px] text-neutral-400">{l.area}</p>
+   454→   454→                </div>
+   455→   455→              </div>
+   456→   456→              <StatusBadge status={l.syncState} />
+   457→   457→            </div>
+   458→   458→            <div className="mt-4 flex items-end justify-between">
+   459→   459→              <div>
+   460→   460→                <div className="flex items-baseline gap-1.5">
+   461→   461→                  <span className="text-[30px] font-bold leading-none text-brand">{l.rating}</span>
+   462→   462→                  <span className={cn("text-[12.5px] font-semibold", l.delta >= 0 ? "text-mint-deep" : "text-red-500")}>
+   463→   463→                    {l.delta >= 0 ? "+" : ""}{l.delta}
+   464→   464→                  </span>
+   465→   465→                </div>
+   466→   466→                <StarRating value={l.rating} size={13} className="mt-1.5" />
+   467→   467→              </div>
+   468→   468→              <div className="text-right">
+   469→   469→                <p className="text-[18px] font-bold text-brand">{l.reviews.toLocaleString("en-IN")}</p>
+   470→   470→                <p className="text-[11px] text-neutral-400">total reviews</p>
+   471→   471→              </div>
+   472→   472→            </div>
+   473→   473→            <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-3.5">
+   474→   474→              <p className="flex items-center gap-1.5 text-[11.5px] text-neutral-400">
+   475→   475→                <RefreshCw size={11} className={l.syncState === "attention" ? "text-amber-500" : "text-mint-deep"} />
+   476→   476→                synced {l.lastSync}
+   477→   477→              </p>
+   478→   478→              <div className="flex gap-1.5">
+   479→   479→                <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]" onClick={() => toast({ title: "Manual sync started", description: `${l.name} — pulling reviews since cursor.` })}>Sync now</Button>
+   480→   480→                <Button size="sm" variant="ghost" className="h-7 px-2.5 text-[11.5px]" onClick={() => toast({ title: "Opening Google", description: "Business Profile profile view (design placeholder)." })}>GBP <Send size={10} className="ml-1" /></Button>
+   481→   481→              </div>
+   482→   482→            </div>
+   483→   483→          </div>
+   484→   484→        ))}
+   485→   485→
+   486→   486→        <button
+   487→   487→          onClick={() => toast({ title: "Connect a profile", description: "OAuth flow with google.business — design placeholder." })}
+   488→   488→          className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300 bg-white/50 p-5 text-center transition-colors hover:border-mint-deep hover:bg-mint-soft/20"
+   489→   489→        >
+   490→   490→          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-mint-soft text-mint-deep"><Plus size={20} /></span>
+   491→   491→          <p className="mt-3 text-[14px] font-semibold text-brand">Connect a Google Business Profile</p>
+   492→   492→          <p className="mt-1 max-w-[220px] text-[12px] text-neutral-400">OAuth by the business owner · reviews start flowing within 15 minutes</p>
+   493→   493→        </button>
+   494→   494→      </div>
+   495→   495→
+   496→   496→      <div className="grid gap-5 lg:grid-cols-2">
+   497→   497→        <ChartCard title="Sync engine" subtitle="Module A · how monitoring behaves">
+   498→   498→          <div className="space-y-3 text-[13px]">
+   499→   499→            {[
+   500→   500→              { label: "Pull cadence", value: "Every 15 minutes (jittered)", icon: <RefreshCw size={13} /> },
+   501→   501→              { label: "Notification rules", value: "1–2★ → WhatsApp + email · 3★ → email digest", icon: <Send size={13} /> },
+   502→   502→              { label: "Daily digest", value: "9:00 AM IST to owners · 4–5★ roll-up", icon: <Mail size={13} /> },
+   503→   503→              { label: "Failure policy", value: "3 consecutive errors → re-auth card + alert", icon: <AlertTriangle size={13} /> },
+   504→   504→            ].map((r) => (
+   505→   505→              <div key={r.label} className="flex items-center justify-between gap-3 rounded-xl bg-surface px-3.5 py-3">
+   506→   506→                <span className="flex items-center gap-2 font-medium text-neutral-600">{r.icon} {r.label}</span>
+   507→   507→                <span className="text-right text-[12.5px] text-brand">{r.value}</span>
+   508→   508→              </div>
+   509→   509→            ))}
+   510→   510→          </div>
+   511→   511→        </ChartCard>
+   512→   512→        <ChartCard title="Alert routing" subtitle="Who hears what, the moment it matters">
+   513→   513→          <div className="space-y-3">
+   514→   514→            {[
+   515→   515→              { ch: "WhatsApp", to: "Anand (owner) + Ravi (floor captain)", when: "1–2★ reviews, sync failures", icon: <WhatsAppIcon size={14} className="text-mint-deep" /> },
+   516→   516→              { ch: "Email", to: "ops@spiceroute.in", when: "daily digest, weekly sentiment recap", icon: <Mail size={14} className="text-brand" /> },
+   517→   517→              { ch: "In-app", to: "All managers", when: "approvals waiting > 4h", icon: <Bellish /> },
+   518→   518→            ].map((r) => (
+   519→   519→              <div key={r.ch} className="flex items-start gap-3 rounded-xl border border-neutral-100 p-3.5">
+   520→   520→                <span className="mt-0.5">{r.icon}</span>
+   521→   521→                <div className="text-[13px]">
+   522→   522→                  <p className="font-semibold text-brand">{r.ch} → <span className="font-medium text-neutral-500">{r.to}</span></p>
+   523→   523→                  <p className="text-[12px] text-neutral-400">{r.when}</p>
+   524→   524→                </div>
+   525→   525→              </div>
+   526→   526→            ))}
+   527→   527→          </div>
+   528→   528→        </ChartCard>
+   529→   529→      </div>
+   530→   530→    </div>
+   531→   531→  );
+   532→   532→}
+   533→   533→
+   534→   534→function Bellish() {
+   535→   535→  return (
+   536→   536→    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+   537→   537→      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+   538→   538→      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+   539→   539→    </svg>
+   540→   540→  );
+   541→   541→}
+   542→   542→

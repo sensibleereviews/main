@@ -1,0 +1,752 @@
+     1→// Sensiblee client dashboard — Requests (B), AI Assistant (C), Analytics (D), Locations
+     2→// All views are live-API backed with real mutations.
+     3→"use client";
+     4→
+     5→import { useState } from "react";
+     6→import { Badge } from "@/components/ui/badge";
+     7→import { Button } from "@/components/ui/button";
+     8→import { Switch } from "@/components/ui/switch";
+     9→import { Textarea } from "@/components/ui/textarea";
+    10→import { useToast } from "@/hooks/use-toast";
+    11→import { api, useApiData } from "@/lib/client";
+    12→import { useRouter } from "@/lib/router";
+    13→import type { ReviewVM, CampaignVM } from "@/lib/viewmodels";
+    14→import {
+    15→  cn,
+    16→  AlertTriangle,
+    17→  Calendar,
+    18→  Check,
+    19→  ChevronRight,
+    20→  Copy,
+    21→  Download,
+    22→  Mail,
+    23→  Pencil,
+    24→  Plus,
+    25→  RefreshCw,
+    26→  Send,
+    27→  Smartphone,
+    28→  Sparkles,
+    29→  Timer,
+    30→  TrendingUp,
+    31→} from "./deps";
+    32→import { GoogleG, QrIcon, SentimentBadge, StarRating, StatusBadge, WhatsAppIcon } from "./brand";
+    33→import {
+    34→  ChartCard,
+    35→  FunnelBars,
+    36→  LocationCompareChart,
+    37→  RatingTrendChart,
+    38→  SentimentDonut,
+    39→  StatCard,
+    40→} from "./widgets";
+    41→
+    42→/* ------------------------------- Requests ------------------------------- */
+    43→
+    44→const TEMPLATES = [
+    45→  { id: "t1", name: "Post-dining thank you", body: "Hi {name}! Thank you for dining with us tonight. If you enjoyed your meal, a quick Google review means the world to our team. It takes 20 seconds — {review_link}" },
+    46→  { id: "t2", name: "Delivery follow-up", body: "Hi {name}, thanks for ordering! How was everything? If the food hit the spot, we'd love a quick review here: {review_link}" },
+    47→  { id: "t3", name: "Loyal regular note", body: "Hi {name}, you're one of our favourite regulars! Would you share your experience with others? {review_link} — Thank you!" },
+    48→];
+    49→
+    50→type CampaignsPayload = {
+    51→  campaigns: CampaignVM[];
+    52→  funnel: { stage: string; value: number; pct: number }[];
+    53→  stats: { sent: number; opened: number; generated: number; conversion: number; openRate: number };
+    54→  locations: { id: string; code: string; name: string; short: string; contactBookSize: number }[];
+    55→};
+    56→
+    57→export function RequestsView() {
+    58→  const { toast } = useToast();
+    59→  const { navigate } = useRouter();
+    60→  const data = useApiData<CampaignsPayload>("/api/campaigns");
+    61→  const [template, setTemplate] = useState(TEMPLATES[0]);
+    62→  const [audience, setAudience] = useState<string[]>([]);
+    63→  const [sendNow, setSendNow] = useState(true);
+    64→  const [launching, setLaunching] = useState(false);
+    65→
+    66→  const locations = data.data?.locations || [];
+    67→  const audienceIds = audience.length ? audience : locations.map((l) => l.id);
+    68→  const reach = locations.filter((l) => audienceIds.includes(l.id)).reduce((a, l) => a + l.contactBookSize, 0);
+    69→
+    70→  const toggleAudience = (id: string) =>
+    71→    setAudience((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
+    72→
+    73→  const launch = async () => {
+    74→    setLaunching(true);
+    75→    try {
+    76→      const res = await api.post<{ campaign: CampaignVM; provider: string }>("/api/campaigns", {
+    77→        name: undefined,
+    78→        templateName: template.name,
+    79→        templateBody: template.body,
+    80→        locationIds: audienceIds,
+    81→        sendNow,
+    82→      });
+    83→      toast({
+    84→        title: sendNow ? "Campaign launched" : "Campaign scheduled",
+    85→        description: `${res.campaign.name} · ${res.campaign.sent.toLocaleString("en-IN")} requests via WhatsApp (${res.provider} mode).`,
+    86→      });
+    87→      data.reload();
+    88→    } catch (e) {
+    89→      toast({ title: "Could not launch", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    90→    } finally {
+    91→      setLaunching(false);
+    92→    }
+    93→  };
+    94→
+    95→  return (
+    96→    <div className="space-y-5">
+    97→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+    98→        <StatCard label="Requests sent (30d)" value={(data.data?.stats.sent ?? 0).toLocaleString("en-IN")} delta="+18%" icon={<Send size={15} />} />
+    99→        <StatCard label="Open / scan rate" value={`${data.data?.stats.openRate ?? 0}%`} delta="+2 pts" icon={<WhatsAppIcon size={15} />} accent="mint" />
+   100→        <StatCard label="Reviews generated" value={(data.data?.stats.generated ?? 0).toLocaleString("en-IN")} delta="+41" icon={<GoogleG size={15} />} />
+   101→        <StatCard label="Conversion" value={`${data.data?.stats.conversion ?? 0}%`} delta="+1.2 pts" icon={<TrendingUp size={15} />} accent="amber" />
+   102→      </div>
+   103→
+   104→      <div className="grid gap-5 xl:grid-cols-5">
+   105→        {/* WhatsApp composer */}
+   106→        <div className="xl:col-span-3 space-y-5">
+   107→          <ChartCard
+   108→            title="New WhatsApp request campaign"
+   109→            subtitle="Module B · compliant, template-based, quality-throttled"
+   110→            right={<Badge className="bg-mint-soft text-mint-deep hover:bg-mint-soft ring-1 ring-mint/40">WhatsApp Business API</Badge>}
+   111→          >
+   112→            <div className="space-y-4">
+   113→              <div>
+   114→                <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">Template</p>
+   115→                <div className="grid gap-2 sm:grid-cols-3">
+   116→                  {TEMPLATES.map((t) => (
+   117→                    <button
+   118→                      key={t.id}
+   119→                      onClick={() => setTemplate(t)}
+   120→                      className={cn(
+   121→                        "rounded-xl border p-3 text-left text-[13px] transition-all",
+   122→                        template.id === t.id
+   123→                          ? "border-mint-deep bg-mint-soft/60 ring-2 ring-mint/50"
+   124→                          : "border-neutral-200 bg-white hover:border-neutral-300"
+   125→                      )}
+   126→                    >
+   127→                      <span className="block font-semibold text-brand">{t.name}</span>
+   128→                      <span className="mt-0.5 line-clamp-2 text-[11.5px] text-neutral-400">{t.body.slice(0, 60)}…</span>
+   129→                    </button>
+   130→                  ))}
+   131→                </div>
+   132→              </div>
+   133→
+   134→              <div>
+   135→                <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">Audience — locations</p>
+   136→                <div className="flex flex-wrap gap-2">
+   137→                  {locations.map((l) => (
+   138→                    <button
+   139→                      key={l.id}
+   140→                      onClick={() => toggleAudience(l.id)}
+   141→                      className={cn(
+   142→                        "rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-all",
+   143→                        audienceIds.includes(l.id)
+   144→                          ? "border-brand bg-brand text-white"
+   145→                          : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
+   146→                      )}
+   147→                    >
+   148→                      {l.short}
+   149→                    </button>
+   150→                  ))}
+   151→                  <span className="rounded-full border border-dashed border-neutral-300 px-3 py-1.5 text-[12.5px] font-medium text-neutral-400">
+   152→                    <Plus size={12} className="mr-1 inline" /> Tag: regulars
+   153→                  </span>
+   154→                </div>
+   155→              </div>
+   156→
+   157→              <div className="grid gap-4 sm:grid-cols-2">
+   158→                <div className="rounded-xl bg-surface p-3.5">
+   159→                  <p className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">
+   160→                    <Calendar size={12} /> Timing
+   161→                  </p>
+   162→                  <div className="space-y-2.5">
+   163→                    <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+   164→                      <input type="radio" checked={sendNow} onChange={() => setSendNow(true)} className="accent-mint-deep" />
+   165→                      Send now (staggered over 2h)
+   166→                    </label>
+   167→                    <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+   168→                      <input type="radio" checked={!sendNow} onChange={() => setSendNow(false)} className="accent-mint-deep" />
+   169→                      Tomorrow 10:30 AM
+   170→                    </label>
+   171→                  </div>
+   172→                </div>
+   173→                <div className="rounded-xl bg-surface p-3.5">
+   174→                  <p className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">
+   175→                    <Timer size={12} /> Safeguards
+   176→                  </p>
+   177→                  <ul className="space-y-1.5 text-[12.5px] text-neutral-500">
+   178→                    <li className="flex items-center gap-1.5"><Check size={12} className="text-mint-deep" /> Opt-out honoured automatically</li>
+   179→                    <li className="flex items-center gap-1.5"><Check size={12} className="text-mint-deep" /> Max 1 request / guest / 30 days</li>
+   180→                    <li className="flex items-center gap-1.5"><Check size={12} className="text-mint-deep" /> Email fallback if no WhatsApp</li>
+   181→                  </ul>
+   182→                </div>
+   183→              </div>
+   184→
+   185→              <div className="flex items-center justify-between border-t border-neutral-100 pt-4">
+   186→                <p className="text-[12.5px] text-neutral-400">
+   187→                  Estimated reach: <span className="font-semibold text-brand">{reach.toLocaleString("en-IN")} guests</span> · within plan quota
+   188→                </p>
+   189→                <Button className="bg-brand text-white hover:bg-brand-deep" onClick={launch} disabled={launching || reach === 0}>
+   190→                  {launching ? <RefreshCw size={14} className="mr-1.5 animate-spin" /> : <Send size={14} className="mr-1.5" />}
+   191→                  {launching ? "Launching…" : "Launch campaign"}
+   192→                </Button>
+   193→              </div>
+   194→            </div>
+   195→          </ChartCard>
+   196→
+   197→          <ChartCard title="Recent campaigns" subtitle="Delivery → open → review performance">
+   198→            <div className="overflow-x-auto">
+   199→              <table className="w-full text-left text-[13px]">
+   200→                <thead>
+   201→                  <tr className="border-b border-neutral-100 text-[11.5px] uppercase tracking-wide text-neutral-400">
+   202→                    <th className="pb-2 pr-3 font-medium">Campaign</th>
+   203→                    <th className="pb-2 pr-3 font-medium">Channel</th>
+   204→                    <th className="pb-2 pr-3 font-medium">Sent</th>
+   205→                    <th className="pb-2 pr-3 font-medium">Reviews</th>
+   206→                    <th className="pb-2 font-medium">Status</th>
+   207→                  </tr>
+   208→                </thead>
+   209→                <tbody>
+   210→                  {(data.data?.campaigns || []).map((c) => (
+   211→                    <tr key={c.id} className="border-b border-neutral-50 last:border-0">
+   212→                      <td className="py-2.5 pr-3 font-medium text-brand">
+   213→                        {c.name}
+   214→                        <span className="block text-[11px] font-normal text-neutral-400">{c.location} · {c.date}</span>
+   215→                      </td>
+   216→                      <td className="py-2.5 pr-3">
+   217→                        <span className="inline-flex items-center gap-1 text-neutral-600">
+   218→                          {c.channel === "WhatsApp" ? <WhatsAppIcon size={13} className="text-mint-deep" /> : <QrIcon size={13} className="text-brand" />}
+   219→                          {c.channel}
+   220→                        </span>
+   221→                      </td>
+   222→                      <td className="py-2.5 pr-3 text-neutral-600">{c.sent.toLocaleString("en-IN")}</td>
+   223→                      <td className="py-2.5 pr-3 font-semibold text-mint-deep">{c.reviews}</td>
+   224→                      <td className="py-2.5"><StatusBadge status={c.status} /></td>
+   225→                    </tr>
+   226→                  ))}
+   227→                </tbody>
+   228→              </table>
+   229→            </div>
+   230→          </ChartCard>
+   231→        </div>
+   232→
+   233→        {/* QR kit + funnel */}
+   234→        <div className="space-y-5 xl:col-span-2">
+   235→          <QrKitCard locations={locations} onPreviewGuest={() => navigate({ surface: "guest" })} />
+   236→
+   237→          <ChartCard title="Request funnel" subtitle="Last 30 days · all channels">
+   238→            <FunnelBars data={data.data?.funnel || []} />
+   239→          </ChartCard>
+   240→
+   241→          <div className="rounded-2xl border border-amber-200/70 bg-amber-soft/50 p-4">
+   242→            <p className="flex items-center gap-1.5 text-[13px] font-semibold text-amber-deep">
+   243→              <Mail size={14} /> Email fallback active
+   244→            </p>
+   245→            <p className="mt-1 text-[12.5px] leading-relaxed text-amber-deep/80">
+   246→              12% of your contact book has no WhatsApp number. Sensiblee sends those guests a compliant email with the same review link.
+   247→            </p>
+   248→          </div>
+   249→        </div>
+   250→      </div>
+   251→    </div>
+   252→  );
+   253→}
+   254→
+   255→function QrKitCard({ locations, onPreviewGuest }: { locations: CampaignsPayload["locations"]; onPreviewGuest: () => void }) {
+   256→  const { toast } = useToast();
+   257→  const firstCode = locations[0]?.code;
+   258→  const qr = useApiData<{ dataUrl: string; url: string }>(firstCode ? `/api/qr?code=${firstCode}` : null);
+   259→
+   260→  const copy = async () => {
+   261→    if (!qr.data) return;
+   262→    try {
+   263→      await navigator.clipboard.writeText(qr.data.url);
+   264→      toast({ title: "Link copied", description: qr.data.url });
+   265→    } catch {
+   266→      toast({ title: "Copy failed", description: qr.data.url });
+   267→    }
+   268→  };
+   269→
+   270→  const download = () => {
+   271→    if (!qr.data) return;
+   272→    const a = document.createElement("a");
+   273→    a.href = qr.data.dataUrl;
+   274→    a.download = `sensiblee-qr-${firstCode}.png`;
+   275→    a.click();
+   276→    toast({ title: "QR kit downloading", description: "Print-ready PNG · 480 px" });
+   277→  };
+   278→
+   279→  return (
+   280→    <ChartCard title="Table QR kit" subtitle="Module B · live scannable code">
+   281→      <div className="flex items-center gap-4">
+   282→        <div className="rounded-2xl border border-neutral-200 bg-cream p-2.5">
+   283→          {qr.data ? (
+   284→            <img src={qr.data.dataUrl} alt={`QR code for ${locations[0]?.name || "location"}`} width={124} height={124} className="rounded-lg" />
+   285→          ) : (
+   286→            <div className="h-[124px] w-[124px] animate-pulse rounded-lg bg-surface" />
+   287→          )}
+   288→        </div>
+   289→        <div className="flex-1 text-[12.5px] leading-relaxed text-neutral-500">
+   290→          <p className="font-semibold text-brand">scan → rate us in 2 taps</p>
+   291→          <p className="mt-1">
+   292→            Branded landing with your logo, star pre-select and Google hand-off. Printed at 40×40 mm on table tents.
+   293→          </p>
+   294→          <p className="mt-1 truncate font-mono text-[10.5px] text-neutral-400">{qr.data?.url || "…"}</p>
+   295→          <div className="mt-3 flex flex-wrap gap-2">
+   296→            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={download} disabled={!qr.data}>
+   297→              <Download size={13} className="mr-1" /> Kit
+   298→            </Button>
+   299→            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={copy} disabled={!qr.data}>
+   300→              <Copy size={13} className="mr-1" /> Link
+   301→            </Button>
+   302→            <Button size="sm" variant="outline" className="h-8 border-mint-deep/40 text-xs text-mint-deep hover:bg-mint-soft/40" onClick={onPreviewGuest}>
+   303→              <Smartphone size={13} className="mr-1" /> Preview guest flow
+   304→            </Button>
+   305→          </div>
+   306→        </div>
+   307→      </div>
+   308→    </ChartCard>
+   309→  );
+   310→}
+   311→
+   312→/* ----------------------------- AI Assistant ----------------------------- */
+   313→
+   314→type QueueItem = {
+   315→  id: string; reviewStars: number; author: string; location: string; excerpt: string;
+   316→  draft: string; tone: string; confidence: number; age: string; urgent?: boolean; text: string;
+   317→};
+   318→
+   319→export function AiAssistantView() {
+   320→  const { toast } = useToast();
+   321→  const queue = useApiData<{ queue: QueueItem[] }>("/api/ai/queue");
+   322→  const analytics = useApiData<{ kpis: { draftsPending: number; draftsApproved30d: number; atRisk: number; medianResponse: string } }>("/api/analytics");
+   323→  const [drafts, setDrafts] = useState<Record<string, string>>({});
+   324→  const [autoPilot, setAutoPilot] = useState(false);
+   325→  const [busyId, setBusyId] = useState<string | null>(null);
+   326→  const [approvedIds, setApprovedIds] = useState<string[]>([]);
+   327→
+   328→  const items = (queue.data?.queue || []).filter((i) => !approvedIds.includes(i.id));
+   329→  const k = analytics.data?.kpis;
+   330→
+   331→  const bodyOf = (item: QueueItem) => drafts[item.id] ?? item.draft;
+   332→
+   333→  const approve = async (item: QueueItem) => {
+   334→    setBusyId(item.id);
+   335→    try {
+   336→      await api.post(`/api/reviews/${item.id}/reply`, { body: bodyOf(item) });
+   337→      setApprovedIds((a) => [...a, item.id]);
+   338→      toast({ title: "Reply posted", description: `Published to Google for ${item.author}'s review.` });
+   339→      queue.reload();
+   340→    } catch (e) {
+   341→      toast({ title: "Could not post", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   342→    } finally {
+   343→      setBusyId(null);
+   344→    }
+   345→  };
+   346→
+   347→  const regenerate = async (item: QueueItem) => {
+   348→    setBusyId(item.id);
+   349→    try {
+   350→      toast({ title: "Regenerating draft", description: "The AI worker is rewriting this reply in your voice." });
+   351→      const res = await api.post<{ review: ReviewVM }>(`/api/reviews/${item.id}/draft`);
+   352→      if (res.review.draft) setDrafts((d) => ({ ...d, [item.id]: res.review.draft! }));
+   353→      queue.reload();
+   354→    } catch (e) {
+   355→      toast({ title: "Regeneration failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   356→    } finally {
+   357→      setBusyId(null);
+   358→    }
+   359→  };
+   360→
+   361→  const toggleAutoPilot = async (v: boolean) => {
+   362→    setAutoPilot(v);
+   363→    try {
+   364→      await api.patch("/api/settings", { ai: { threshold: v ? 95 : 90 } });
+   365→      toast({
+   366→        title: v ? "Auto-pilot staged" : "Auto-pilot off",
+   367→        description: v
+   368→          ? "Replies above 95% confidence would post automatically once you enable posting — 1–2★ reviews always wait for you."
+   369→          : "Back to manual approval for all replies.",
+   370→      });
+   371→    } catch {
+   372→      setAutoPilot(!v);
+   373→      toast({ title: "Could not update", description: "Try again in a moment.", variant: "destructive" });
+   374→    }
+   375→  };
+   376→
+   377→  return (
+   378→    <div className="space-y-5">
+   379→      <div className="grid gap-5 lg:grid-cols-3">
+   380→        <div className="lg:col-span-2 rounded-2xl border border-neutral-200/70 bg-white p-5">
+   381→          <div className="flex flex-wrap items-center justify-between gap-3">
+   382→            <div>
+   383→              <h3 className="flex items-center gap-2 text-[15px] font-semibold text-brand">
+   384→                <Sparkles size={16} className="text-mint-deep" /> Approval queue
+   385→                <Badge className="bg-amber-soft text-amber-deep hover:bg-amber-soft">{items.length} pending</Badge>
+   386→              </h3>
+   387→              <p className="mt-0.5 text-xs text-neutral-400">Module C · every reply is yours to approve, edit or regenerate</p>
+   388→            </div>
+   389→            <div className="flex items-center gap-2.5 rounded-xl bg-surface px-3 py-2">
+   390→              <Switch checked={autoPilot} onCheckedChange={toggleAutoPilot} />
+   391→              <div className="text-[12px] leading-tight">
+   392→                <p className="font-semibold text-brand">Auto-pilot</p>
+   393→                <p className="text-neutral-400">post ≥95% confidence</p>
+   394→              </div>
+   395→            </div>
+   396→          </div>
+   397→
+   398→          <div className="mt-4 space-y-4">
+   399→            {queue.loading && [0, 1].map((i) => <div key={i} className="h-44 animate-pulse rounded-2xl bg-surface" />)}
+   400→            {items.map((item) => (
+   401→              <div key={item.id} className={cn("rounded-2xl border p-4", item.urgent ? "border-red-200 bg-red-50/30" : "border-neutral-200 bg-white")}>
+   402→                <div className="flex flex-wrap items-center justify-between gap-2">
+   403→                  <div className="flex items-center gap-2.5">
+   404→                    <StarRating value={item.reviewStars} size={13} />
+   405→                    <span className="text-[13px] font-semibold text-brand">{item.author}</span>
+   406→                    <span className="text-[11.5px] text-neutral-400">{item.location} · {item.age} old</span>
+   407→                    {item.urgent && <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10.5px] font-bold text-red-600"><AlertTriangle size={10} /> SLA 24h</span>}
+   408→                  </div>
+   409→                  <div className="flex items-center gap-2">
+   410→                    <Badge variant="outline" className="text-[11px] capitalize text-neutral-500">{item.tone}</Badge>
+   411→                    <span className="flex items-center gap-1 text-[11.5px] font-semibold text-mint-deep">
+   412→                      <span className="h-1.5 w-1.5 rounded-full bg-mint-deep" />
+   413→                      {Math.round(item.confidence * 100)}% confident
+   414→                    </span>
+   415→                  </div>
+   416→                </div>
+   417→                <p className="mt-2.5 rounded-lg bg-surface px-3 py-2 text-[13px] italic text-neutral-500">“{item.excerpt}”</p>
+   418→                <Textarea
+   419→                  value={bodyOf(item)}
+   420→                  onChange={(e) => setDrafts((d) => ({ ...d, [item.id]: e.target.value }))}
+   421→                  className="mt-3 min-h-[72px] border-mint/40 bg-mint-soft/25 text-[13.5px] leading-relaxed focus-visible:ring-mint/50"
+   422→                  aria-label={`Suggested reply for ${item.author}`}
+   423→                />
+   424→                <div className="mt-3 flex flex-wrap items-center gap-2">
+   425→                  <Button size="sm" className="h-8 bg-mint-deep text-white hover:bg-mint-deep/90" disabled={busyId === item.id} onClick={() => approve(item)}>
+   426→                    {busyId === item.id ? <RefreshCw size={13} className="mr-1 animate-spin" /> : <Check size={13} className="mr-1" />}
+   427→                    {busyId === item.id ? "Posting…" : "Approve & post"}
+   428→                  </Button>
+   429→                  <Button size="sm" variant="outline" className="h-8">
+   430→                    <Pencil size={13} className="mr-1" /> Edit
+   431→                  </Button>
+   432→                  <Button size="sm" variant="outline" className="h-8" disabled={busyId === item.id} onClick={() => regenerate(item)}>
+   433→                    <RefreshCw size={13} className={cn("mr-1", busyId === item.id && "animate-spin")} /> Regenerate
+   434→                  </Button>
+   435→                  <span className="ml-auto text-[11px] text-neutral-400"> learns from every edit</span>
+   436→                </div>
+   437→              </div>
+   438→            ))}
+   439→            {!queue.loading && items.length === 0 && (
+   440→              <div className="rounded-2xl border border-dashed border-mint/50 bg-mint-soft/30 p-8 text-center">
+   441→                <Check size={28} className="mx-auto text-mint-deep" />
+   442→                <p className="mt-2 text-[15px] font-semibold text-brand">Inbox zero — every review answered</p>
+   443→                <p className="text-[13px] text-neutral-500">New drafts appear within ~90 seconds of a review landing.</p>
+   444→              </div>
+   445→            )}
+   446→          </div>
+   447→        </div>
+   448→
+   449→        <div className="space-y-5">
+   450→          <ChartCard title="Brand voice" subtitle="How the assistant writes as you">
+   451→            <div className="space-y-3.5">
+   452→              {[
+   453→                { label: "Warmth", v: 80, cls: "bg-mint-deep" },
+   454→                { label: "Formality", v: 45, cls: "bg-brand" },
+   455→                { label: "Conciseness", v: 70, cls: "bg-amber-400" },
+   456→              ].map((s) => (
+   457→                <div key={s.label}>
+   458→                  <div className="mb-1 flex justify-between text-[12.5px]"><span className="text-neutral-600">{s.label}</span><span className="font-semibold text-brand">{s.v}%</span></div>
+   459→                  <div className="h-2 rounded-full bg-surface"><div className={cn("h-full rounded-full", s.cls)} style={{ width: `${s.v}%` }} /></div>
+   460→                </div>
+   461→              ))}
+   462→              <div className="border-t border-neutral-100 pt-3">
+   463→                <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">Learned phrases</p>
+   464→                <div className="flex flex-wrap gap-1.5">
+   465→                  {["“see you soon”", "“our pleasure”", "valet tie-up", "“regulars”"].map((p) => (
+   466→                    <span key={p} className="rounded-full bg-mint-soft px-2.5 py-1 text-[11.5px] font-medium text-mint-deep">{p}</span>
+   467→                  ))}
+   468→                </div>
+   469→                <p className="mt-2.5 text-[11px] leading-relaxed text-neutral-400">Tune the voice any time in Settings → AI &amp; brand voice.</p>
+   470→              </div>
+   471→            </div>
+   472→          </ChartCard>
+   473→
+   474→          <ChartCard title="This month" subtitle="Assistant performance · live">
+   475→            <div className="grid grid-cols-2 gap-3">
+   476→              <StatCard label="Drafts in queue" value={String(k?.draftsPending ?? "—")} accent="mint" />
+   477→              <StatCard label="Replies posted (30d)" value={String(k?.draftsApproved30d ?? "—")} accent="amber" />
+   478→              <StatCard label="At risk (>24h)" value={String(k?.atRisk ?? "—")} accent="coral" />
+   479→              <StatCard label="Median response" value={k?.medianResponse ?? "—"} accent="slate" />
+   480→            </div>
+   481→          </ChartCard>
+   482→        </div>
+   483→      </div>
+   484→    </div>
+   485→  );
+   486→}
+   487→
+   488→/* ------------------------------- Analytics ------------------------------ */
+   489→
+   490→type AnalyticsPayload = {
+   491→  kpis: { health: number; positive: number; medianResponse: string; atRisk: number };
+   492→  trend: { w: string; rating: number; volume: number }[];
+   493→  sentiment: { name: string; value: number; color: string }[];
+   494→  locations: { name: string; rating: number; responses: number }[];
+   495→  keywords: { word: string; count: number; sentiment: string }[];
+   496→  staff: { name: string; score: number; mentions: number; trend: string }[];
+   497→};
+   498→
+   499→export function AnalyticsView() {
+   500→  const { data } = useApiData<AnalyticsPayload>("/api/analytics");
+   501→  const k = data?.kpis;
+   502→  return (
+   503→    <div className="space-y-5">
+   504→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   505→        <StatCard label="Reputation health" value={k ? `${k.health} / 100` : "—"} delta="+6" icon={<TrendingUp size={15} />} hint="rating, freshness, response mix" />
+   506→        <StatCard label="Positive sentiment" value={k ? `${k.positive}%` : "—"} delta="+4 pts" icon={<Sparkles size={15} />} accent="mint" />
+   507→        <StatCard label="Median response time" value={k?.medianResponse ?? "—"} delta="-41m" icon={<Timer size={15} />} accent="amber" />
+   508→        <StatCard label="Reviews at risk" value={String(k?.atRisk ?? "—")} hint="unanswered >24h" icon={<AlertTriangle size={15} />} accent="coral" />
+   509→      </div>
+   510→
+   511→      <div className="grid gap-5 xl:grid-cols-3">
+   512→        <ChartCard title="Rating & volume — 12 weeks" subtitle="All locations · weekly grain" className="xl:col-span-2">
+   513→          <RatingTrendChart data={data?.trend || []} />
+   514→        </ChartCard>
+   515→        <ChartCard title="Sentiment split" subtitle="AI-classified on every sync">
+   516→          <SentimentDonut data={data?.sentiment || []} avgRating={data?.trend.at(-1)?.rating} />
+   517→        </ChartCard>
+   518→      </div>
+   519→
+   520→      <div className="grid gap-5 xl:grid-cols-3">
+   521→        <ChartCard title="Location comparison" subtitle="Average rating this quarter">
+   522→          <LocationCompareChart data={data?.locations || []} />
+   523→        </ChartCard>
+   524→
+   525→        <ChartCard title="What guests talk about" subtitle="Keyword themes with sentiment">
+   526→          <div className="flex flex-wrap gap-2">
+   527→            {(data?.keywords || []).map((k2) => (
+   528→              <span
+   529→                key={k2.word}
+   530→                className={cn(
+   531→                  "rounded-full px-3 py-1.5 text-[12.5px] font-medium",
+   532→                  k2.sentiment === "positive" && "bg-mint-soft text-mint-deep",
+   533→                  k2.sentiment === "neutral" && "bg-amber-soft text-amber-deep",
+   534→                  k2.sentiment === "negative" && "bg-red-50 text-red-600"
+   535→                )}
+   536→              >
+   537→                {k2.word} <span className="ml-1 text-[10.5px] opacity-60">{k2.count}</span>
+   538→              </span>
+   539→            ))}
+   540→            {!data && [0, 1, 2, 3, 4].map((i) => <span key={i} className="h-8 w-24 animate-pulse rounded-full bg-surface" />)}
+   541→          </div>
+   542→        </ChartCard>
+   543→
+   544→        <ChartCard title="Staff mentioned by guests" subtitle="Reputation score from review mentions">
+   545→          <div className="space-y-3">
+   546→            {(data?.staff || []).map((s) => (
+   547→              <div key={s.name}>
+   548→                <div className="mb-1 flex items-center justify-between text-[12.5px]">
+   549→                  <span className="text-neutral-600">{s.name}</span>
+   550→                  <span className="flex items-center gap-2">
+   551→                    <span className="text-[11px] text-neutral-400">{s.mentions} mentions</span>
+   552→                    <span className={cn("font-semibold", s.trend.startsWith("+") ? "text-mint-deep" : "text-red-500")}>{s.trend}</span>
+   553→                    <span className="font-bold text-brand">{s.score}</span>
+   554→                  </span>
+   555→                </div>
+   556→                <div className="h-2 rounded-full bg-surface">
+   557→                  <div className={cn("h-full rounded-full", s.score >= 90 ? "bg-mint-deep" : s.score >= 85 ? "bg-mint" : "bg-amber-400")} style={{ width: `${s.score}%` }} />
+   558→                </div>
+   559→              </div>
+   560→            ))}
+   561→            {data && (data.staff || []).length === 0 && (
+   562→              <p className="text-[12.5px] text-neutral-400">No staff mentions configured — add team names in Settings to track them.</p>
+   563→            )}
+   564→          </div>
+   565→        </ChartCard>
+   566→      </div>
+   567→    </div>
+   568→  );
+   569→}
+   570→
+   571→/* ------------------------------- Locations ------------------------------ */
+   572→
+   573→export function LocationsView({ onOpenLocation }: { onOpenLocation: (l: import("@/lib/viewmodels").LocationVM) => void }) {
+   574→  const { toast } = useToast();
+   575→  const locations = useApiData<{ locations: import("@/lib/viewmodels").LocationVM[] }>("/api/locations");
+   576→  const [syncingId, setSyncingId] = useState<string | null>(null);
+   577→  const [adding, setAdding] = useState(false);
+   578→  const [newLoc, setNewLoc] = useState({ name: "", area: "" });
+   579→
+   580→  const syncNow = async (id: string, name: string) => {
+   581→    setSyncingId(id);
+   582→    try {
+   583→      const res = await api.post<{ newReviews: number }>(`/api/locations/${id}/sync`);
+   584→      toast({
+   585→        title: res.newReviews ? `${res.newReviews} new review${res.newReviews > 1 ? "s" : ""} pulled` : "Up to date",
+   586→        description: res.newReviews ? `${name} — scored, drafts queued.` : `${name} — no new reviews since the last cursor.`,
+   587→      });
+   588→      locations.reload();
+   589→    } catch (e) {
+   590→      toast({ title: "Sync failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   591→    } finally {
+   592→      setSyncingId(null);
+   593→    }
+   594→  };
+   595→
+   596→  const connectProfile = async () => {
+   597→    if (!newLoc.name.trim()) {
+   598→      toast({ title: "Name required", description: "Give the profile a name to connect it." });
+   599→      return;
+   600→    }
+   601→    try {
+   602→      await api.post("/api/locations", newLoc);
+   603→      toast({ title: "Profile connected", description: `${newLoc.name} is syncing now — reviews arrive within 15 minutes.` });
+   604→      setNewLoc({ name: "", area: "" });
+   605→      setAdding(false);
+   606→      locations.reload();
+   607→    } catch (e) {
+   608→      toast({ title: "Could not connect", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   609→    }
+   610→  };
+   611→
+   612→  return (
+   613→    <div className="space-y-5">
+   614→      <div className="grid gap-4 lg:grid-cols-3">
+   615→        {(locations.data?.locations || []).map((l) => (
+   616→          <div
+   617→            key={l.id}
+   618→            role="button"
+   619→            tabIndex={0}
+   620→            onClick={() => onOpenLocation(l)}
+   621→            onKeyDown={(e) => { if (e.key === "Enter") onOpenLocation(l); }}
+   622→            className="cursor-pointer rounded-2xl border border-neutral-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none transition-all hover:-translate-y-0.5 hover:border-mint-deep/40 hover:shadow-md focus-visible:ring-2 focus-visible:ring-mint"
+   623→            aria-label={`Open details for ${l.name}`}
+   624→          >
+   625→            <div className="flex items-start justify-between">
+   626→              <div className="flex items-center gap-3">
+   627→                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-white"><GoogleG size={18} /></span>
+   628→                <div>
+   629→                  <h3 className="text-[14.5px] font-semibold leading-tight text-brand">{l.name}</h3>
+   630→                  <p className="text-[12px] text-neutral-400">{l.area}</p>
+   631→                </div>
+   632→              </div>
+   633→              <StatusBadge status={l.syncState} />
+   634→            </div>
+   635→            <div className="mt-4 flex items-end justify-between">
+   636→              <div>
+   637→                <div className="flex items-baseline gap-1.5">
+   638→                  <span className="text-[30px] font-bold leading-none text-brand">{l.rating}</span>
+   639→                  <span className={cn("text-[12.5px] font-semibold", l.delta >= 0 ? "text-mint-deep" : "text-red-500")}>
+   640→                    {l.delta >= 0 ? "+" : ""}{l.delta}
+   641→                  </span>
+   642→                </div>
+   643→                <StarRating value={l.rating} size={13} className="mt-1.5" />
+   644→              </div>
+   645→              <div className="text-right">
+   646→                <p className="text-[18px] font-bold text-brand">{l.reviews.toLocaleString("en-IN")}</p>
+   647→                <p className="text-[11px] text-neutral-400">total reviews</p>
+   648→              </div>
+   649→            </div>
+   650→            <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-3.5">
+   651→              <p className="flex items-center gap-1.5 text-[11.5px] text-neutral-400">
+   652→                <RefreshCw size={11} className={l.syncState === "attention" ? "text-amber-500" : "text-mint-deep"} />
+   653→                synced {l.lastSync}
+   654→              </p>
+   655→              <div className="flex gap-1.5">
+   656→                <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]" disabled={syncingId === l.id}
+   657→                  onClick={(e) => { e.stopPropagation(); syncNow(l.id, l.name); }}>
+   658→                  <RefreshCw size={11} className={cn("mr-1", syncingId === l.id && "animate-spin")} />
+   659→                  {syncingId === l.id ? "Syncing" : "Sync now"}
+   660→                </Button>
+   661→                <Button size="sm" variant="ghost" className="h-7 px-2.5 text-[11.5px]" onClick={(e) => { e.stopPropagation(); onOpenLocation(l); }}>
+   662→                  Details <ChevronRight size={11} className="ml-0.5" />
+   663→                </Button>
+   664→              </div>
+   665→            </div>
+   666→          </div>
+   667→        ))}
+   668→
+   669→        {locations.loading && [0, 1, 2].map((i) => <div key={i} className="h-[220px] animate-pulse rounded-2xl bg-surface" />)}
+   670→
+   671→        {adding ? (
+   672→          <div className="flex min-h-[220px] flex-col justify-center gap-3 rounded-2xl border-2 border-dashed border-mint-deep/50 bg-white p-5">
+   673→            <input
+   674→              value={newLoc.name}
+   675→              onChange={(e) => setNewLoc((n) => ({ ...n, name: e.target.value }))}
+   676→              placeholder="Profile name — e.g. Spice Route Whitefield"
+   677→              className="h-10 w-full rounded-xl border border-neutral-200 bg-cream/60 px-3 text-[13px] outline-none focus:border-mint/60"
+   678→            />
+   679→            <input
+   680→              value={newLoc.area}
+   681→              onChange={(e) => setNewLoc((n) => ({ ...n, area: e.target.value }))}
+   682→              placeholder="Area — e.g. Whitefield, Bengaluru"
+   683→              className="h-10 w-full rounded-xl border border-neutral-200 bg-cream/60 px-3 text-[13px] outline-none focus:border-mint/60"
+   684→            />
+   685→            <div className="flex gap-2">
+   686→              <Button size="sm" className="h-9 flex-1 rounded-xl bg-brand text-[12.5px] text-white hover:bg-brand-deep" onClick={connectProfile}>
+   687→                <Check size={13} className="mr-1" /> Connect profile
+   688→              </Button>
+   689→              <Button size="sm" variant="ghost" className="h-9 rounded-xl text-[12.5px]" onClick={() => setAdding(false)}>Cancel</Button>
+   690→            </div>
+   691→          </div>
+   692→        ) : (
+   693→          <button
+   694→            onClick={() => setAdding(true)}
+   695→            className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300 bg-white/50 p-5 text-center transition-colors hover:border-mint-deep hover:bg-mint-soft/20"
+   696→          >
+   697→            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-mint-soft text-mint-deep"><Plus size={20} /></span>
+   698→            <p className="mt-3 text-[14px] font-semibold text-brand">Connect a Google Business Profile</p>
+   699→            <p className="mt-1 max-w-[220px] text-[12px] text-neutral-400">OAuth by the business owner · reviews start flowing within 15 minutes</p>
+   700→          </button>
+   701→        )}
+   702→      </div>
+   703→
+   704→      <div className="grid gap-5 lg:grid-cols-2">
+   705→        <ChartCard title="Sync engine" subtitle="Module A · how monitoring behaves">
+   706→          <div className="space-y-3 text-[13px]">
+   707→            {[
+   708→              { label: "Pull cadence", value: "Every 15 minutes (jittered)", icon: <RefreshCw size={13} /> },
+   709→              { label: "Notification rules", value: "1–2★ → WhatsApp + email · 3★ → email digest", icon: <Send size={13} /> },
+   710→              { label: "Daily digest", value: "9:00 AM IST to owners · 4–5★ roll-up", icon: <Mail size={13} /> },
+   711→              { label: "Failure policy", value: "3 consecutive errors → re-auth card + alert", icon: <AlertTriangle size={13} /> },
+   712→            ].map((r) => (
+   713→              <div key={r.label} className="flex items-center justify-between gap-3 rounded-xl bg-surface px-3.5 py-3">
+   714→                <span className="flex items-center gap-2 font-medium text-neutral-600">{r.icon} {r.label}</span>
+   715→                <span className="text-right text-[12.5px] text-brand">{r.value}</span>
+   716→              </div>
+   717→            ))}
+   718→          </div>
+   719→        </ChartCard>
+   720→        <ChartCard title="Alert routing" subtitle="Who hears what, the moment it matters">
+   721→          <div className="space-y-3">
+   722→            {[
+   723→              { ch: "WhatsApp", to: "Owner + floor captain", when: "1–2★ reviews, sync failures", icon: <WhatsAppIcon size={14} className="text-mint-deep" /> },
+   724→              { ch: "Email", to: "ops@yourbusiness.in", when: "daily digest, weekly sentiment recap", icon: <Mail size={14} className="text-brand" /> },
+   725→              { ch: "In-app", to: "All managers", when: "approvals waiting > 4h", icon: <Bellish /> },
+   726→            ].map((r) => (
+   727→              <div key={r.ch} className="flex items-start gap-3 rounded-xl border border-neutral-100 p-3.5">
+   728→                <span className="mt-0.5">{r.icon}</span>
+   729→                <div className="text-[13px]">
+   730→                  <p className="font-semibold text-brand">{r.ch} → <span className="font-medium text-neutral-500">{r.to}</span></p>
+   731→                  <p className="text-[12px] text-neutral-400">{r.when}</p>
+   732→                </div>
+   733→              </div>
+   734→            ))}
+   735→          </div>
+   736→        </ChartCard>
+   737→      </div>
+   738→    </div>
+   739→  );
+   740→}
+   741→
+   742→function Bellish() {
+   743→  return (
+   744→    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+   745→      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+   746→      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+   747→    </svg>
+   748→  );
+   749→}
+   750→
+   751→void SentimentBadge;
+   752→

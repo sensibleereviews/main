@@ -1,0 +1,427 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-poppins);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  /* Sensiblee brand tokens */
+  --color-brand: #1f2937;
+  --color-brand-deep: #111827;
+  --color-brand-soft: #374151;
+  --color-mint: #88d6a0;
+  --color-mint-deep: #3f9163;
+  --color-mint-soft: #e3f5ea;
+  --color-amber-soft: #fef3c7;
+  --color-amber-deep: #b45309;
+  --color-cream: #fefcf5;
+  --color-surface: #f9fafb;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #fefcf5;
+  --foreground: #1f2937;
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+/* Dark semantic palette — brand slate-navy. Applies when <html> carries .dark
+   (user display preference). Dashboards pick these up via shadcn tokens; the
+   marketing site re-pins the light values via .skin-light below. */
+.dark {
+  --background: #0b1220;
+  --foreground: #e6edf7;
+  --card: #101a2e;
+  --card-foreground: #e6edf7;
+  --popover: #101a2e;
+  --popover-foreground: #e6edf7;
+  --primary: #e6edf7;
+  --primary-foreground: #0b1220;
+  --secondary: #1c2b47;
+  --secondary-foreground: #e6edf7;
+  --muted: #16223a;
+  --muted-foreground: #8fa0ba;
+  --accent: #1c2b47;
+  --accent-foreground: #e6edf7;
+  --destructive: #f87171;
+  --border: rgb(255 255 255 / 10%);
+  --input: rgb(255 255 255 / 14%);
+  --ring: #3f9163;
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: #101a2e;
+  --sidebar-foreground: #e6edf7;
+  --sidebar-primary: #88d6a0;
+  --sidebar-primary-foreground: #0b1220;
+  --sidebar-accent: #1c2b47;
+  --sidebar-accent-foreground: #e6edf7;
+  --sidebar-border: rgb(255 255 255 / 10%);
+  --sidebar-ring: #3f9163;
+}
+
+/* Light re-pin for the marketing subtree — keeps the public site fully light
+   even when the saved display preference is dark (its shadcn internals too). */
+.skin-light {
+  --background: #fefcf5;
+  --foreground: #1f2937;
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@keyframes scale-in {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Client logo marquee — track holds two identical copies, -50% = one copy width */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 34s linear infinite;
+  will-change: transform;
+}
+/* Pause the carousel while the visitor is reading/hovering the strip */
+.marquee-strip:hover .animate-marquee {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+}
+
+/* Hero showcase — floating badges, pulsing endpoint, cycling review feed */
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes hero-float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes hero-ping {
+  0% { transform: scale(1); opacity: 0.65; }
+  80%, 100% { transform: scale(1.9); opacity: 0; }
+}
+@keyframes hero-shimmer {
+  0% { background-position: -360px 0; }
+  100% { background-position: 360px 0; }
+}
+@keyframes hero-toast-in {
+  0% { transform: translateY(14px) scale(0.97); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes hero-pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(63, 145, 99, 0.45); }
+  50% { box-shadow: 0 0 0 7px rgba(63, 145, 99, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-anim,
+  .hero-anim * {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================================
+   Dashboard display skins — Light ⇄ Dark
+   Components keep their original (light-native client / dark-native admin)
+   class strings; the opposite mode is produced here by remapping the exact
+   utility classes used inside each skin. Tailwind 4 compiles alpha variants
+   to literal colors, so every affected variant gets its own explicit rule.
+   ========================================================================== */
+
+/* ------------------------- Client dashboard · dark ------------------------ */
+.dark .skin-client {
+  --tw-ring-offset-color: #0b1220;
+}
+/* the skin roots themselves carry the light/dark-native tokens */
+.dark .skin-client.bg-cream { background-color: #0b1220; }
+.dark .skin-client.text-brand { color: #e6edf7; }
+.dark .skin-client .bg-cream { background-color: #0b1220; }
+.dark .skin-client .bg-cream\/60 { background-color: rgb(11 18 32 / 0.6); }
+.dark .skin-client .bg-cream\/70 { background-color: rgb(11 18 32 / 0.7); }
+.dark .skin-client .bg-white { background-color: #101a2e; }
+.dark .skin-client .bg-white\/80 { background-color: rgb(16 26 46 / 0.8); }
+.dark .skin-client .bg-white\/50 { background-color: rgb(255 255 255 / 0.05); }
+.dark .skin-client .bg-surface { background-color: #0e1728; }
+.dark .skin-client .bg-brand { background-color: #1c2b47; }
+.dark .skin-client .bg-brand\/5 { background-color: rgb(255 255 255 / 0.04); }
+.dark .skin-client .bg-brand\/10 { background-color: rgb(255 255 255 / 0.06); }
+.dark .skin-client .bg-brand\/30 { background-color: rgb(2 6 16 / 0.5); }
+.dark .skin-client .bg-brand\/40 { background-color: rgb(2 6 16 / 0.55); }
+.dark .skin-client .bg-brand\/45 { background-color: rgb(2 6 16 / 0.55); }
+.dark .skin-client .bg-brand\/75 { background-color: rgb(28 43 71 / 0.75); }
+.dark .skin-client .bg-neutral-100 { background-color: #15223c; }
+.dark .skin-client .bg-neutral-200 { background-color: #2b3a55; }
+.dark .skin-client .bg-neutral-300 { background-color: #33415e; }
+.dark .skin-client .bg-red-50 { background-color: rgb(248 113 113 / 0.12); }
+.dark .skin-client .bg-red-50\/30 { background-color: rgb(248 113 113 / 0.08); }
+.dark .skin-client .bg-red-50\/40 { background-color: rgb(248 113 113 / 0.09); }
+.dark .skin-client .bg-red-100 { background-color: rgb(248 113 113 / 0.13); }
+.dark .skin-client .bg-mint-soft { background-color: rgb(136 214 160 / 0.14); }
+.dark .skin-client .bg-mint-soft\/40 { background-color: rgb(136 214 160 / 0.08); }
+.dark .skin-client .bg-mint-soft\/60 { background-color: rgb(136 214 160 / 0.11); }
+.dark .skin-client .bg-mint-soft\/70 { background-color: rgb(136 214 160 / 0.12); }
+.dark .skin-client .bg-amber-soft { background-color: rgb(252 211 77 / 0.13); }
+.dark .skin-client .bg-amber-soft\/40 { background-color: rgb(252 211 77 / 0.08); }
+.dark .skin-client .bg-amber-soft\/50 { background-color: rgb(252 211 77 / 0.1); }
+.dark .skin-client .bg-amber-soft\/60 { background-color: rgb(252 211 77 / 0.11); }
+.dark .skin-client .hover\:bg-surface:hover { background-color: #0e1728; }
+.dark .skin-client .hover\:bg-white:hover { background-color: #172442; }
+.dark .skin-client .hover\:bg-neutral-100:hover { background-color: #182640; }
+.dark .skin-client .hover\:bg-brand:hover { background-color: #233454; }
+.dark .skin-client .hover\:bg-brand\/10:hover { background-color: rgb(255 255 255 / 0.06); }
+.dark .skin-client .focus\:bg-white:focus { background-color: #172442; }
+.dark .skin-client .text-brand { color: #e6edf7; }
+.dark .skin-client .hover\:text-brand:hover { color: #e6edf7; }
+.dark .skin-client .text-neutral-200 { color: #2b3a55; }
+.dark .skin-client .text-neutral-300 { color: #6d7f9b; }
+.dark .skin-client .text-neutral-400 { color: #8fa0ba; }
+.dark .skin-client .text-neutral-500 { color: #7b8ca8; }
+.dark .skin-client .text-neutral-600 { color: #a5b4cc; }
+.dark .skin-client .text-neutral-700 { color: #c3cede; }
+.dark .skin-client .text-neutral-800 { color: #dde4f0; }
+.dark .skin-client .placeholder\:text-neutral-400::placeholder { color: #7488a6; }
+.dark .skin-client .fill-neutral-200 { fill: #2b3a55; }
+.dark .skin-client .text-amber-deep { color: #fcd34d; }
+.dark .skin-client .text-amber-deep\/80 { color: rgb(252 211 77 / 0.8); }
+.dark .skin-client .text-mint-deep { color: #a9e8c4; }
+.dark .skin-client .hover\:text-mint-deep:hover { color: #a9e8c4; }
+.dark .skin-client .text-red-500 { color: #f87171; }
+.dark .skin-client .text-red-600 { color: #f87171; }
+.dark .skin-client .text-red-700 { color: #fca5a5; }
+.dark .skin-client .border-neutral-50 { border-color: rgb(255 255 255 / 0.05); }
+.dark .skin-client .border-neutral-100 { border-color: rgb(255 255 255 / 0.06); }
+.dark .skin-client .border-neutral-200 { border-color: rgb(255 255 255 / 0.1); }
+.dark .skin-client .border-neutral-200\/60 { border-color: rgb(255 255 255 / 0.08); }
+.dark .skin-client .border-neutral-200\/70 { border-color: rgb(255 255 255 / 0.09); }
+.dark .skin-client .border-neutral-300 { border-color: rgb(255 255 255 / 0.16); }
+.dark .skin-client .border-brand { border-color: rgb(255 255 255 / 0.2); }
+.dark .skin-client .border-red-200 { border-color: rgb(248 113 113 / 0.35); }
+.dark .skin-client .border-red-200\/60 { border-color: rgb(248 113 113 / 0.3); }
+.dark .skin-client .border-red-200\/70 { border-color: rgb(248 113 113 / 0.33); }
+.dark .skin-client .border-amber-200\/70 { border-color: rgb(252 211 77 / 0.28); }
+.dark .skin-client .ring-neutral-200\/70 { --tw-ring-color: rgb(255 255 255 / 0.1); }
+.dark .skin-client .ring-neutral-200\/80 { --tw-ring-color: rgb(255 255 255 / 0.12); }
+.dark .skin-client .ring-red-200 { --tw-ring-color: rgb(248 113 113 / 0.4); }
+.dark .skin-client .ring-amber-300\/60 { --tw-ring-color: rgb(252 211 77 / 0.35); }
+/* chart tooltips stay readable on dark cards */
+.dark .skin-client .recharts-default-tooltip {
+  background-color: #101a2e !important;
+  border-color: rgb(255 255 255 / 12%) !important;
+}
+.dark .skin-client .recharts-default-tooltip .recharts-tooltip-label { fill: #e6edf7; }
+.dark .skin-client .recharts-tooltip-item { color: #c3cede !important; }
+/* the baked-in wordmark is dark navy — give it the admin-style white plate on dark */
+.dark .skin-client img[src="/brand/logo-header.png"] {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 5px 9px;
+  box-shadow: 0 1px 3px rgb(16 24 40 / 0.35);
+}
+
+/* Task 47 parity audit — dark remap gaps found by scripts/audit-skin-parity.mjs */
+.dark .skin-client .ring-neutral-200 { --tw-ring-color: rgb(255 255 255 / 0.14); }
+.dark .skin-client .hover\:text-neutral-600:hover { color: #a5b4cc; }
+.dark .skin-client .hover\:border-neutral-300:hover { border-color: rgb(255 255 255 / 0.2); }
+.dark .skin-client .hover\:border-red-300:hover { border-color: rgb(248 113 113 / 0.45); }
+.dark .skin-client .hover\:border-amber-300:hover { border-color: rgb(252 211 77 / 0.4); }
+.dark .skin-client .hover\:bg-red-50\/50:hover { background-color: rgb(248 113 113 / 0.1); }
+.dark .skin-client .bg-brand-deep\/10 { background-color: rgb(255 255 255 / 0.04); }
+.dark .skin-client .hover\:bg-brand-deep\/20:hover { background-color: rgb(255 255 255 / 0.07); }
+.dark .skin-client .hover\:bg-amber-soft:hover { background-color: rgb(252 211 77 / 0.13); }
+.dark .skin-client .hover\:bg-amber-soft\/20:hover { background-color: rgb(252 211 77 / 0.04); }
+.dark .skin-client .hover\:bg-amber-soft\/40:hover { background-color: rgb(252 211 77 / 0.08); }
+.dark .skin-client .hover\:bg-amber-soft\/50:hover { background-color: rgb(252 211 77 / 0.09); }
+.dark .skin-client .hover\:bg-amber-soft\/70:hover { background-color: rgb(252 211 77 / 0.12); }
+.dark .skin-client .hover\:bg-mint-soft:hover { background-color: rgb(136 214 160 / 0.14); }
+.dark .skin-client .hover\:bg-mint-soft\/20:hover { background-color: rgb(136 214 160 / 0.04); }
+.dark .skin-client .hover\:bg-mint-soft\/40:hover { background-color: rgb(136 214 160 / 0.08); }
+.dark .skin-client .hover\:bg-mint-soft\/50:hover { background-color: rgb(136 214 160 / 0.09); }
+.dark .skin-client .hover\:bg-mint-soft\/70:hover { background-color: rgb(136 214 160 / 0.12); }
+
+/* ------------------------- Admin console · light ------------------------- */
+html:not(.dark) .skin-admin.bg-brand-deep { background-color: #f4f7fb; }
+html:not(.dark) .skin-admin.text-white { color: #1f2937; }
+html:not(.dark) .skin-admin .bg-brand { background-color: #ffffff; }
+html:not(.dark) .skin-admin .hover\:bg-brand:hover { background-color: #fbfcfe; }
+html:not(.dark) .skin-admin .bg-brand-deep { background-color: #f4f7fb; }
+html:not(.dark) .skin-admin .bg-brand-deep\/30 { background-color: rgb(15 23 42 / 0.035); }
+html:not(.dark) .skin-admin .bg-brand-deep\/40 { background-color: rgb(15 23 42 / 0.045); }
+html:not(.dark) .skin-admin .bg-brand-deep\/50 { background-color: rgb(15 23 42 / 0.055); }
+html:not(.dark) .skin-admin .bg-brand-deep\/60 { background-color: rgb(15 23 42 / 0.065); }
+html:not(.dark) .skin-admin .bg-brand-deep\/80 { background-color: rgb(255 255 255 / 0.85); }
+html:not(.dark) .skin-admin .bg-white\/5 { background-color: rgb(15 23 42 / 0.045); }
+html:not(.dark) .skin-admin .bg-white\/10 { background-color: rgb(15 23 42 / 0.06); }
+html:not(.dark) .skin-admin .bg-white\/15 { background-color: rgb(15 23 42 / 0.08); }
+html:not(.dark) .skin-admin .hover\:bg-white\/5:hover { background-color: rgb(15 23 42 / 0.05); }
+html:not(.dark) .skin-admin .hover\:bg-white\/10:hover { background-color: rgb(15 23 42 / 0.07); }
+html:not(.dark) .skin-admin .hover\:bg-white\/\[0\.03\]:hover { background-color: rgb(15 23 42 / 0.03); }
+html:not(.dark) .skin-admin .text-white { color: #1f2937; }
+html:not(.dark) .skin-admin .hover\:text-white:hover { color: #111827; }
+html:not(.dark) .skin-admin .text-white\/20 { color: rgb(31 41 55 / 0.3); }
+html:not(.dark) .skin-admin .text-white\/25 { color: rgb(31 41 55 / 0.34); }
+html:not(.dark) .skin-admin .text-white\/30 { color: rgb(31 41 55 / 0.38); }
+html:not(.dark) .skin-admin .text-white\/35 { color: rgb(31 41 55 / 0.42); }
+html:not(.dark) .skin-admin .text-white\/40 { color: rgb(31 41 55 / 0.46); }
+html:not(.dark) .skin-admin .text-white\/45 { color: rgb(31 41 55 / 0.5); }
+html:not(.dark) .skin-admin .text-white\/50 { color: rgb(31 41 55 / 0.54); }
+html:not(.dark) .skin-admin .text-white\/55 { color: rgb(31 41 55 / 0.58); }
+html:not(.dark) .skin-admin .text-white\/60 { color: rgb(31 41 55 / 0.62); }
+html:not(.dark) .skin-admin .text-white\/70 { color: rgb(31 41 55 / 0.7); }
+html:not(.dark) .skin-admin .text-white\/80 { color: rgb(31 41 55 / 0.8); }
+html:not(.dark) .skin-admin .text-white\/85 { color: rgb(31 41 55 / 0.85); }
+html:not(.dark) .skin-admin .text-mint { color: #2e7d4f; }
+html:not(.dark) .skin-admin .text-red-300 { color: #dc2626; }
+html:not(.dark) .skin-admin .hover\:text-red-300:hover { color: #b91c1c; }
+html:not(.dark) .skin-admin .text-amber-300 { color: #b45309; }
+html:not(.dark) .skin-admin .border-white\/5 { border-color: rgb(15 23 42 / 0.07); }
+html:not(.dark) .skin-admin .border-white\/10 { border-color: rgb(15 23 42 / 0.09); }
+html:not(.dark) .skin-admin .border-white\/15 { border-color: rgb(15 23 42 / 0.12); }
+html:not(.dark) .skin-admin .border-mint\/25 { border-color: rgb(47 125 79 / 0.25); }
+html:not(.dark) .skin-admin .border-mint\/30 { border-color: rgb(47 125 79 / 0.3); }
+html:not(.dark) .skin-admin .border-mint\/40 { border-color: rgb(47 125 79 / 0.38); }
+html:not(.dark) .skin-admin .border-mint\/50 { border-color: rgb(47 125 79 / 0.46); }
+html:not(.dark) .skin-admin .border-mint\/60 { border-color: rgb(47 125 79 / 0.55); }
+html:not(.dark) .skin-admin .border-amber-300\/20 { border-color: rgb(180 83 9 / 0.28); }
+html:not(.dark) .skin-admin .border-amber-300\/25 { border-color: rgb(180 83 9 / 0.32); }
+html:not(.dark) .skin-admin .border-amber-300\/30 { border-color: rgb(180 83 9 / 0.36); }
+html:not(.dark) .skin-admin .border-red-400\/20 { border-color: rgb(239 68 68 / 0.32); }
+html:not(.dark) .skin-admin .border-red-400\/25 { border-color: rgb(239 68 68 / 0.36); }
+html:not(.dark) .skin-admin .ring-mint\/10 { --tw-ring-color: rgb(47 125 79 / 0.15); }
+html:not(.dark) .skin-admin .ring-mint\/30 { --tw-ring-color: rgb(47 125 79 / 0.3); }
+html:not(.dark) .skin-admin .ring-mint\/40 { --tw-ring-color: rgb(47 125 79 / 0.38); }
+/* Task 47 parity audit — light remap gaps found by scripts/audit-skin-parity.mjs */
+html:not(.dark) .skin-admin .text-mint\/70 { color: rgb(47 125 79 / 0.85); }
+html:not(.dark) .skin-admin .placeholder\:text-white\/30::placeholder { color: rgb(31 41 55 / 0.38); }
+html:not(.dark) .skin-admin .placeholder\:text-white\/25::placeholder { color: rgb(31 41 55 / 0.34); }
+html:not(.dark) .skin-admin .focus\:border-white\/30:focus { border-color: rgb(15 23 42 / 0.25); }
+html:not(.dark) .skin-admin .border-white\/20 { border-color: rgb(15 23 42 / 0.15); }
+html:not(.dark) .skin-admin .border-white\/25 { border-color: rgb(15 23 42 / 0.17); }
+html:not(.dark) .skin-admin .hover\:text-red-200:hover { color: #b91c1c; }
+
+/* Task 56 — reusable card hover effects (marketing surfaces).
+   .card-lift  : lift + mint border glow + soft shadow (light cards)
+   .card-lift-dark : same motion, mint glow shadow (dark/brand cards) */
+.card-lift {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+  will-change: transform;
+}
+.card-lift:hover {
+  transform: translateY(-6px);
+  border-color: rgba(136, 214, 160, 0.55);
+  box-shadow: 0 24px 48px -20px rgba(31, 61, 44, 0.28), 0 0 0 1px rgba(136, 214, 160, 0.18);
+}
+.card-lift-dark {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+  will-change: transform;
+}
+.card-lift-dark:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 28px 56px -20px rgba(136, 214, 160, 0.4), 0 0 0 1px rgba(136, 214, 160, 0.25);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-lift:hover, .card-lift-dark:hover { transform: none; }
+}

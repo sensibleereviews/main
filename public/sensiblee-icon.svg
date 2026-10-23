@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Sensiblee icon mark: S-wave signal on slate tile -->
+  <defs>
+    <linearGradient id="tileGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#253244"/>
+      <stop offset="1" stop-color="#1F2937"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="496" height="496" rx="118" fill="url(#tileGrad)"/>
+  <!-- echo wave -->
+  <path d="M104 300 C 148 220, 196 220, 240 300 C 284 380, 332 380, 376 300"
+        fill="none" stroke="#88D6A0" stroke-opacity="0.30" stroke-width="26" stroke-linecap="round"/>
+  <!-- main S-wave -->
+  <path d="M104 256 C 148 176, 196 176, 240 256 C 284 336, 332 336, 376 256"
+        fill="none" stroke="#88D6A0" stroke-width="46" stroke-linecap="round"/>
+  <!-- sensible-action dot -->
+  <circle cx="428" cy="256" r="22" fill="#FEF3C7"/>
+</svg>

@@ -1,0 +1,795 @@
+     1→// Sensiblee platform admin — operations views (checklist §2 E/F/G/H/I/K/L):
+     2→// Integrations (Google + WhatsApp administration), AI engine administration,
+     3→// cross-org Issue oversight, Reputation controls and the Audit log.
+     4→"use client";
+     5→
+     6→import { useState } from "react";
+     7→import { Badge } from "@/components/ui/badge";
+     8→import { Button } from "@/components/ui/button";
+     9→import { Switch } from "@/components/ui/switch";
+    10→import { useToast } from "@/hooks/use-toast";
+    11→import { api, useApiData, inr } from "@/lib/client";
+    12→import { cn, RefreshCw, Download, Plug, Bot, Target, ScrollText, SlidersHorizontal, AlertTriangle, MessageCircle, Globe, Pause, Play, Check } from "./deps";
+    13→import { DarkStat, DarkCard } from "./admin-console";
+    14→
+    15→const inputCls = "h-9 w-full rounded-xl border border-white/10 bg-brand-deep/60 px-3 text-[12.5px] text-white placeholder:text-white/25 outline-none transition-colors focus:border-mint/50";
+    16→
+    17→function Section({ icon, title, sub, right, children }: { icon: React.ReactNode; title: string; sub: string; right?: React.ReactNode; children: React.ReactNode }) {
+    18→  return (
+    19→    <div className="rounded-2xl border border-white/10 bg-brand p-5">
+    20→      <div className="flex flex-wrap items-start justify-between gap-3">
+    21→        <div>
+    22→          <h3 className="flex items-center gap-2 text-[15px] font-semibold">{icon} {title}</h3>
+    23→          <p className="mt-0.5 text-xs text-white/40">{sub}</p>
+    24→        </div>
+    25→        {right}
+    26→      </div>
+    27→      <div className="mt-4">{children}</div>
+    28→    </div>
+    29→  );
+    30→}
+    31→
+    32→function StatusPill({ status }: { status: string }) {
+    33→  const map: Record<string, string> = {
+    34→    connected: "bg-mint/15 text-mint",
+    35→    error: "bg-red-400/15 text-red-300",
+    36→    stale: "bg-amber-soft/15 text-amber-300",
+    37→    pending: "bg-white/10 text-white/50",
+    38→    approved: "bg-mint/15 text-mint",
+    39→  };
+    40→  return <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[10.5px] font-semibold capitalize", map[status] || "bg-white/10 text-white/60")}>{status}</span>;
+    41→}
+    42→
+    43→/* ============================ Integrations ============================ */
+    44→
+    45→type IntegrationsPayload = {
+    46→  config: { google: { syncCadenceMins: number; quotaDailyPct: number }; whatsapp: { provider: string; phoneId: string; dailyLimit: number; quietStart: number; quietEnd: number; paused: boolean } };
+    47→  google: {
+    48→    accounts: { tenant: string; locations: number; connected: number; issues: number }[];
+    49→    connections: { id: string; tenant: string; name: string; area: string; placeId: string | null; lastSyncAt: string | null; syncCount: number; reviews: number; status: string; lastError: string | null }[];
+    50→    syncIssues: { id: string; tenant: string; location: string; state: string; message: string; at: string }[];
+    51→    replyStats: { pending: number; published: number; edited: number; total: number };
+    52→    quota: { cadenceMins: number; quotaAlertPct: number; usedPct: number };
+    53→  };
+    54→  whatsapp: {
+    55→    config: { provider: string; phoneId: string; dailyLimit: number; quietStart: number; quietEnd: number; paused: boolean };
+    56→    totals: { sent: number; failed: number; reviewsGenerated: number; costInr: number; optOuts: number };
+    57→    perTenant: { tenant: string; quota: number; sent: number; failed: number; reviewsGenerated: number; optOuts: number; costInr: number; campaigns: number }[];
+    58→    templates: { name: string; uses: number; status: string }[];
+    59→    optOuts: { id: string; tenant: string; phone: string; reason: string; note: string | null; at: string }[];
+    60→  };
+    61→};
+    62→
+    63→export function IntegrationsView({ canOperate }: { canOperate: boolean }) {
+    64→  const { toast } = useToast();
+    65→  const data = useApiData<IntegrationsPayload>("/api/admin/integrations");
+    66→  const [busy, setBusy] = useState<string | null>(null);
+    67→  const [waCfg, setWaCfg] = useState<{ provider: string; phoneId: string; dailyLimit: number; quietStart: number; quietEnd: number } | null>(null);
+    68→  const [cadence, setCadence] = useState<number | null>(null);
+    69→
+    70→  if (data.loading || !data.data) return <div className="h-64 animate-pulse rounded-2xl bg-brand" />;
+    71→  const d = data.data;
+    72→
+    73→  const retrySync = async (locationId: string, name: string) => {
+    74→    setBusy(locationId);
+    75→    try {
+    76→      const res = await api.post<{ newReviews: number }>("/api/admin/integrations", { action: "retry-sync", locationId });
+    77→      toast({ title: `${name} synced`, description: `${res.newReviews} new review${res.newReviews === 1 ? "" : "s"} pulled from Google.` });
+    78→      data.reload();
+    79→    } catch (e) {
+    80→      toast({ title: "Retry failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    81→    } finally {
+    82→      setBusy(null);
+    83→    }
+    84→  };
+    85→
+    86→  const saveWa = async (paused?: boolean) => {
+    87→    setBusy("wa");
+    88→    try {
+    89→      const cfg = waCfg || d.whatsapp.config;
+    90→      await api.patch("/api/admin/integrations", {
+    91→        google: { syncCadenceMins: cadence ?? d.google.quota.cadenceMins },
+    92→        whatsapp: { ...cfg, ...(paused !== undefined ? { paused } : {}) },
+    93→      });
+    94→      toast({ title: "Integration settings saved", description: paused !== undefined ? `WhatsApp outbound ${paused ? "paused" : "resumed"} platform-wide.` : "Provider configuration updated." });
+    95→      data.reload();
+    96→    } catch (e) {
+    97→      toast({ title: "Save failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    98→    } finally {
+    99→      setBusy(null);
+   100→    }
+   101→  };
+   102→
+   103→  return (
+   104→    <div className="space-y-5">
+   105→      {/* ---- Google Business Profile ---- */}
+   106→      <Section
+   107→        icon={<Globe size={16} className="text-mint" />}
+   108→        title="Google Business Profile"
+   109→        sub="OAuth connections, review synchronisation and reply publishing across every client"
+   110→        right={<Badge className={cn(d.google.syncIssues.length ? "border-amber-300/30 bg-amber-soft/10 text-amber-300" : "border-mint/30 bg-mint/10 text-mint")}>{d.google.accounts.reduce((a, x) => a + x.issues, 0)} connection issues</Badge>}
+   111→      >
+   112→        <div className="grid gap-4 lg:grid-cols-4">
+   113→          <DarkStat label="Connected accounts" value={String(d.google.accounts.length)} hint={`${d.google.connections.length} authorised locations`} icon={<Plug size={15} />} />
+   114→          <DarkStat label="Replies published (30d)" value={String(d.google.replyStats.published)} hint={`${d.google.replyStats.pending} pending approval · ${d.google.replyStats.edited} edited`} icon={<Check size={15} />} />
+   115→          <DarkStat label="Sync cadence" value={`${d.google.quota.cadenceMins} min`} hint={`Quota alert at ${d.google.quota.quotaAlertPct}% (now ${d.google.quota.usedPct}%)`} icon={<RefreshCw size={15} />} />
+   116→          <DarkStat label="Sync failures (recent)" value={String(d.google.syncIssues.length)} hint="warn + error entries, newest first" icon={<AlertTriangle size={15} />} />
+   117→        </div>
+   118→
+   119→        <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
+   120→          <table className="w-full min-w-[680px] text-left text-[12.5px]">
+   121→            <thead>
+   122→              <tr className="border-b border-white/10 text-[10.5px] uppercase tracking-wider text-white/35">
+   123→                <th className="px-4 py-2.5 font-medium">Location</th>
+   124→                <th className="px-3 py-2.5 font-medium">Client</th>
+   125→                <th className="px-3 py-2.5 font-medium">Status</th>
+   126→                <th className="px-3 py-2.5 font-medium">Last sync</th>
+   127→                <th className="px-3 py-2.5 font-medium">Cycles</th>
+   128→                <th className="px-3 py-2.5 font-medium">Reviews</th>
+   129→                <th className="px-4 py-2.5 text-right font-medium">Action</th>
+   130→              </tr>
+   131→            </thead>
+   132→            <tbody>
+   133→              {d.google.connections.map((c) => (
+   134→                <tr key={c.id} className="border-b border-white/5 last:border-0">
+   135→                  <td className="px-4 py-2.5 font-medium text-white/85">{c.name}<span className="ml-1.5 text-[10.5px] text-white/35">{c.area}</span></td>
+   136→                  <td className="px-3 py-2.5 text-white/50">{c.tenant}</td>
+   137→                  <td className="px-3 py-2.5"><StatusPill status={c.status} /></td>
+   138→                  <td className="px-3 py-2.5 text-white/50">{c.lastSyncAt || "never"}</td>
+   139→                  <td className="px-3 py-2.5 font-mono text-white/40">{c.syncCount}</td>
+   140→                  <td className="px-3 py-2.5 text-white/60">{c.reviews.toLocaleString("en-IN")}</td>
+   141→                  <td className="px-4 py-2.5 text-right">
+   142→                    <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2.5 text-[11px] text-white/60 hover:bg-white/5 hover:text-white"
+   143→                      disabled={!canOperate || busy === c.id} onClick={() => retrySync(c.id, c.name)}>
+   144→                      {busy === c.id ? "Syncing…" : "Retry sync"}
+   145→                    </Button>
+   146→                  </td>
+   147→                </tr>
+   148→              ))}
+   149→              {d.google.connections.length === 0 && <tr><td colSpan={7} className="px-4 py-4 text-white/40">No locations connected yet.</td></tr>}
+   150→            </tbody>
+   151→          </table>
+   152→        </div>
+   153→
+   154→        {d.google.syncIssues.length > 0 && (
+   155→          <div className="mt-4 space-y-1.5">
+   156→            {d.google.syncIssues.map((s) => (
+   157→              <div key={s.id} className="flex items-start gap-2.5 rounded-lg bg-brand-deep/50 px-3 py-2 text-[11.5px]">
+   158→                <span className={cn("mt-1 h-1.5 w-1.5 shrink-0 rounded-full", s.state === "error" ? "bg-red-400" : "bg-amber-300")} />
+   159→                <div className="min-w-0 flex-1">
+   160→                  <p className="font-semibold text-white/80">{s.location} <span className="font-normal text-white/35">· {s.tenant}</span></p>
+   161→                  <p className="truncate text-white/40">{s.message}</p>
+   162→                </div>
+   163→                <span className="shrink-0 font-mono text-[10px] text-white/25">{s.at}</span>
+   164→              </div>
+   165→            ))}
+   166→          </div>
+   167→        )}
+   168→
+   169→        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/10 pt-3">
+   170→          <label className="text-[11.5px] text-white/50">
+   171→            Sync cadence (minutes)
+   172→            <input type="number" min={5} max={240} value={cadence ?? d.google.quota.cadenceMins} onChange={(e) => setCadence(Number(e.target.value))}
+   173→              className={cn(inputCls, "mt-1 h-8 w-28")} />
+   174→          </label>
+   175→          <Button size="sm" className="h-8 rounded-lg bg-mint px-3 text-[11.5px] font-semibold text-brand-deep hover:bg-mint/85"
+   176→            disabled={!canOperate || busy === "wa"} onClick={() => saveWa()}>
+   177→            Save settings
+   178→          </Button>
+   179→        </div>
+   180→      </Section>
+   181→
+   182→      {/* ---- WhatsApp Business ---- */}
+   183→      <Section
+   184→        icon={<MessageCircle size={16} className="text-mint" />}
+   185→        title="WhatsApp Business"
+   186→        sub="Provider connection, HSM templates, delivery monitor, suppression list and spend"
+   187→        right={
+   188→          <div className="flex items-center gap-2">
+   189→            <span className="text-[11.5px] text-white/50">Outbound {d.whatsapp.config.paused ? "paused" : "live"}</span>
+   190→            <Switch checked={!d.whatsapp.config.paused} disabled={!canOperate || busy === "wa"}
+   191→              onCheckedChange={(v) => saveWa(!v)} />
+   192→          </div>
+   193→        }
+   194→      >
+   195→        <div className="grid gap-4 lg:grid-cols-4">
+   196→          <DarkStat label="Sent (all clients)" value={d.whatsapp.totals.sent.toLocaleString("en-IN")} hint={`${d.whatsapp.totals.failed} failed`} icon={<MessageCircle size={15} />} />
+   197→          <DarkStat label="Reviews generated" value={d.whatsapp.totals.reviewsGenerated.toLocaleString("en-IN")} hint="from request campaigns" icon={<Check size={15} />} />
+   198→          <DarkStat label="Messaging spend" value={inr(d.whatsapp.totals.costInr)} hint="₹0.35 per delivered utility msg" icon={<Download size={15} />} />
+   199→          <DarkStat label="Suppression list" value={String(d.whatsapp.totals.optOuts)} hint="opt-outs across clients" icon={<Pause size={15} />} />
+   200→        </div>
+   201→
+   202→        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+   203→          <div className="rounded-xl border border-white/10 bg-brand-deep/40 p-4">
+   204→            <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Provider connection</p>
+   205→            <div className="mt-3 grid grid-cols-2 gap-2.5">
+   206→              <label className="block">
+   207→                <span className="text-[10.5px] text-white/40">Provider</span>
+   208→                <select value={waCfg?.provider ?? d.whatsapp.config.provider} onChange={(e) => setWaCfg({ ...(waCfg || d.whatsapp.config), provider: e.target.value })} className={cn(inputCls, "mt-1")}>
+   209→                  <option value="meta-cloud">Meta Cloud API</option>
+   210→                  <option value="gupshup">Gupshup</option>
+   211→                  <option value="aiSensy">AiSensy</option>
+   212→                </select>
+   213→              </label>
+   214→              <label className="block">
+   215→                <span className="text-[10.5px] text-white/40">Phone number ID</span>
+   216→                <input value={waCfg?.phoneId ?? d.whatsapp.config.phoneId} onChange={(e) => setWaCfg({ ...(waCfg || d.whatsapp.config), phoneId: e.target.value })} placeholder="e.g. 1093…" className={cn(inputCls, "mt-1")} />
+   217→              </label>
+   218→              <label className="block">
+   219→                <span className="text-[10.5px] text-white/40">Daily limit</span>
+   220→                <input type="number" min={1} value={waCfg?.dailyLimit ?? d.whatsapp.config.dailyLimit} onChange={(e) => setWaCfg({ ...(waCfg || d.whatsapp.config), dailyLimit: Number(e.target.value) })} className={cn(inputCls, "mt-1")} />
+   221→              </label>
+   222→              <label className="block">
+   223→                <span className="text-[10.5px] text-white/40">Quiet hours (IST)</span>
+   224→                <div className="mt-1 flex items-center gap-1.5">
+   225→                  <input type="number" min={0} max={23} value={waCfg?.quietStart ?? d.whatsapp.config.quietStart} onChange={(e) => setWaCfg({ ...(waCfg || d.whatsapp.config), quietStart: Number(e.target.value) })} className={cn(inputCls, "h-9")} />
+   226→                  <span className="text-white/40">→</span>
+   227→                  <input type="number" min={0} max={23} value={waCfg?.quietEnd ?? d.whatsapp.config.quietEnd} onChange={(e) => setWaCfg({ ...(waCfg || d.whatsapp.config), quietEnd: Number(e.target.value) })} className={cn(inputCls, "h-9")} />
+   228→                </div>
+   229→              </label>
+   230→            </div>
+   231→            <Button size="sm" className="mt-3 h-8 rounded-lg bg-mint px-3 text-[11.5px] font-semibold text-brand-deep hover:bg-mint/85"
+   232→              disabled={!canOperate || busy === "wa"} onClick={() => saveWa()}>
+   233→              Save WhatsApp settings
+   234→            </Button>
+   235→          </div>
+   236→
+   237→          <div className="rounded-xl border border-white/10 bg-brand-deep/40 p-4">
+   238→            <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Per-client usage &amp; spend</p>
+   239→            <div className="mt-3 space-y-1.5">
+   240→              {d.whatsapp.perTenant.map((t) => (
+   241→                <div key={t.tenant} className="flex items-center justify-between rounded-lg bg-brand px-3 py-2 text-[11.5px]">
+   242→                  <div className="min-w-0">
+   243→                    <p className="truncate font-semibold text-white/85">{t.tenant}</p>
+   244→                    <p className="text-[10px] text-white/35">{t.campaigns} campaigns · {t.optOuts} opt-outs · {t.failed} failed</p>
+   245→                  </div>
+   246→                  <div className="shrink-0 text-right">
+   247→                    <p className="font-semibold text-mint">{inr(t.costInr)}</p>
+   248→                    <p className="text-[10px] text-white/35">{t.sent.toLocaleString("en-IN")} / {t.quota.toLocaleString("en-IN")} quota</p>
+   249→                  </div>
+   250→                </div>
+   251→              ))}
+   252→            </div>
+   253→          </div>
+   254→        </div>
+   255→
+   256→        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+   257→          <div>
+   258→            <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Message templates (HSM approval)</p>
+   259→            <div className="mt-2 space-y-1.5">
+   260→              {d.whatsapp.templates.map((t) => (
+   261→                <div key={t.name} className="flex items-center justify-between rounded-lg bg-brand-deep/50 px-3 py-2 text-[12px]">
+   262→                  <span className="truncate font-medium text-white/80">{t.name}</span>
+   263→                  <span className="flex items-center gap-2 text-[10.5px] text-white/40">{t.uses} uses <StatusPill status={t.status} /></span>
+   264→                </div>
+   265→              ))}
+   266→              {d.whatsapp.templates.length === 0 && <p className="text-[12px] text-white/40">No templates used yet.</p>}
+   267→            </div>
+   268→          </div>
+   269→          <div>
+   270→            <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Recent opt-outs</p>
+   271→            <div className="mt-2 space-y-1.5">
+   272→              {d.whatsapp.optOuts.slice(0, 5).map((o) => (
+   273→                <div key={o.id} className="flex items-center justify-between rounded-lg bg-brand-deep/50 px-3 py-2 text-[12px]">
+   274→                  <span className="font-mono text-white/80">{o.phone}</span>
+   275→                  <span className="text-[10.5px] text-white/40">{o.tenant} · {o.reason.replace(/_/g, " ")} · {o.at}</span>
+   276→                </div>
+   277→              ))}
+   278→              {d.whatsapp.optOuts.length === 0 && <p className="text-[12px] text-white/40">No opt-outs recorded — list populates from guest replies and imports.</p>}
+   279→            </div>
+   280→          </div>
+   281→        </div>
+   282→      </Section>
+   283→    </div>
+   284→  );
+   285→}
+   286→
+   287→/* ============================ AI administration ============================ */
+   288→
+   289→type AiAdminPayload = {
+   290→  config: { model: string; temperature: number; confidenceThreshold: number; brandVoiceDefault: string; paused: boolean };
+   291→  perTenant: { tenant: string; plan: string; drafts: number; classifications: number; tokens: number; costInr: number; quota: number; overQuota: boolean }[];
+   292→  quality: { drafts30d: number; published: number; edited: number; pending: number; lowConfidence: number; editRatePct: number };
+   293→  totals: { tokens: number; costInr: number; budgetInr: number };
+   294→};
+   295→
+   296→export function AiAdminView({ canOperate }: { canOperate: boolean }) {
+   297→  const { toast } = useToast();
+   298→  const data = useApiData<AiAdminPayload>("/api/admin/ai");
+   299→  const [draft, setDraft] = useState<{ model: string; temperature: number; confidenceThreshold: number; brandVoiceDefault: string } | null>(null);
+   300→  const [busy, setBusy] = useState(false);
+   301→
+   302→  if (data.loading || !data.data) return <div className="h-64 animate-pulse rounded-2xl bg-brand" />;
+   303→  const d = data.data;
+   304→  const cfg = d.config;
+   305→  const costPct = Math.min(100, Math.round((d.totals.costInr / d.totals.budgetInr) * 100));
+   306→
+   307→  const save = async (paused?: boolean) => {
+   308→    setBusy(true);
+   309→    try {
+   310→      await api.patch("/api/admin/ai", { ...(draft || cfg), ...(paused !== undefined ? { paused } : {}) });
+   311→      toast({ title: "AI engine updated", description: paused !== undefined ? `Generation ${paused ? "paused" : "resumed"} platform-wide.` : "Model settings applied to new drafts." });
+   312→      setDraft(null);
+   313→      data.reload();
+   314→    } catch (e) {
+   315→      toast({ title: "Save failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   316→    } finally {
+   317→      setBusy(false);
+   318→    }
+   319→  };
+   320→
+   321→  return (
+   322→    <div className="space-y-5">
+   323→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   324→        <DarkStat label="Drafts (30d)" value={d.quality.drafts30d.toLocaleString("en-IN")} hint={`${d.quality.published} published · ${d.quality.edited} edited`} icon={<Bot size={15} />} />
+   325→        <DarkStat label="Edit rate" value={`${d.quality.editRatePct}%`} hint="share of drafts corrected before publish" icon={<RefreshCw size={15} />} />
+   326→        <DarkStat label="Below confidence floor" value={String(d.quality.lowConfidence)} hint={`threshold ${(cfg.confidenceThreshold * 100).toFixed(0)}%`} icon={<AlertTriangle size={15} />} />
+   327→        <DarkStat label="Spend (30d)" value={inr(d.totals.costInr)} hint={`${costPct}% of ${inr(d.totals.budgetInr)} budget`} icon={<Bot size={15} />} />
+   328→      </div>
+   329→
+   330→      <Section
+   331→        icon={<Bot size={16} className="text-mint" />}
+   332→        title="Model settings"
+   333→        sub="Applies to every new AI draft and classification across clients"
+   334→        right={
+   335→          <div className="flex items-center gap-2">
+   336→            <span className="text-[11.5px] text-white/50">Generation {cfg.paused ? "paused" : "live"}</span>
+   337→            <Switch checked={!cfg.paused} disabled={!canOperate || busy} onCheckedChange={(v) => save(!v)} />
+   338→          </div>
+   339→        }
+   340→      >
+   341→        <div className="grid gap-3 lg:grid-cols-4">
+   342→          <label className="block">
+   343→            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-white/40">Model</span>
+   344→            <select value={draft?.model ?? cfg.model} onChange={(e) => setDraft({ ...(draft || cfg), model: e.target.value })} className={cn(inputCls, "mt-1")}>
+   345→              <option value="glm-4-flash">GLM-4-Flash (fast)</option>
+   346→              <option value="glm-4-plus">GLM-4-Plus (quality)</option>
+   347→              <option value="fallback-template">Template fallback (no LLM)</option>
+   348→            </select>
+   349→          </label>
+   350→          <label className="block">
+   351→            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-white/40">Temperature · {(draft?.temperature ?? cfg.temperature).toFixed(2)}</span>
+   352→            <input type="range" min={0} max={1} step={0.05} value={draft?.temperature ?? cfg.temperature}
+   353→              onChange={(e) => setDraft({ ...(draft || cfg), temperature: Number(e.target.value) })} className="mt-3 w-full accent-[#88d6a0]" />
+   354→          </label>
+   355→          <label className="block">
+   356→            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-white/40">Confidence floor · {((draft?.confidenceThreshold ?? cfg.confidenceThreshold) * 100).toFixed(0)}%</span>
+   357→            <input type="range" min={0.5} max={1} step={0.01} value={draft?.confidenceThreshold ?? cfg.confidenceThreshold}
+   358→              onChange={(e) => setDraft({ ...(draft || cfg), confidenceThreshold: Number(e.target.value) })} className="mt-3 w-full accent-[#88d6a0]" />
+   359→          </label>
+   360→          <label className="block">
+   361→            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-white/40">Brand-voice default</span>
+   362→            <select value={draft?.brandVoiceDefault ?? cfg.brandVoiceDefault} onChange={(e) => setDraft({ ...(draft || cfg), brandVoiceDefault: e.target.value })} className={cn(inputCls, "mt-1")}>
+   363→              <option value="warm">Warm professional</option>
+   364→              <option value="formal">Formal &amp; precise</option>
+   365→              <option value="playful">Playful &amp; bold</option>
+   366→            </select>
+   367→          </label>
+   368→        </div>
+   369→        <Button size="sm" className="mt-4 h-8 rounded-lg bg-mint px-3.5 text-[11.5px] font-semibold text-brand-deep hover:bg-mint/85"
+   370→          disabled={!canOperate || busy || !draft} onClick={() => save()}>
+   371→          {busy ? "Saving…" : draft ? "Save model settings" : "No changes"}
+   372→        </Button>
+   373→      </Section>
+   374→
+   375→      <Section icon={<Bot size={16} className="text-mint" />} title="Per-client AI usage & costs" sub="Metered events from AiUsageEvent — drafts, classifications, tokens and estimated spend (30d)">
+   376→        <div className="overflow-x-auto rounded-xl border border-white/10">
+   377→          <table className="w-full min-w-[640px] text-left text-[12.5px]">
+   378→            <thead>
+   379→              <tr className="border-b border-white/10 text-[10.5px] uppercase tracking-wider text-white/35">
+   380→                <th className="px-4 py-2.5 font-medium">Client</th>
+   381→                <th className="px-3 py-2.5 font-medium">Plan</th>
+   382→                <th className="px-3 py-2.5 font-medium">Drafts</th>
+   383→                <th className="px-3 py-2.5 font-medium">Classifications</th>
+   384→                <th className="px-3 py-2.5 font-medium">Tokens</th>
+   385→                <th className="px-3 py-2.5 font-medium">Cost</th>
+   386→                <th className="px-4 py-2.5 font-medium">Quota</th>
+   387→              </tr>
+   388→            </thead>
+   389→            <tbody>
+   390→              {d.perTenant.map((t) => (
+   391→                <tr key={t.tenant} className="border-b border-white/5 last:border-0">
+   392→                  <td className="px-4 py-2.5 font-medium text-white/85">{t.tenant}</td>
+   393→                  <td className="px-3 py-2.5 text-white/50">{t.plan}</td>
+   394→                  <td className="px-3 py-2.5 text-white/60">{t.drafts}</td>
+   395→                  <td className="px-3 py-2.5 text-white/60">{t.classifications}</td>
+   396→                  <td className="px-3 py-2.5 font-mono text-white/40">{(t.tokens / 1000).toFixed(1)}k</td>
+   397→                  <td className="px-3 py-2.5 font-semibold text-mint">{inr(t.costInr)}</td>
+   398→                  <td className="px-4 py-2.5">
+   399→                    {t.overQuota
+   400→                      ? <span className="rounded-full bg-red-400/15 px-2 py-0.5 text-[10px] font-bold text-red-300">over quota</span>
+   401→                      : <span className="text-white/40">{t.quota.toLocaleString("en-IN")}</span>}
+   402→                  </td>
+   403→                </tr>
+   404→              ))}
+   405→            </tbody>
+   406→          </table>
+   407→        </div>
+   408→        <p className="mt-3 text-[11px] text-white/35">Insight quality is monitored via the edit rate above — a rising edit rate is the signal to revisit prompts or switch models. Failed/invalid outputs are retried automatically and never published without approval.</p>
+   409→      </Section>
+   410→    </div>
+   411→  );
+   412→}
+   413→
+   414→/* ============================ Issue oversight ============================ */
+   415→
+   416→type IssuesAdminPayload = {
+   417→  config: { overdueDays: number; autoEscalate: boolean };
+   418→  stats: { total: number; open: number; highPriority: number; overdue: number; escalated: number };
+   419→  issues: { id: string; tenant: string; location: string; title: string; category: string; severity: string; status: string; mentions: number; trendPct: number | null; owner: string; dueDate: string | null; overdue: boolean; escalated: boolean; ageDays: number }[];
+   420→  audit: { id: string; actor: string; action: string; detail: string | null; at: string }[];
+   421→};
+   422→
+   423→export function IssuesAdminView({ canOperate }: { canOperate: boolean }) {
+   424→  const { toast } = useToast();
+   425→  const data = useApiData<IssuesAdminPayload>("/api/admin/issues");
+   426→  const [busy, setBusy] = useState<string | null>(null);
+   427→  const [filter, setFilter] = useState<"all" | "open" | "high" | "overdue">("all");
+   428→  const [overdueDays, setOverdueDays] = useState<number | null>(null);
+   429→  const [autoEsc, setAutoEsc] = useState<boolean | null>(null);
+   430→
+   431→  if (data.loading || !data.data) return <div className="h-64 animate-pulse rounded-2xl bg-brand" />;
+   432→  const d = data.data;
+   433→
+   434→  const rows = d.issues.filter((i) =>
+   435→    filter === "all" ? true : filter === "open" ? i.status !== "resolved" : filter === "high" ? i.severity === "high" && i.status !== "resolved" : i.overdue
+   436→  );
+   437→
+   438→  const act = async (id: string, action: "escalate" | "set-due", label: string, dueDate?: string) => {
+   439→    setBusy(id);
+   440→    try {
+   441→      await api.patch("/api/admin/issues", { id, action, dueDate });
+   442→      toast({ title: label });
+   443→      data.reload();
+   444→    } catch (e) {
+   445→      toast({ title: "Action failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   446→    } finally {
+   447→      setBusy(null);
+   448→    }
+   449→  };
+   450→
+   451→  const saveRules = async () => {
+   452→    setBusy("rules");
+   453→    try {
+   454→      await api.put("/api/admin/issues", { overdueDays: overdueDays ?? d.config.overdueDays, autoEscalate: autoEsc ?? d.config.autoEscalate });
+   455→      toast({ title: "Escalation rules saved" });
+   456→      data.reload();
+   457→    } catch (e) {
+   458→      toast({ title: "Save failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   459→    } finally {
+   460→      setBusy(null);
+   461→    }
+   462→  };
+   463→
+   464→  return (
+   465→    <div className="space-y-5">
+   466→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
+   467→        <DarkStat label="Tracked issues" value={String(d.stats.total)} hint="all organisations" icon={<Target size={15} />} />
+   468→        <DarkStat label="Open" value={String(d.stats.open)} hint="not yet resolved" icon={<Target size={15} />} />
+   469→        <DarkStat label="High priority" value={String(d.stats.highPriority)} hint="unresolved severity=high" icon={<AlertTriangle size={15} />} />
+   470→        <DarkStat label="Overdue" value={String(d.stats.overdue)} hint={`past due date + ${d.config.overdueDays}d rule`} icon={<AlertTriangle size={15} />} />
+   471→        <DarkStat label="Escalated" value={String(d.stats.escalated)} hint="raised to platform attention" icon={<Play size={15} />} />
+   472→      </div>
+   473→
+   474→      <Section icon={<Target size={16} className="text-mint" />} title="Escalation rules" sub="Overdue issues escalate automatically per these thresholds">
+   475→        <div className="flex flex-wrap items-end gap-3">
+   476→          <label className="text-[11.5px] text-white/50">
+   477→            Days overdue before escalation
+   478→            <input type="number" min={0} max={30} value={overdueDays ?? d.config.overdueDays} onChange={(e) => setOverdueDays(Number(e.target.value))} className={cn(inputCls, "mt-1 h-8 w-24")} />
+   479→          </label>
+   480→          <div className="flex items-center gap-2 pb-1.5">
+   481→            <Switch checked={autoEsc ?? d.config.autoEscalate} onCheckedChange={setAutoEsc} disabled={!canOperate} />
+   482→            <span className="text-[11.5px] text-white/60">Auto-raise severity to high</span>
+   483→          </div>
+   484→          <Button size="sm" className="h-8 rounded-lg bg-mint px-3 text-[11.5px] font-semibold text-brand-deep hover:bg-mint/85" disabled={!canOperate || busy === "rules"} onClick={saveRules}>
+   485→            Save rules
+   486→          </Button>
+   487→        </div>
+   488→      </Section>
+   489→
+   490→      <Section
+   491→        icon={<Target size={16} className="text-mint" />}
+   492→        title="Issues across organisations"
+   493→        sub="Assignment, due dates and escalation — every change is audit-logged"
+   494→        right={
+   495→          <div className="flex gap-1.5">
+   496→            {(["all", "open", "high", "overdue"] as const).map((f) => (
+   497→              <button key={f} onClick={() => setFilter(f)}
+   498→                className={cn("rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize transition-colors",
+   499→                  filter === f ? "bg-mint text-brand-deep" : "bg-white/5 text-white/50 hover:text-white")}>
+   500→                {f}
+   501→              </button>
+   502→            ))}
+   503→          </div>
+   504→        }
+   505→      >
+   506→        <div className="overflow-x-auto rounded-xl border border-white/10">
+   507→          <table className="w-full min-w-[820px] text-left text-[12.5px]">
+   508→            <thead>
+   509→              <tr className="border-b border-white/10 text-[10.5px] uppercase tracking-wider text-white/35">
+   510→                <th className="px-4 py-2.5 font-medium">Issue</th>
+   511→                <th className="px-3 py-2.5 font-medium">Client</th>
+   512→                <th className="px-3 py-2.5 font-medium">Severity</th>
+   513→                <th className="px-3 py-2.5 font-medium">Mentions</th>
+   514→                <th className="px-3 py-2.5 font-medium">Owner</th>
+   515→                <th className="px-3 py-2.5 font-medium">Due</th>
+   516→                <th className="px-3 py-2.5 font-medium">Status</th>
+   517→                <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+   518→              </tr>
+   519→            </thead>
+   520→            <tbody>
+   521→              {rows.map((i) => (
+   522→                <tr key={i.id} className="border-b border-white/5 last:border-0">
+   523→                  <td className="px-4 py-2.5">
+   524→                    <p className="font-medium text-white/85">{i.title}</p>
+   525→                    <p className="text-[10.5px] text-white/35">{i.location} · {i.ageDays}d old {i.escalated && <span className="font-bold text-amber-300">· escalated</span>}</p>
+   526→                  </td>
+   527→                  <td className="px-3 py-2.5 text-white/50">{i.tenant}</td>
+   528→                  <td className="px-3 py-2.5">
+   529→                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold capitalize",
+   530→                      i.severity === "high" ? "bg-red-400/15 text-red-300" : i.severity === "medium" ? "bg-amber-soft/15 text-amber-300" : "bg-white/10 text-white/50")}>
+   531→                      {i.severity}
+   532→                    </span>
+   533→                  </td>
+   534→                  <td className="px-3 py-2.5 text-white/60">{i.mentions}{i.trendPct !== null && <span className={cn("ml-1 text-[10.5px]", i.trendPct >= 0 ? "text-red-300" : "text-mint")}>{i.trendPct >= 0 ? "↑" : "↓"}{Math.abs(i.trendPct)}%</span>}</td>
+   535→                  <td className="px-3 py-2.5 text-white/50">{i.owner}</td>
+   536→                  <td className="px-3 py-2.5">
+   537→                    {i.overdue ? <span className="font-semibold text-red-300">overdue</span> : i.dueDate || <span className="text-white/30">—</span>}
+   538→                  </td>
+   539→                  <td className="px-3 py-2.5"><span className="capitalize text-white/60">{i.status.replace("_", " ")}</span></td>
+   540→                  <td className="px-4 py-2.5 text-right">
+   541→                    <div className="flex justify-end gap-1.5">
+   542→                      {!i.escalated && (
+   543→                        <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2 text-[10.5px] text-amber-300 hover:bg-amber-soft/10"
+   544→                          disabled={!canOperate || busy === i.id} onClick={() => act(i.id, "escalate", `${i.title} escalated`)}>
+   545→                          Escalate
+   546→                        </Button>
+   547→                      )}
+   548→                      <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2 text-[10.5px] text-white/60 hover:bg-white/5 hover:text-white"
+   549→                        disabled={!canOperate || busy === i.id}
+   550→                        onClick={() => act(i.id, "set-due", "Due date set (+7 days)", new Date(Date.now() + 7 * 86_400_000).toISOString())}>
+   551→                        +7d due
+   552→                      </Button>
+   553→                    </div>
+   554→                  </td>
+   555→                </tr>
+   556→              ))}
+   557→              {rows.length === 0 && <tr><td colSpan={8} className="px-4 py-4 text-white/40">No issues match this filter.</td></tr>}
+   558→            </tbody>
+   559→          </table>
+   560→        </div>
+   561→      </Section>
+   562→
+   563→      <Section icon={<ScrollText size={16} className="text-mint" />} title="Assignment audit trail" sub="Latest 20 issue events — who changed what, and when">
+   564→        <div className="space-y-1.5">
+   565→          {d.audit.map((a) => (
+   566→            <div key={a.id} className="flex items-start gap-2.5 rounded-lg bg-brand-deep/50 px-3 py-2 text-[11.5px]">
+   567→              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-mint" />
+   568→              <div className="min-w-0 flex-1">
+   569→                <p className="font-semibold text-white/80">{a.action.replace(/[._]/g, " ")}</p>
+   570→                <p className="truncate text-white/40">{a.detail}</p>
+   571→              </div>
+   572→              <span className="shrink-0 text-[10px] text-white/30">{a.actor} · {a.at}</span>
+   573→            </div>
+   574→          ))}
+   575→          {d.audit.length === 0 && <p className="text-[12px] text-white/40">No issue changes recorded yet.</p>}
+   576→        </div>
+   577→      </Section>
+   578→    </div>
+   579→  );
+   580→}
+   581→
+   582→/* ============================ Reputation controls ============================ */
+   583→
+   584→type ReputationPayload = {
+   585→  config: { version: "v1" | "v2"; minReviews: number; customWeights: Record<string, number> | null };
+   586→  shipped: { v1: Record<string, number>; v2: Record<string, number> };
+   587→  completeness: { tenantsNoLocations: string[]; locationsTotal: number; locationsNoReviews: string[]; locationsNeverSynced: string[]; locationsStale30d: string[] };
+   588→};
+   589→
+   590→const WEIGHT_LABELS: [string, string][] = [
+   591→  ["ratingQuality", "Rating quality"],
+   592→  ["ratingTrend", "Rating trend"],
+   593→  ["velocity", "Review velocity"],
+   594→  ["sentiment", "Sentiment"],
+   595→  ["complaintTrends", "Complaint trends"],
+   596→  ["negativeRate", "Negative-review rate"],
+   597→  ["responseRate", "Response rate"],
+   598→  ["responseSpeed", "Response speed"],
+   599→  ["responsePerformance", "Response performance"],
+   600→  ["locationConsistency", "Location consistency"],
+   601→];
+   602→
+   603→export function ReputationControlsView({ canOperate }: { canOperate: boolean }) {
+   604→  const { toast } = useToast();
+   605→  const data = useApiData<ReputationPayload>("/api/admin/reputation");
+   606→  const [version, setVersion] = useState<"v1" | "v2" | null>(null);
+   607→  const [minReviews, setMinReviews] = useState<number | null>(null);
+   608→  const [weights, setWeights] = useState<Record<string, number> | null>(null);
+   609→  const [busy, setBusy] = useState(false);
+   610→
+   611→  if (data.loading || !data.data) return <div className="h-64 animate-pulse rounded-2xl bg-brand" />;
+   612→  const d = data.data;
+   613→  const effVersion = version ?? d.config.version;
+   614→  const effMin = minReviews ?? d.config.minReviews;
+   615→  const baseWeights = weights ?? d.config.customWeights ?? d.shipped[effVersion];
+   616→  const total = Object.values(baseWeights).reduce((a, c) => a + (Number(c) || 0), 0);
+   617→
+   618→  const save = async () => {
+   619→    setBusy(true);
+   620→    try {
+   621→      await api.patch("/api/admin/reputation", {
+   622→        version: effVersion,
+   623→        minReviews: effMin,
+   624→        customWeights: weights === null ? d.config.customWeights : weights,
+   625→      });
+   626→      toast({ title: "Scoring formula saved", description: "New scores apply from the next health computation." });
+   627→      data.reload();
+   628→    } catch (e) {
+   629→      toast({ title: "Save failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   630→    } finally {
+   631→      setBusy(false);
+   632→    }
+   633→  };
+   634→
+   635→  const completenessRows: [string, string[] | number][] = [
+   636→    ["Tenants without locations", d.completeness.tenantsNoLocations],
+   637→    ["Locations with zero reviews", d.completeness.locationsNoReviews],
+   638→    ["Locations never synced", d.completeness.locationsNeverSynced],
+   639→    ["No reviews in last 30 days", d.completeness.locationsStale30d],
+   640→  ];
+   641→
+   642→  return (
+   643→    <div className="space-y-5">
+   644→      <Section icon={<SlidersHorizontal size={16} className="text-mint" />} title="Scoring formula" sub="Versioned weights for the Reputation Health Score — overrides propagate to every client dashboard">
+   645→        <div className="grid gap-4 lg:grid-cols-3">
+   646→          <div className="space-y-3">
+   647→            <label className="block">
+   648→              <span className="text-[10.5px] font-semibold uppercase tracking-wider text-white/40">Formula version</span>
+   649→              <select value={effVersion} onChange={(e) => { setVersion(e.target.value as "v1" | "v2"); setWeights(null); }} className={cn(inputCls, "mt-1")}>
+   650→                <option value="v1">v1 — Section 1 weights (25/20/20/15/10/5/5)</option>
+   651→                <option value="v2">v2 — North-Star weights (20/15/15/15/10/15/10)</option>
+   652→              </select>
+   653→            </label>
+   654→            <label className="block">
+   655→              <span className="text-[10.5px] font-semibold uppercase tracking-wider text-white/40">Minimum reviews for a valid score</span>
+   656→              <input type="number" min={0} max={100} value={effMin} onChange={(e) => setMinReviews(Number(e.target.value))} className={cn(inputCls, "mt-1")} />
+   657→            </label>
+   658→            <p className="text-[11px] leading-relaxed text-white/35">
+   659→              Scores computed from fewer reviews than this are flagged “insufficient data” on the client dashboard instead of being read as gospel.
+   660→            </p>
+   661→            <Button size="sm" className="h-8 rounded-lg bg-mint px-3.5 text-[11.5px] font-semibold text-brand-deep hover:bg-mint/85"
+   662→              disabled={!canOperate || busy || total !== 100} onClick={save}>
+   663→              {busy ? "Saving…" : total !== 100 ? `Weights must sum to 100 (now ${total})` : "Save formula"}
+   664→            </Button>
+   665→          </div>
+   666→          <div className="lg:col-span-2">
+   667→            <div className="mb-2 flex items-center justify-between">
+   668→              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Dimension weights</p>
+   669→              <button className="text-[11px] font-semibold text-mint hover:underline" onClick={() => { setWeights(null); setVersion(d.config.version); }}>
+   670→                Reset to shipped {d.config.version} set
+   671→              </button>
+   672→            </div>
+   673→            <div className="grid gap-2 sm:grid-cols-2">
+   674→              {WEIGHT_LABELS.filter(([k]) => k in baseWeights).map(([k, label]) => (
+   675→                <label key={k} className="flex items-center gap-2 rounded-xl bg-brand-deep/40 px-3 py-2">
+   676→                  <span className="min-w-0 flex-1 truncate text-[12px] text-white/70">{label}</span>
+   677→                  <input type="number" min={0} max={100} value={Number(baseWeights[k]) || 0}
+   678→                    onChange={(e) => setWeights({ ...baseWeights, [k]: Number(e.target.value) })}
+   679→                    className="h-7 w-16 rounded-lg border border-white/10 bg-brand-deep px-2 text-right font-mono text-[12px] text-white outline-none focus:border-mint/50" />
+   680→                </label>
+   681→              ))}
+   682→            </div>
+   683→            <p className={cn("mt-2 text-[11.5px] font-semibold", total === 100 ? "text-mint" : "text-amber-300")}>
+   684→              Total: {total} / 100 {d.config.customWeights ? "· custom override active" : "· shipped set"}
+   685→            </p>
+   686→          </div>
+   687→        </div>
+   688→      </Section>
+   689→
+   690→      <Section icon={<SlidersHorizontal size={16} className="text-mint" />} title="Data completeness" sub="Gaps that would distort scores — resolve before trusting comparisons">
+   691→        <div className="grid gap-3 md:grid-cols-2">
+   692→          {completenessRows.map(([label, val]) => {
+   693→            const list = Array.isArray(val) ? val : [];
+   694→            const count = Array.isArray(val) ? val.length : val;
+   695→            const bad = count > 0;
+   696→            return (
+   697→              <div key={label} className={cn("rounded-xl border p-3.5", bad ? "border-amber-300/25 bg-amber-soft/5" : "border-mint/25 bg-mint/[0.04]")}>
+   698→                <div className="flex items-center justify-between">
+   699→                  <p className="text-[12.5px] font-semibold text-white/85">{label}</p>
+   700→                  <span className={cn("rounded-full px-2 py-0.5 text-[10.5px] font-bold", bad ? "bg-amber-soft/20 text-amber-300" : "bg-mint/15 text-mint")}>{bad ? count : "clean"}</span>
+   701→                </div>
+   702→                {list.length > 0 && <p className="mt-1.5 line-clamp-2 text-[11px] text-white/40">{list.slice(0, 6).join(" · ")}</p>}
+   703→              </div>
+   704→            );
+   705→          })}
+   706→        </div>
+   707→        <div className="mt-4 grid gap-4 md:grid-cols-3">
+   708→          <DarkCard icon={<SlidersHorizontal size={16} />} title="Versioned formulas" desc="v1 (launch) and v2 (North-Star) weight sets ship built-in; custom overrides are recorded in the system event log." />
+   709→          <DarkCard icon={<Check size={16} />} title="Minimum data thresholds" desc="Below the review floor, dashboards show a directional score with an insufficient-data note instead of false precision." />
+   710→          <DarkCard icon={<AlertTriangle size={16} />} title="Calculation monitoring" desc="Health computation failures surface as sync/system events — reviewed in the System tab event log." />
+   711→        </div>
+   712→      </Section>
+   713→    </div>
+   714→  );
+   715→}
+   716→
+   717→/* ============================ Audit log ============================ */
+   718→
+   719→type AuditPayload = {
+   720→  rows: { id: string; at: string; actor: string; tenant: string; action: string; detail: string }[];
+   721→  counts: Record<string, number>;
+   722→  total: number;
+   723→};
+   724→
+   725→const AUDIT_FILTERS: [string, string][] = [
+   726→  ["", "All"],
+   727→  ["auth", "Sign-ins"],
+   728→  ["clients", "Clients"],
+   729→  ["support", "Support"],
+   730→  ["config", "Config"],
+   731→  ["issues", "Issues"],
+   732→];
+   733→
+   734→export function AuditView({ canOperate }: { canOperate: boolean }) {
+   735→  const [q, setQ] = useState("");
+   736→  const [filter, setFilter] = useState("");
+   737→  const url = `/api/admin/audit?q=${encodeURIComponent(q)}${filter ? `&action=${filter}` : ""}`;
+   738→  const data = useApiData<AuditPayload>(url);
+   739→
+   740→  return (
+   741→    <div className="space-y-5">
+   742→      <div className="flex flex-wrap items-center justify-between gap-3">
+   743→        <div className="flex flex-wrap items-center gap-2">
+   744→          <input placeholder="Search actor, tenant, detail…" value={q} onChange={(e) => setQ(e.target.value)}
+   745→            className="h-9 w-64 rounded-xl border border-white/10 bg-brand px-3.5 text-[13px] text-white placeholder:text-white/30 outline-none focus:border-mint/50" />
+   746→          <div className="flex gap-1.5">
+   747→            {AUDIT_FILTERS.map(([key, label]) => (
+   748→              <button key={key} onClick={() => setFilter(key)}
+   749→                className={cn("rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
+   750→                  filter === key ? "bg-mint text-brand-deep" : "bg-white/5 text-white/50 hover:text-white")}>
+   751→                {label}{key && data.data ? ` ${data.data.counts[key] ?? 0}` : ""}
+   752→              </button>
+   753→            ))}
+   754→          </div>
+   755→        </div>
+   756→        {canOperate && (
+   757→          <Button size="sm" variant="outline" className="h-8 border-white/15 bg-transparent text-[12px] text-white/70 hover:bg-white/5 hover:text-white"
+   758→            onClick={() => window.open(`/api/admin/audit?format=csv${filter ? `&action=${filter}` : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`, "_blank")}>
+   759→            <Download size={13} className="mr-1.5" /> Export CSV
+   760→          </Button>
+   761→        )}
+   762→      </div>
+   763→
+   764→      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-brand">
+   765→        <table className="w-full min-w-[720px] text-left text-[12.5px]">
+   766→          <thead>
+   767→            <tr className="border-b border-white/10 text-[10.5px] uppercase tracking-wider text-white/35">
+   768→              <th className="px-5 py-3 font-medium">When</th>
+   769→              <th className="px-3 py-3 font-medium">Actor</th>
+   770→              <th className="px-3 py-3 font-medium">Client</th>
+   771→              <th className="px-3 py-3 font-medium">Action</th>
+   772→              <th className="px-5 py-3 font-medium">Detail</th>
+   773→            </tr>
+   774→          </thead>
+   775→          <tbody>
+   776→            {(data.data?.rows || []).map((r) => (
+   777→              <tr key={r.id} className="border-b border-white/5 last:border-0 transition-colors hover:bg-white/[0.03]">
+   778→                <td className="whitespace-nowrap px-5 py-2.5 font-mono text-[11px] text-white/45">{r.at}</td>
+   779→                <td className="px-3 py-2.5 font-medium text-white/80">{r.actor}</td>
+   780→                <td className="px-3 py-2.5 text-white/50">{r.tenant}</td>
+   781→                <td className="px-3 py-2.5"><span className="rounded-md bg-white/5 px-1.5 py-0.5 font-mono text-[10.5px] text-mint">{r.action}</span></td>
+   782→                <td className="max-w-[320px] truncate px-5 py-2.5 text-white/50">{r.detail}</td>
+   783→              </tr>
+   784→            ))}
+   785→            {data.data && data.data.rows.length === 0 && (
+   786→              <tr><td colSpan={5} className="px-5 py-6 text-center text-white/40">No audit entries match — the trail fills as admins act.</td></tr>
+   787→            )}
+   788→          </tbody>
+   789→        </table>
+   790→      </div>
+   791→      <p className="text-[11px] text-white/35">{data.data?.total ?? 0} entries retained · every admin action, login and impersonation is immutable-logged. Retention and backup policies run platform-side (2-hour restore target).</p>
+   792→    </div>
+   793→  );
+   794→}
+   795→

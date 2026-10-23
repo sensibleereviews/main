@@ -1,0 +1,200 @@
+- admin-cms.tsx PagesTab: new "Page name & URL" identity block (Page name input + URL path input with "/" prefix, live target-URL preview, default/reset hint, home shows "homepage — fixed"); sidebar rows + editor header now show the EFFECTIVE public URL (was misleading internal slug e.g. /about instead of /about-us); save sends title+urlSlug, toast reports the live URL
+- Verification: scripts/verify-page-url-edit.mjs — 34/34 assertions (rename about→Our Story + /our-story SSR renders with About SEO title; old /about-us → branded 404; collision/reserved/home-fixed 400s; messy input normalised to not-a-slug; blog→/journal listing + article links + old /blog 404; resets restore defaults; hrefFor/parseLocation override + subdomain checks). Route sweep 14×200. agent-browser E2E: admin light+dark screenshots (page-url-editor*.png, page-url-home-fixed.png, page-url-saved.png, page-url-live-ourstory.png), UI rename→save→live→reset cycle, 0 console/page errors. tsc + eslint clean (pre-existing skills/examples noise excluded); DB left at pristine defaults
+- Script infrastructure: scripts/dev-with.sh (dev server + command in one session — Bash tool kills background procs between calls)
+
+Stage Summary:
+- Marketing pages are now fully self-service in the admin console: rename any page and move it to any free dash-case URL; the whole site (links, SEO, blog base) follows instantly; old addresses 404 by design (no redirects). Release tarball NOT re-packed yet (deployment still deferred; re-pack before VPS rollout)
+
+---
+Task ID: 41
+Agent: Super Z (main)
+Task: Remaining batch — pricing ₹999/₹2,499/₹4,999 (tax exclusive, GST 18%), detailed plan comparison table, modal cancel/back buttons (sign in, sign up, replay onboarding)
+
+Work Log:
+- ROLLBACK DISCOVERY (pre-work audit): workspace had been rewound again to post-Task-31 state — worklog ends at Task 31, schema has no FeatureFlag/AiUsageEvent, src/lib/pdf.ts + invoices/reports/ai-usage APIs absent, no git commit ever contained them. Per user's explicit re-prioritisation, implemented the requested batch only; lost features need a separate rebuild decision
+- Reprice Starter ₹1,099→₹999: prisma/seed.ts (plan + 2 tenant MRRs + 1 invoice), scripts/reprice-starter.mjs applied to live DB (plan row, 2 tenants, 1 invoice), marketing-pages.tsx + marketing-home.tsx fallbacks, api/auth/signup mrrInr, cms-defaults2 SEO "Plans from ₹999/month", scripts/smoke-test.sh PATCH payload. Enterprise fallback aligned 49,980→49,990 (exact 10×, matches seed/DB). Canonical: 999/4,995/9,990 · 2,499/12,495/24,990 · 4,999/24,995/49,990
+- Tax as CMS setting (completes earlier "edit tax %age in the cms" request): src/lib/settings.ts readTaxPercent() (CmsSetting key tax_percent, clamp 0–50, default 18); /api/plans now returns taxPercent; /api/cms/settings GET/PUT accept tax_percent with 400 on <0, >50, NaN; admin CMS Website view gains "Tax" tab (IndianRupee icon) — input, live preview "₹999 + GST @ N% ≈ ₹1,178.82…", save toast
+- Pricing page: "+ GST @ {tax}%" line on every plan card (mint on dark card, mint-deep on light), footnote "All prices are exclusive of GST @ N% — a GST invoice is issued for every payment", add-on footnote
+- Comparison table rebuilt: COMPARISON_GROUPS — 6 groups (Reviews & monitoring, Review requests, AI assistance, Analytics & reporting, Team & governance, Support & billing), 27 rows, boolean ✓ (mint check chip) / — (dim) / text values, uppercase group band rows, Growth column highlight kept, min-w 640px + overflow scroll, add-on billing footnote
+- Cancel/back: AuthShell (login + signup) gains "Close and go back to the website" X button top-right of card → onNavigate("home"); OnboardingWizard gains X close (top-right, aria-labelled) + "Skip for now" ghost button in footer — both close without saving; wizard still auto-opens until onboardingDone and reopens via Replay onboarding
+- Verified: tsc 0 src errors, eslint clean on 7 touched files; /api/plans {taxPercent:18, starter 999…}; browser E2E — pricing monthly ₹999/₹2,499/₹4,999 + GST@18 ×3 + footnote, annual ₹833/₹2,083/₹4,166 + ₹9,990/₹24,990/₹49,990 (math checked), 6 group headers + key rows present; admin login→Website→Tax→set 12→save→pricing live-shows 12%→revert 18; validation 55/abc→400, 18.5→200→restored 18; login X→navigates home; signup X present; tenant login→Replay onboarding→X + Skip both close without saving; Settings shows "Enterprise · ₹4,999/month"; 15-route sweep all 200; mobile 390 GST notes + table h-scroll; 0 console/page errors
+- Screenshots: scripts/shots/t41-pricing-monthly-gst.png, t41-pricing-gst12.png, t41-admin-tax-tab.png, t41-login-close.png, t41-onboarding-skip.png, t41-onboarding-closed.png, t41-pricing-mobile-390.png
+- DB left pristine: tax_percent=18, plans at new canonical prices, demo data intact
+
+Stage Summary:
+- Pricing ₹999/₹2,499/₹4,999 live tax-exclusive with CMS-editable GST % (default 18) driving the display; detailed 6-group comparison matrix replaces the 8-row table; login/signup/onboarding all have explicit cancel/back affordances. Release tarball NOT re-packed (deployment still deferred). KNOWN GAP: Tasks 32-38 features (contact email pass, WhatsApp flag system, PDF reports, invoice PDFs, AI metering) are absent after another workspace rollback and are not in git history — needs user decision on rebuild
+
+---
+Task ID: 42
+Agent: Super Z (main)
+Task: Rebuild lost dashboard features — WhatsApp flags system, AI metering, invoice GST+PDFs, monthly PDF reports (user: "yes, rebuild those next")
+
+Work Log:
+- CONTEXT RESOLUTION: previous session's remaining batch (pricing/comparison/cancels) was already done + committed as 8bc6e1f (worklog Task 41) — stale summary had claimed it unstarted. The user's "yes" answered Task 41's KNOWN GAP: rebuild Tasks 32-38 features lost in the workspace rollback (no trace in git; f5976bb never existed here)
+- Schema (+db push additive, client regenerated): FeatureFlag (key/label/description/enabled system master), TenantFlag (unique tenantId+flagId opt-in), AiUsageEvent (tenantId, kind draft|classify, model, tokens, @@index tenantId+createdAt); Tenant relations flagOptIns/aiEvents
+- src/lib/flags.ts: FLAG_DEFAULTS (whatsapp_requests, monthly_pdf, ai_metering), ensureFlagSeeds, effectiveFlagsFor (system × opt-in), isFlagEffective, setTenantOptIn (refuses opt-in while master off; opt-ins PRESERVED when master goes off)
+- src/lib/ai-metering.ts: recordAiUsage, monthlyAiUsage (byKind + daily), assertAiQuota — parses plan.aiDrafts ("50 / month" → 50, "Unlimited · fair use" → null), throws ApiError(429) at limit; aiUsageWithQuota
+- Metering wired: reviews/[id]/draft POST (quota-check BEFORE LLM call → 429, record after); locations/[id]/sync POST (batch pre-check + classify/draft events recorded)
+- src/lib/pdf.ts (dependency-free PDF 1.4 writer): A4, Helvetica/F2 bold, text/textRight/textCenter/line/rect/paragraph(wrap), correct xref table, Latin-1 transliteration (★→*, –—→-, ▲→+); inrPdf/inrPdf2 ("Rs." — core fonts lack ₹)
+- src/lib/invoice-document.ts + gstBreakup(): tax invoice PDF — parties+GSTINs, meta grid, line item, subtotal/GST @ tax% (CGST+SGST label at 18)/total band, computer-generated note; GST = round(amount × taxPercent/100) from readTaxPercent() (4999→900→5899)
+- src/lib/reports.ts: monthlyReportData (reviews incl. prev-month rating delta, sentiment split, top keywords, per-location table, WhatsApp funnel, AI usage, invoice of the period) + buildReportPdf (KPI band, sentiment bar, locations table, AI + billing sections)
+- APIs: /api/billing/invoices/[id] (detail + taxPercent/gst/total), /api/billing/invoices/[id]/pdf, /api/admin/invoices/[id]/pdf, /api/reports/monthly (JSON) + /pdf, /api/ai/usage (+?format=csv, 2000-row cap), /api/flags (GET effective + PATCH opt-in w/ 400 refusal), /api/admin/flags (list + optIn counts), /api/admin/flags/[key] (PATCH master, activity-logged, returns effectiveCount)
+- Tenant UI (client-extras SettingsView): "View invoices" now opens BillingDialog (list → detail with GST breakup + Download invoice PDF); 3 new owner cards — Monthly PDF report (KPIs + Download), AI usage (quota meter + per-kind split + Export CSV), Channels & features (flag switches, amber "switched off by Sensiblee" when master off, "Live for your workspace" when effective)
+- Admin UI: System view Feature flags card (3 switches, opt-in counts, tenant badge, canOperate-gated); Billing table gains per-row PDF download button
+- Seed: flags on (all 3), opt-ins by plan (multi: all, growth: wa+pdf, starter: none), 220 AiUsageEvents across 6 tenants (38-day spread, ~62/38 draft/classify)
+- Verified: tsc 0 errors, eslint clean; scripts/verify-rebuild.mjs 27/27 PASS (invoice GST math 4999+900=5899, both PDFs %PDF+attachment, report aggregates, CSV, flags lifecycle incl. 400 refusal + preserved opt-ins, 429 quota on starter w/ zero metered writes on refusal, plans regression taxPercent 18 + starter 999, 401 gate); agent-browser E2E — tenant Settings cards + invoices dialog (GST @ 18% + PDF btn) + admin flags card + billing PDF buttons, toggle round-trip restores "Live for your workspace"; PDF text extraction confirms clean content (fixed Latin-1 glyph fallbacks); fixed text-white/90 → /85 (unmapped in skin-admin light theme)
+- Screenshots: scripts/shots/t42-settings-cards.png, t42-settings-flags.png, t42-invoices-dialog.png, t42-invoice-gst.png, t42-admin-flags.png, t42-admin-billing-pdf.png
+- DB state: pristine demo data reseeded (220 aiEvents, 17 invoices, 78 reviews); tax_percent=18; one metered draft event added to SPK by the verify suite (expected)
+
+Stage Summary:
+- All four lost feature systems are rebuilt on the current codebase: platform feature flags (admin master × tenant opt-in = effective), AI metering (quota 429, usage dashboard, CSV), GST tax invoices with dynamic tax % (single source with pricing page) as PDFs for tenant + admin, and monthly report PDFs. Release tarball still NOT re-packed (deployment deferred per user). Remaining backlog: payment gateway management provisioning, contact page/URI tasks, batch admin ops, light/dark parity audits
+
+---
+Task ID: 43
+Agent: Super Z (main)
+Task: Payment gateway management provisioning (user: "include payment gateway management provisioning"; queued after confirming the Task 41/42 state on disk)
+
+Work Log:
+- CONTEXT RESOLUTION: session summary was stale — recon showed the "remaining batch" (pricing/comparison/cancels) was already done as Task 41 (commit 8bc6e1f) and the lost-features rebuild as Task 42 (f3f2a4d); verify-rebuild.mjs 27/27 PASS confirmed the state before starting anything new. Proceeded to the only un-started explicit request: payment gateway management provisioning
+- Audit: no real gateway layer existed — Razorpay appeared only as display copy (invoice method strings, static admin cards, legal pages). Built the management/provisioning plane mirroring the FeatureFlag × TenantFlag pattern
+- Schema (+db push additive, client regenerated): GatewayConfig (provider unique, label, description, enabled master, keyId, keySecret, webhookSecret — secrets write-only) + TenantGateway (unique tenantId+gatewayId, mode test|live, accountRef, status active|paused); Tenant.gateways relation
+- src/lib/gateways.ts: GATEWAY_CATALOG (razorpay enabled-by-default, cashfree, stripe), ensureGatewaySeeds, maskSecret (last-4 only), maskGateway, activeGatewayFor (system-enabled × link-active), methodLabelFor
+- APIs: GET /api/admin/gateways (registry + provisions + tenants list, secrets masked); PATCH /api/admin/gateways/[provider] (master enable + credentials, empty secret = keep stored, keyId cannot be cleared, activity-logged); POST/PATCH/DELETE /api/admin/gateways/[provider]/provision (400 while master off, 400 live-without-accountRef, 409 duplicate, pause/resume/unprovision, activity-logged)
+- Tenant surface: /api/settings GET now returns payment {provider,label,mode,status,accountRef,methodLabel} | null; /api/billing/change-plan derives invoice method from the ACTIVE gateway (precedence fix: provisioned gateway > invoice history > "UPI · Razorpay" default)
+- Admin UI (System view, after Feature flags): Payment gateways card — per-gateway tiles (enabled switch, provider chip, provisioned count, masked credential summary, Configure panel with keyId/keySecret/webhookSecret inputs + write-only note), provisioned-tenant rows (TEST/LIVE badge, status, accountRef, Pause/Resume + Remove), provision control row (tenant select, mode select, accountRef, Provision). Fixed light-skin parity: text-white/90 → /85 (unmapped class, Task 42's known bug class); deps.ts gains Pause export
+- Tenant UI (SettingsView Plan & billing): "Payment method" block in the dark plan card — methodLabel + mode + accountRef + active/paused chip, or "No gateway provisioned yet" with fallback copy
+- Seed: prisma/seed.ts gateway section (catalog + SPK live acct_spk_live_01, Mandala/Iron&Iris test) + cleanup deletes; scripts/seed-gateways.mjs applied to live DB (3 gateways, 3 provisions)
+- Verified: tsc 0 src errors; eslint clean on 8 touched files; scripts/gw-smoke.mjs 23/23 (idempotent reset + pristine restore: masked secrets, no raw secret in responses, empty-secret-keeps, 400 master-off, 400 live-no-ref, 409 duplicate, tenant payment visibility, pause/resume/unprovision lifecycle, 401/403 gates, change-plan method "Auto-debit · Razorpay"); scripts/verify-rebuild.mjs extended to 32/32 PASS (registry+provisions, masking, SPK payment live, master-off 400, 401)
+- INFRA NOTE: tool-spawned background processes are reaped between calls in this environment — dev server must live inside a single command; added scripts/dev/run-with-server.sh (start server → run cmd → kill group). First run's 9-failure was two servers racing :3000; suite is deterministic after idempotent reset
+- Browser E2E (scripts/dev/t43-browser.sh) 11/11: admin System gateways card renders 3 gateways + "3 provisioned" + LIVE row + accountRef + amber hints; cashfree switch ON enables provision controls → OFF restores; configure panel with write-only secrets form; tenant Settings shows "Auto-debit · Razorpay · LIVE mode" + acct_spk_live_01 + active chip; 0 page errors. Screenshots: scripts/shots/t43-admin-gateways.png, t43-admin-gateway-config.png, t43-tenant-payment.png
+- DB state: pristine demo data (tax_percent 18, canonical prices, 3 gateways with demo provisions, secrets empty except demo keyId, no stray invoices/provisions)
+
+Stage Summary:
+- Payment gateway management provisioning is live: admin System registry with write-only masked credentials and master switches, per-tenant test/live provisioning with pause/resume/unprovision, tenant-visible payment method, and invoice method labels flowing from the active gateway (single source). Release tarball still NOT re-packed (deployment deferred per user). Remaining backlog: contact page/URI tasks, navigation CMS single-source, admin batch ops, light/dark parity audits
+
+---
+Task ID: 44
+Agent: Super Z (main)
+Task: Fix broken blog images (user: "blog images are broken")
+
+Work Log:
+- Diagnosed: public/blog/*.jpg files all existed (20 files); DB CmsPost rows carry SHORT slugs (response-rate-lever, whatsapp-review-requests, ...) matching seed data — but src/lib/blog-images.ts BLOG_IMAGES map was keyed by FULL-TITLE dash-case slugs ("response-rate-is-the-most-underrated-lever-in-hospitality-reputation"), so blogImagesFor()/blogThumbFor() always missed → empty thumb strings → Newspaper placeholders / missing hero+mid images everywhere
+- Root cause: map keys were written against an assumed slug format that never matched the stored CmsPost.slug values (comment in the file even claimed full-title keys were "as stored in the DB" — stale assumption)
+- Fix (one file): re-keyed all 10 BLOG_IMAGES entries to the short DB slugs, which also exactly match the real public/blog filenames; featuredUrl (admin uploads) still wins per the existing precedence
+- Verified: curl SSR HTML now emits all 10 /blog/*-thumb.jpg refs; 20 files serve 200; agent-browser E2E — blog listing 10/10 images loaded broken:0 pending:0 (after scroll-through for lazy loading); article page 5/5 (hero + mid + 3 Keep-reading related); home page blog section 3/3 broken:0; article URL /blog/<full-title-slug> still resolves (public URL view derives from title, unaffected)
+- Evidence: scripts/dev/verify-blog-images-fixed.png (full-page listing, all thumbnails visible)
+- Regression: scripts/verify-rebuild.mjs 32/32 PASS; temp diagnostic script removed
+- Note: first full-page screenshot showed 3 blank thumbs — lazy-load timing artifact, re-captured after scroll-through; not a real defect
+
+Stage Summary:
+- Blog imagery restored site-wide (listing, article hero, mid-article illustration, Keep-reading, home blog strip) with a single-file re-key fix. Release tarball still NOT re-packed. Backlog unchanged: contact page/URI tasks, navigation CMS single-source, admin batch ops, light/dark parity audits
+
+---
+Task ID: 45
+Agent: Super Z (main)
+Task: Fix blog links from the home page 404ing (user: "blogs linked from the home page are not working, they are not found")
+
+Work Log:
+- Diagnosed: home page blog cards call onNavigate(`blog:${blogPostUrlView(p)}`) — the "surface:view" deep-link shorthand. But app-shell.tsx's onNavigate cast the WHOLE string as surface ({surface: "blog:response-rate-is-..."}), never splitting off the view. Router then built href "/blog:response-rate-..." and Shell's surface list match failed → branded 404 "This page doesn't exist." on every home blog card (listing/related cards were unaffected — they use object navigation)
+- Fix: added parseNavString() to src/lib/route-shared.ts — splits "surface:view" on the first colon when the prefix is a known Surface (covers blog slugs and future "client:reviews"-style deep links), falls through to bare-surface behavior otherwise; app-shell.tsx onNavigate now routes through it
+- Verified (agent-browser): home card 1 → /blog/response-rate-is-... renders article h1 + 5/5 images; card 2 (WhatsApp) and card 3 (QR table) → correct URLs, no 404; direct reload of full-title article URL works; footer plain "Blog" link still lands on listing; listing "Read article" + "Keep reading" unaffected
+- Regression: tsc 0 errors in src/ (3 pre-existing in examples/ + prisma/seed.ts); scripts/verify-rebuild.mjs 32/32 PASS
+
+Stage Summary:
+- Home page blog cards now deep-link to the canonical /blog/<title-slug> articles. parseNavString is the single place that understands "surface:view" shorthand. Backlog unchanged: contact page/URI tasks, navigation CMS single-source, admin batch ops, light/dark parity audits; release tarball still not re-packed
+
+---
+Task ID: 46
+Agent: Super Z (main)
+Task: Remaining backlog trio — contact page edits (address out, content replaced), nav CMS single-source (footer About Us desync), admin batch ops (multi-select/bulk delete)
+
+Work Log:
+- CONTACT PAGE: removed the "Where we are" MapPin address card entirely (user asked to drop the address); replaced with a CMS-editable "Support hours" card (Clock icon, hoursLines bullet list — defaults: Mon–Sat 9:30–19:00 IST / WhatsApp within a few hours / email within one working day). ContactContent type + CONTACT_DEFAULTS gain hoursTitle/hoursLines; admin PAGE_SPECS.contact gains both fields (editors can localise); plumbing fully reaped: CmsContact.addressLines + contactFromSettings branch + contact_address in /api/cms/settings ALLOWED+GET + admin ContactTab textarea all removed; stale DB contact_address row deleted. Legal pages' "Pvt. Ltd., Bengaluru" fine print and footer copyright untouched
+- NAV CMS SINGLE-SOURCE: new useCmsPageTitle() hook in cms-context (reads cms.pages[surface].title, falls back to built-in label). MarketingNav desktop+mobile links, MarketingFooter column links + legal bar, and SitemapPage groups all resolve labels through it — admin page renames (Website → Pages → Page name) now flow everywhere from the one CMS source. Verified live: renamed about → "Our Story" via PUT API → nav, footer and sitemap all showed it; reverted to "About Us" → all restored (also confirmed nav "Customer stories" now mirrors the DB title's casing — single source by design)
+- ADMIN BATCH OPS: shared useBulkSelect() + BulkCheckbox + BulkBar (4s two-step delete confirm, count-reactive disarm) in admin-cms.tsx, wired into all four content tabs — Blog (Publish selected / Move to drafts / Delete), FAQs + Testimonials (Show / Hide / Delete), Media (Delete, checkbox overlay on cards). Select-all checkbox per tab, section switch clears FAQ selection, mutations loop existing per-id APIs (small lists — no bulk endpoints needed), partial-failure toasts report "ok of N"
+- Verified: tsc 0 src errors; eslint clean on 8 touched files; agent-browser E2E — /contact-us: address card + MapPin gone from main, Support hours card with both lines, WhatsApp/email/call rows intact; admin Blog tab: select-all present, temp post created → selected → BulkBar "1 selected" with all 4 actions → Move to drafts applied draft badge → re-select → Delete armed ("Really delete 1?") → fired → row gone, badge back to 10; FAQs 9 / Testimonials 4 checkboxes, Media empty-state; 0 page errors. scripts/verify-rebuild.mjs 32/32 PASS. DB pristine: 10 posts, contact_address row deleted, about title "About Us"
+
+Stage Summary:
+- Backlog trio shipped: contact page is address-free with a support-hours card, every visitor-facing nav/footer/sitemap label reads from the CMS page titles, and all four admin CMS content tabs support multi-select bulk publish/hide/delete. Remaining backlog: light/dark parity audits only; release tarball still NOT re-packed (deployment deferred per user)
+
+---
+Task ID: 47
+Agent: Super Z (main)
+Task: Light/dark parity audit — admin + client dashboards (last backlog item; user: "yes, continue with the parity audit?")
+
+Work Log:
+- CONTEXT RESOLUTION: recon showed the Task 46 backlog trio (contact edits, nav CMS single-source, bulk ops) already shipped as commit 36876eb; the worklog's own "remaining backlog" line = light/dark parity audits only, so this task is that audit
+- SKIN ARCHITECTURE MAP: dashboards are class-remap skins in src/app/globals.css — admin components are dark-native (light produced by html:not(.dark) .skin-admin rules), client components light-native (dark via .dark .skin-client rules), marketing re-pinned light via .skin-light; brand/widgets/theme-toggle render under BOTH skins and were audited against both maps
+- STATIC AUDIT (new scripts/audit-skin-parity.mjs, output audit-skin-parity.out.txt): diffs family-shaped utility tokens used per skin's components against the explicit remap selectors → 81 admin + 80 client raw-unmapped tokens; curated every hit against grep'd usage context — most are theme-neutral by design (bg-mint chips with text-brand-deep, tints, white-on-solid buttons, team-roles' hand-rolled dark-ternary light branches, empty-star neutral-200)
+- REAL GAPS FIXED — 22 CSS rules appended to globals.css (both blocks tagged "Task 47 parity audit"): ADMIN LIGHT: placeholder:text-white/25|30 (invisible input placeholders), border-white/20|25 (invisible unchecked bulk-select checkboxes), focus:border-white/30 (invisible focus border), text-mint/70 (rename-dialog URL hint), hover:text-red-200; CLIENT DARK: ring-neutral-200 (input/focus rings), hover:text-neutral-600, hover:border-neutral-300|red-300|amber-300, bg-brand-deep/10 + hover:bg-brand-deep/20 (dead washes → white washes), hover:bg-mint-soft|/20|/40|/50|/70 and hover:bg-amber-soft|/20|/40|/50|/70 (pale-flash hovers → translucent mint/amber washes), hover:bg-red-50/50
+- INFRA: dev-server CSS chunk served stale after edits (Turbopack watcher missed the change; touch didn't help); setsid+nohup restart got reaped between tool calls (known environment behavior) → adopted scripts/dev/run-with-server.sh pattern for the whole browser sweep and the regression suite; new scripts/dev/t47-steps.sh drives agent-browser end-to-end in one call (DOM-click fallbacks, ref-based login)
+- Verified (agent-browser 1440×900): ADMIN LIGHT — placeholder computed color now dark slate (was white/30), blog bulk checkboxes visible, Pages rename dialog /about-us hint readable dark-green, Website Pages/Blog tabs + System flags/gateways + Clients table all clean; ADMIN DARK native unchanged (rules are :not(.dark)-scoped); CLIENT DARK — overview/reviews/locations/AI/settings all readable (placeholders, chips, team rows, AI draft panels, needs-attention tints); CLIENT LIGHT native clean; GUEST kiosk confirmed light-native BY DESIGN (no skin-client wrapper, unaffected by display preference). Screenshots: scripts/shots/t47-*.png (11)
+- 2 ChunkLoadErrors during sweep = stale HMR chunks from the mid-sweep dev-server restart, not product bugs (every fresh page load rendered clean)
+- Regression: tsc src/ 0 errors (3 pre-existing baseline in examples/ + prisma/seed.ts); scripts/verify-rebuild.mjs 32/32 PASS; audit re-run: admin 74 / client 65 remaining unmapped = all reviewed by-design skips
+
+Stage Summary:
+- Dashboards now pass a systematic light/dark parity audit: a repeatable static auditor (scripts/audit-skin-parity.mjs) plus 22 targeted remap rules close every real gap — invisible placeholders/borders in admin light, dead rings and hover affordances in client dark; remaining unmapped tokens are documented by-design. Backlog now EMPTY except deferred deployment (release tarball still not re-packed per user)
+
+---
+Task ID: 48
+Agent: Super Z (main)
+Task: SECTION 1 of "Product Design - final.docx" (red heading "CURRENT VERSION WITH SOME CHANGES") — modify & improvise the current app build: product loop (Monitor → Diagnose → Request → Respond → Improve), Google review monitoring, weighted Reputation Health Score (v1 weights, per-location + why-explanations), context-aware AI replies, WhatsApp review requests w/ compliance, Staff & Location drill-down, Issue & Action tracking, Google integration readiness. ATTACHED-DOC RESOLVED: upload/Product Design - final.docx found on disk (committed 8a2aee5, re-uploaded Oct 11 14:45) — earlier sessions believed it missing.
+
+Work Log:
+- DOC RESOLVED: upload/Product Design - final.docx parsed (python-docx) — Section 1 red heading "CURRENT VERSION WITH SOME CHANGES" (paragraphs 2–183), Section 2 red heading "REFINED / IMPROVISED VERSION" (188–497); extracted product loop, health-score weights, AI-reply context list, WhatsApp flow, drill-down specs, issue-tracking example, Google-integration warning, MVP dashboard, pricing, renames, risks
+- SCHEMA: new Issue model (tenant/location/category/severity/mentions/prevMentions/owner/status/recommendedAction/resolvedNote) + backrefs on Tenant/Location; bun run db:push (client regenerated)
+- ENGINE: src/lib/health-score.ts — weighted Reputation Health Score (v1: ratingTrend 25 · velocity 20 · sentiment 20 · negativeRate 15 · responseRate 10 · responseSpeed 5 · locationConsistency 5), 30d vs prev-30d windows, per-location scores weakest-first, band function (84+ Excellent / 70–83 Healthy / 50–69 At Risk / <50 Critical — Section 2's bands used from day one), "why" explanations with point losses, negative-theme clustering (wait/staff/order/billing/cleanliness), staff-mention extractor (coaching framing)
+- API: GET /api/health (score+band+delta+dimensions+locations+explanations+themes+staff+roi+per-branch drill incl. 4-month trend); GET+POST /api/issues (auto-detect clusters from negative reviews → Issue rows w/ playbook recommended actions; POST assigns owner / open → in_progress → resolved + activity log)
+- UI: client-dashboard.tsx — Reputation Command Centre hero (score dial, band pill + delta, "Why this score", dimension mini-bars, Review → Analyze → Assign → Fix → Measure loop strip), Needs-attention (weakest branch + top issue + recommended action link) & Best-location cards, urgent reviews card kept; new nav entry Action Center (Target icon); NEW client-actions.tsx — issue cards w/ severity dot, mentions trend %, playbook box, owner select, Start fixing / Mark resolved / Reopen, top-negative-themes panel; client-views2.tsx — "How a request flows" compliant 3-step card + no-review-gating policy note, Google Business Profile API readiness card (9 checklist items: OAuth, BP connection, multi-location, sync, Pub/Sub notifications, reply publishing, multiple owners, quotas, verification); client-extras.tsx LocationDrawer — Top problems bars, 4-month trend, Customer mentions (coaching, never employee scores)
+- AI CONTEXT: DraftInput + sentiment/severity/staffMentioned/previousNote; system prompt now location-aware, language-matching, severity-tiered, never blames a named employee; draft route extracts staff names via global regex
+- SEED: withStaff() injects staff praise/complaint mentions into ~40% of positive/negative reviews; db re-seeded
+- FIXES: matchAll non-global regex crash (500 on draft) → g flag; dev server restart needed for new Prisma client (old next-server survived PID-1066 kill — kill next-server itself; port 3000 EADDRINUSE; setsid processes reaped between tool calls → all sweeps run via embedded-server pattern)
+- Verified (agent-browser, one-invocation server): /api/issues auto-detected 2 issues (Waiting time — HSR Layout ×3, Order & delivery — Indiranagar ×1); /api/health score 69 At-Risk delta+9 7 dims themes+staff+roi; overview hero/why/loop/attention/best all render; Action Center full flow; drawer problems/trend/mentions/coaching; GBP readiness card. Screenshots scripts/shots/t48-*.png (3)
+- Regression: tsc src/ 0 errors; scripts/verify-rebuild.mjs 32/32 PASS (after regex fix)
+
+---
+Task ID: 48-b
+Agent: Super Z (main)
+Task: Preview incident — "its still showing the old version" (post-Task-48 diagnostics)
+
+Work Log:
+- CONTEXT RESOLUTION: stale summary claimed doc-missing/Section-1-unstarted — worklog audit found Task 48 COMPLETE (doc upload/Product Design - final.docx parsed; Section 1 implemented, commit 602bdbc, verified 32/32 + browser E2E)
+- Verified current build IS latest: health-score.ts on disk, Issue model in schema, /api/health → 401 auth-gated (route live), git clean on main
+- Preview chain re-tested end-to-end: dev :3000 200, Caddy :81 200 (latest markers incl. response-rate-lever), external preview URL → 404 "page not found" (gateway's Go default handler, ~0.04s = answering directly, not proxying); consistent across browser-UA, cache-busters, 3 retries over 55s, and a session restart
+- Host-state comparison: preview-<chat_id> → 404 vs bare chat_id / session-id hosts → 410 Gone; DNS → shared Aliyun HK ALB (47.239.134.228) routing by Host — platform-side route registration absent since the 03:29Z container restart (boot log: "Starting Caddy server" never logs end)
+- Ruled out: app service worker (none exists); workspace rollback (Task-29 class — files/commits intact this time)
+- Agent :12600 exposed only /ping — no preview publish/refresh API callable from sandbox; no tunnel client process visible
+- Conclusion: what the user sees = browser-cached copy from the last working session; live route is dead for everyone. Best available lever: re-send the preview URL in the reply (IM-gateway scan may re-register) + user-side hard refresh / incognito
+
+Stage Summary:
+- App-side exonerated with evidence; incident isolated to platform preview route registration. User given cache-buster link + hard-refresh guidance; Section 2 of the doc remains the next work item (Task 49) once preview is restored
+
+---
+Task ID: 49-b
+Agent: Super Z (main)
+Task: "wake up" — health check caught workspace ROLLBACK #2; full re-application of today's work
+
+Work Log:
+- ROLLBACK #2 DETECTED: git HEAD back at checkpoint 568d9c3 — commits c2ce1fa (middleware anti-loop) + d4a09aa (six modules) erased; src/middleware.ts buggy again; served page back to "four modules"; scripts/cms-six-modules.ts + doc-dump.py + dumps + download/preview-evidence/ + worklog entries 49-pre-c/49-a all gone; tarball stale 115M Sep-28 build
+- RE-APPLIED from in-conversation edit history (all exact edit strings preserved): middleware matcher .+ + "/" short-circuit; release-pack.sh 4 extra exclusions; six-module changes across marketing-home.tsx (icons + 6-card band + grid cols/ABCDEF), cms-defaults.ts (modulesSection/home modules/pricing sub/FEATURES 6 blocks), cms-defaults2.ts (features/pricing SEO), marketing-pages.tsx (MODULES D rename + E/F + ModuleVisual D/E/F + CtaBand)
+- DB re-patched: bun scripts/cms-six-modules.ts (recreated) — home/features content + seoTitle/seoDescription columns; PROOF zero "four" references remain
+- VERIFIED: tsc src clean (pre-existing prisma/seed.ts error only); verify-rebuild 32/32 PASS; live fingerprint "Six modules, one calm engine" present on served home; commit e752b30; tarball re-packed 113M with all fixes
+- Evidence pack recreated (5 shots): 01-home-hero, 02-home-six-modules, 03-home-pricing, 04-features-drilldown-issue, 05-app-overview (login anand@spiceroute.in)
+
+Stage Summary:
+- Rollback #2 fully contained in ~10 minutes: all code + DB + pack + evidence restored, single combined commit e752b30. Pattern noted: platform checkpoints can silently revert the workspace between idle periods — after any wake-up, FIRST verify git HEAD + content fingerprints before doing new work. Next: Part 2 of doc ("REFINED / IMPROVISED VERSION") when user shares it
+
+---
+Task ID: 50
+Agent: Super Z (main)
+Task: "analyse the document, review the gaps and make required changes accordingly" — upload/Product Design 2.docx = Part 2 "FINAL VERSION - REFINED / IMPROVISED" (second-round audit + implementation)
+
+Work Log:
+- DOC PARSED (scripts/doc-dump-part2.py → scripts/dumps/part2-dump.txt, 271 paras): Reputation-to-Operations loop, alert card example (Lucknow 62↓14 · 6–9 PM · 8 employees · Revenue risk High), 6-dimension North-Star weights (20/15/15/15/10/15/10), ROI six metrics, inbox 6 filters, AI inputs (brand voice + business type), staff coaching split, six-module RENAMES (1 Command Center 2 Reputation Health 3 AI Copilot 4 Review Growth Engine 5 Location Intelligence 6 Action Center), pricing ₹1,499/₹3,499/₹5,999 + "10+ locations → Contact Us" line + WhatsApp-billing separation, brand line "Get more genuine customer feedback and act on it.", 5 risks
+- AUDIT: v2 weights/bands/explanations/ROI/pricing numbers/staff split/QR/compliance already live from Task 48 forward-work; 10 real gaps found and all fixed
+- GAPS SHIPPED: (1) alert trio computed per issue cluster + health alert object → overview Reputation alert card + issue card chips; (2) Issue schema +openedMentions/resolvedMentions/resolvedHealth/resolvedRating, resolve snapshots current health+rating → before/after outcome strip ("Complaints 3 → 3 · Health 72 → 72 · Rating 3.9 → 3.9 ★"); (3) inbox filters location/sentiment/staff-mention/issue-category (API + UI) + unanswered chip label + ReviewVM.locationId; (4) 7/7 dimension bars (was slice(0,5)); (5) six-module renames+reorder across home band, features page, client subtitles, overview copy, SEO (defaults + DB via scripts/cms-part2-renames.ts, zero-stale proof); (6) pricing: Plan DB rows patched (name Scale, 1/5/10 locs, 2/5/unlimited seats, ₹1,499/3,499/5,999 via scripts/patch-plans-part2.ts), pricing-page Contact-Us card + WhatsApp billing note, comparison table aligned (15-min sync all tiers, transaction-triggered, weekly AI insights, issue/action tracking, automated reports, Unlimited managers), PLAN_NAMES Enterprise→Scale, teaser fallbacks fixed; (7) AI brandVoice settings field (GET/PATCH/UI) + businessType (tenant.category) into draft prompt; (8) brand line into home/features/pricing SEO + features description
+- ENV LESSONS: Turbopack `.next/dev` cache served pre-generate Prisma client → rm -rf .next required after db:push (EADDRINUSE orphan cleanup too); Reviews nav button match needs startsWith (badge digit breaks equality); verify-rebuild pricing checkpoint updated ₹999→₹1,499
+- VERIFIED: tsc src 0 errors; eslint 14 touched files clean; verify-rebuild 32/32 PASS; E2E (scripts/dev/t50-steps.sh): plans API 1499/3499/5999 seats 2/5/99, issues alert fields (emp 2 risk high, rH 72), health alert + 7 dims + ROI, compound review filter, home 6/6 renames zero stale, pricing contact10+wa+prices+Scale, overview alert card + loop + 7/7, reviews 4 selects + Unanswered + Command Center heading, action center emp/risk + outcome strip; screenshots download/preview-evidence/t50-{overview,pricing,actions,outcome}.png; commit de6a99c; tarball re-packed 113M
+
+Stage Summary:
+- Part 2 refined-version audit complete: all 10 gaps closed — Reputation Alert spec (peak window/employees/revenue risk + full overview alert card), resolve outcome snapshots, 6-filter inbox, 7-dim bars, six-module renames everywhere, Part-2 pricing end-to-end (incl. 10+ Contact-Us line + WhatsApp billing note), AI brand voice + business type. Next: await user feedback or VPS IP for deployment

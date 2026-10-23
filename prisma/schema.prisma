@@ -1,0 +1,502 @@
+// Sensiblee — multi-tenant reputation SaaS schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Plan {
+  id            String   @id // starter | growth | multi ("multi" id powers the Enterprise plan)
+  name          String
+  monthlyInr    Int // billed monthly
+  halfYearlyInr Int @default(0) // TOTAL billed every 6 months (1 month free vs monthly)
+  annualInr     Int // TOTAL billed every 12 months (2 months free vs monthly)
+  locations     Int
+  seats         Int
+  aiDrafts      String // "50 / month" | "Unlimited · fair use"
+  waQuota       Int
+  features      String // JSON array
+  blurb         String
+  popular       Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  tenants       Tenant[]
+}
+
+model Tenant {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  category      String   @default("Restaurant")
+  website       String?
+  signature     String   @default("— Team")
+  planId        String
+  plan          Plan     @relation(fields: [planId], references: [id])
+  billingCycle  String   @default("monthly") // monthly | half_yearly | annual
+  status        String   @default("trial") // active | trial | past_due | suspended
+  mrrInr        Int      @default(0)
+  gstin         String?
+  contactName   String
+  contactEmail  String
+  contactPhone  String?
+  trialEndsAt   DateTime?
+  nextInvoiceAt DateTime?
+  settings      String   @default("{}") // JSON: tone, threshold, notifs, staff, onboarding...
+  whatsappName  String?
+  whatsappPhone String?
+  createdAt     DateTime @default(now())
+  locations     Location[]
+  users         User[]
+  roles         CustomRole[]
+  reviews       Review[]
+  campaigns     Campaign[]
+  invoices      Invoice[]
+  activities    ActivityLog[]
+  feedback      GuestFeedback[]
+  flagOptIns    TenantFlag[]
+  aiEvents      AiUsageEvent[]
+  gateways      TenantGateway[]
+  issues        Issue[]
+  waOptOuts     WaOptOut[]
+  contacts      Contact[]
+  reportSchedules ReportSchedule[]
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String
+  phone         String?
+  role          String   @default("owner") // tenant: owner | manager | observer · platform: platform_admin (super) | platform_manager | platform_observer
+  tenantId      String?
+  tenant        Tenant?  @relation(fields: [tenantId], references: [id])
+  invitePending Boolean  @default(false)
+  active        Boolean  @default(true) // deactivated users cannot sign in (admin → Team)
+  mfaEnabled    Boolean  @default(false) // administrator MFA enforcement (admin → Team)
+  locationIds   String   @default("[]") // JSON array of location ids — manager assignment (doc §1F)
+  lastLoginAt   DateTime?
+  roleId        String?
+  roleRef       CustomRole? @relation("UserCustomRole", fields: [roleId], references: [id])
+  createdAt     DateTime @default(now())
+}
+
+// Custom roles — named permission sets, scoped to one tenant or to the platform
+model CustomRole {
+  id          String   @id @default(cuid())
+  scope       String   // "tenant" | "platform"
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+  name        String
+  description String?
+  permissions String   @default("[]") // JSON array of permission ids from lib/permissions
+  users       User[]   @relation("UserCustomRole")
+  createdAt   DateTime @default(now())
+}
+
+model Location {
+  id              String    @id @default(cuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  code            String    @unique // guest URL code, e.g. spk-kor
+  name            String
+  area            String
+  address         String?
+  phone           String?
+  googlePlaceId   String?
+  googleReviewUrl String?
+  rating          Float     @default(0)
+  ratingDelta     Float     @default(0)
+  reviewCount     Int       @default(0)
+  contactBookSize Int       @default(0)
+  responseRate    Int       @default(0)
+  avgResponseMins Int       @default(120)
+  health          String    @default("[]") // JSON [{label, score}]
+  lastSyncAt      DateTime?
+  syncCount       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  reviews         Review[]
+  feedback        GuestFeedback[]
+  syncLogs        SyncLog[]
+  campaigns       Campaign[]
+  issues          Issue[]
+}
+
+model Review {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  locationId   String
+  location     Location  @relation(fields: [locationId], references: [id])
+  author       String
+  stars        Int
+  text         String
+  source       String    @default("google") // google | request
+  sentiment    String    @default("neutral") // positive | neutral | negative
+  keywords     String    @default("[]") // JSON array
+  status       String    @default("new") // new | ai-draft | awaiting | replied | failed
+  replyText    String?
+  repliedAt    DateTime?
+  repliedBy    String?
+  internalNote String?
+  // Sensitive-review flagging (doc §1D "Flag sensitive reviews for human handling")
+  sensitive       Boolean @default(false)
+  sensitiveReason String?
+  // Failed reply publishing (doc §1D "Track published, pending and failed replies")
+  replyError   String?
+  createdAt    DateTime  @default(now())
+  drafts       AiDraft[]
+}
+
+model AiDraft {
+  id         String   @id @default(cuid())
+  reviewId   String
+  review     Review   @relation(fields: [reviewId], references: [id])
+  body       String
+  tone       String   @default("warm")
+  confidence Float    @default(0.9) // 0..1
+  status     String   @default("pending") // pending | approved | superseded
+  tokens     Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+model Campaign {
+  id               String   @id @default(cuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  locationId       String?
+  location         Location? @relation(fields: [locationId], references: [id])
+  name             String
+  channel          String   @default("whatsapp") // whatsapp | qr
+  template         String?
+  recipients       Int      @default(0)
+  sent             Int      @default(0)
+  opened           Int      @default(0)
+  clicked          Int      @default(0)
+  reviewsGenerated Int      @default(0)
+  status           String   @default("running") // draft | running | scheduled | completed
+  createdAt        DateTime @default(now())
+}
+
+// Reputation Action Center — issue clusters auto-detected from negative review
+// themes (doc §6: detect → assign → fix → measure), with playbook actions.
+model Issue {
+  id                String    @id @default(cuid())
+  tenantId          String
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
+  locationId        String?
+  location          Location? @relation(fields: [locationId], references: [id])
+  title             String
+  category          String    @default("other") // waiting | staff | order | billing | cleanliness | other
+  severity          String    @default("medium") // high | medium | low
+  mentions          Int       @default(0)
+  prevMentions      Int       @default(0) // previous 30d window, for trend %
+  firstDetected     DateTime  @default(now())
+  owner             String    @default("Location Manager")
+  status            String    @default("open") // open | in_progress | resolved
+  dueDate           DateTime? // target fix-by date; overdue issues escalate
+  escalated         Boolean   @default(false)
+  recommendedAction String?
+  resolvedNote      String?
+  resolvedAt        DateTime?
+  // "two weeks later" outcome snapshot (doc: 42 → 17 complaints · 62 → 78 health · 3.9 → 4.3 rating)
+  openedMentions    Int? // mentions at detection — the "before" for the outcome strip
+  resolvedMentions  Int?
+  resolvedHealth    Int?
+  resolvedRating    Float?
+  createdAt         DateTime  @default(now())
+}
+
+model GuestFeedback {
+  id         String   @id @default(cuid())
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  mood       String // smile | meh | frown
+  rating     Int?
+  text       String?
+  optedIn    Boolean  @default(false)
+  phone      String?
+  createdAt  DateTime @default(now())
+}
+
+model Invoice {
+  id            String    @id @default(cuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  number        String    @unique
+  amountInr     Int
+  method        String    @default("UPI · Razorpay")
+  status        String    @default("pending") // paid | pending | overdue | failed
+  periodStart   DateTime
+  periodEnd     DateTime
+  dueAt         DateTime
+  paidAt        DateTime?
+  remindersSent Int       @default(0)
+  createdAt     DateTime  @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  actor     String   @default("system")
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+}
+
+/* ------------------------- Feature flags (system × tenant opt-in) ------------------------- */
+
+// Platform-level master switch — managed in admin → System → Feature flags
+model FeatureFlag {
+  id          String       @id @default(cuid())
+  key         String       @unique // whatsapp_requests | monthly_pdf | ai_metering
+  label       String
+  description String       @default("")
+  enabled     Boolean      @default(false) // off = tenants cannot opt in; effective flag false everywhere
+  createdAt   DateTime     @default(now())
+  optIns      TenantFlag[]
+}
+
+// Tenant opt-in — only meaningful when the system flag is enabled
+model TenantFlag {
+  id      String      @id @default(cuid())
+  tenantId String
+  tenant  Tenant      @relation(fields: [tenantId], references: [id])
+  flagId  String
+  flag    FeatureFlag @relation(fields: [flagId], references: [id])
+  optedIn Boolean     @default(false)
+  optedAt DateTime    @default(now())
+  @@unique([tenantId, flagId])
+}
+
+// WhatsApp suppression list — opted-out or ineligible guest numbers (tenant-scoped)
+model WaOptOut {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  phone     String
+  reason    String   @default("opted_out") // opted_out | failed | imported_suppression
+  note      String?
+  createdAt DateTime @default(now())
+  @@unique([tenantId, phone])
+}
+
+/* ------------------------- AI metering ------------------------- */
+
+// One row per billable AI operation (draft generation, sentiment classification)
+model AiUsageEvent {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  kind      String   @default("draft") // draft | classify
+  model     String   @default("glm") // glm | fallback
+  tokens    Int      @default(0)
+  createdAt DateTime @default(now())
+  @@index([tenantId, createdAt])
+}
+
+// Guest contact book — imported/uploaded customer numbers for review requests
+// (doc §1E "Upload or import customer contact records where authorized"), with
+// per-contact consent recording and suppression awareness.
+model Contact {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String
+  consent   Boolean  @default(true) // messaging eligibility recorded at import
+  source    String   @default("import") // import | guest | manual
+  optedOut  Boolean  @default(false) // matched against the suppression list at import
+  createdAt DateTime @default(now())
+  @@unique([tenantId, phone])
+}
+
+/* --------------- Admin → Reports & scheduled tasks (doc §2K) --------------- */
+
+// Recurring report schedule — platform admin configures templates & cadence.
+model ReportSchedule {
+  id          String   @id @default(cuid())
+  name        String
+  template    String   @default("monthly_summary") // monthly_summary | weekly_digest | location_performance
+  tenantId    String? // null = every active organisation
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+  frequency   String   @default("monthly") // weekly | monthly
+  dayOfWeek   Int      @default(1) // 0=Sun .. 6=Sat (weekly cadence)
+  dayOfMonth  Int      @default(1) // 1..28 (monthly cadence)
+  hour        Int      @default(8) // IST hour of dispatch
+  recipients  String   @default("") // comma-separated emails
+  format      String   @default("pdf") // pdf | csv
+  enabled     Boolean  @default(true)
+  lastRunAt   DateTime?
+  lastStatus  String? // ok | warn | error
+  deliveries  ReportDelivery[]
+  createdAt   DateTime @default(now())
+}
+
+// One generated + dispatched report instance (delivery log with retry)
+model ReportDelivery {
+  id           String          @id @default(cuid())
+  scheduleId   String?
+  schedule     ReportSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  scheduleName String
+  template     String
+  tenantName   String
+  status       String          @default("queued") // queued | sent | failed
+  detail       String?
+  attempts     Int             @default(1)
+  createdAt    DateTime        @default(now())
+}
+
+model SyncLog {
+  id         String   @id @default(cuid())
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+  state      String   @default("ok") // ok | warn | error
+  message    String
+  newReviews Int      @default(0)
+  latencyMs  Int      @default(400)
+  createdAt  DateTime @default(now())
+}
+
+model DemoRequest {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  company   String
+  phone     String?
+  outlets   String?
+  message   String?
+  status    String   @default("new") // new | contacted | converted
+  createdAt DateTime @default(now())
+}
+
+model SupportTicket {
+  id        String   @id @default(cuid())
+  number    String   @unique
+  name      String
+  email     String
+  business  String?
+  topic     String
+  priority  String   @default("normal") // low | normal | high
+  message   String
+  status    String   @default("open") // open | pending | resolved
+  createdAt DateTime @default(now())
+}
+
+model SystemEvent {
+  id        String   @id @default(cuid())
+  type      String   @default("job") // job | incident | deploy | signal
+  name      String
+  state     String   @default("ok") // ok | warn | error | running
+  detail    String?
+  createdAt DateTime @default(now())
+}
+
+/* ------------------------- Marketing CMS (platform-admin managed) ------------------------- */
+
+model CmsPage {
+  id             String   @id @default(cuid())
+  slug           String   @unique // home | features | how | pricing | stories | security | about | contact | privacy | terms | knowledge | blog | ticket
+  urlSlug        String?  // public URL path segment; null -> built-in default (about-us, faqs, …). Edited via admin → Website → Pages
+  title          String
+  seoTitle       String   @default("")
+  seoDescription String   @default("")
+  content        String   @default("{}") // JSON: editable section fields consumed by the page renderer
+  published      Boolean  @default(true) // false -> visitors see built-in defaults; page itself never breaks
+  updatedAt      DateTime @updatedAt
+}
+
+model CmsFaq {
+  id        String  @id @default(cuid())
+  section   String  @default("home") // home | pricing | knowledge — which surface shows it
+  category  String  @default("General") // knowledge page groups by category; display label elsewhere
+  question  String
+  answer    String
+  sortOrder Int     @default(0)
+  published Boolean @default(true)
+}
+
+model CmsPost {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  title           String
+  tag             String   @default("Insights")
+  excerpt         String   @default("")
+  summary         String?  // "In this article" panel on the article page (falls back to excerpt)
+  body            String   @default("") // paragraphs separated by a blank line; "## "/"### " render as h2/h3
+  readTime        String   @default("")
+  author          String   @default("Admin")
+  authorRole      String   @default("")
+  featuredMediaId String?
+  seoTitle        String   @default("")
+  seoDescription  String   @default("")
+  published       Boolean  @default(true)
+  publishedAt     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model CmsTestimonial {
+  id        String  @id @default(cuid())
+  quote     String
+  name      String
+  role      String  @default("") // e.g. "Spice Route Kitchen · 3 outlets, Bengaluru"
+  stars     Float   @default(5)
+  section   String  @default("home")
+  mediaId   String?
+  sortOrder Int     @default(0)
+  published Boolean @default(true)
+}
+
+model CmsMedia {
+  id        String   @id @default(cuid())
+  filename  String
+  mime      String
+  size      Int
+  alt       String   @default("")
+  data      Bytes
+  createdAt DateTime @default(now())
+}
+
+model CmsSetting {
+  key       String   @id
+  value     String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
+/* ------------------ Payment gateway management ------------------ */
+
+// System-level gateway registry — platform admin configures credentials and the
+// master enable. Secrets are write-only: every API response masks them.
+model GatewayConfig {
+  id            String          @id @default(cuid())
+  provider      String          @unique // razorpay | cashfree | stripe
+  label         String
+  description   String          @default("")
+  enabled       Boolean         @default(false) // master — no new provisioning while off
+  keyId         String          @default("") // e.g. rzp_test_xxxxxxxx
+  keySecret     String          @default("") // stored server-side; masked in responses
+  webhookSecret String          @default("")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  provisions    TenantGateway[]
+}
+
+// Tenant provisioning — links a workspace's billing to a provisioned gateway.
+// Pausing suspends collection without deleting the link; unprovision removes it.
+model TenantGateway {
+  id            String        @id @default(cuid())
+  tenantId      String
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gatewayId     String
+  gateway       GatewayConfig @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+  mode          String        @default("test") // test | live
+  accountRef    String        @default("") // merchant / account reference at the gateway
+  status        String        @default("active") // active | paused
+  provisionedAt DateTime      @default(now())
+  @@unique([tenantId, gatewayId])
+}

@@ -1,0 +1,482 @@
+     1→// Sensiblee client dashboard extras — Onboarding wizard, Settings, Review drawer,
+     2→// Location drawer. All state persists to the real backend.
+     3→"use client";
+     4→
+     5→import { useEffect, useState } from "react";
+     6→import { Button } from "@/components/ui/button";
+     7→import { Switch } from "@/components/ui/switch";
+     8→import { Textarea } from "@/components/ui/textarea";
+     9→import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+    10→import { useToast } from "@/hooks/use-toast";
+    11→import { api, useApiData, inr } from "@/lib/client";
+    12→import { useSession } from "@/lib/session";
+    13→import { hasPerm } from "@/lib/permissions";
+    14→import { RolesPanel, MemberEditor, type RoleRow, type PermissionDef, type MemberRow } from "./team-roles";
+    15→import type { ReviewVM, LocationVM, LocationDetailVM, ReviewVM as RVM } from "@/lib/viewmodels";
+    16→import {
+    17→  cn,
+    18→  AlertTriangle,
+    19→  Bell,
+    20→  Building2,
+    21→  Check,
+    22→  CheckCircle2,
+    23→  ChevronRight,
+    24→  CreditCard,
+    25→  Download,
+    26→  FileSpreadsheet,
+    27→  FileText,
+    28→  IndianRupee,
+    29→  KeyRound,
+    30→  MapPin,
+    31→  MessageCircle,
+    32→  Pencil,
+    33→  Plus,
+    34→  RefreshCw,
+    35→  Rocket,
+    36→  Send,
+    37→  ShieldCheck,
+    38→  Sparkles,
+    39→  ToggleLeft,
+    40→  TrendingUp,
+    41→  UserPlus,
+    42→  Users,
+    43→  X,
+    44→} from "./deps";
+    45→import { GoogleG, SentimentBadge, StarRating, StatusBadge, WhatsAppIcon } from "./brand";
+    46→
+    47→/* =============================== Onboarding =============================== */
+    48→
+    49→const STEPS = [
+    50→  { title: "Connect Google", hint: "OAuth, read-only" },
+    51→  { title: "Locations", hint: "profiles found" },
+    52→  { title: "WhatsApp sender", hint: "template + opt-in" },
+    53→  { title: "Brand voice", hint: "how you reply" },
+    54→  { title: "Invite team", hint: "roles & digest" },
+    55→];
+    56→
+    57→const TONES = [
+    58→  { key: "warm", label: "Warm professional", sample: "Thank you so much, Meera! We're delighted the dosa hit the mark — the whole team will be thrilled. See you tomorrow, coffee's on us ☕" },
+    59→  { key: "formal", label: "Formal & precise", sample: "Dear Meera, thank you for your kind words regarding our filter coffee and service. We greatly value your patronage and look forward to welcoming you again." },
+    60→  { key: "playful", label: "Playful & bold", sample: "Meera!! You just made our week 🎉 Next ghee roast is on the house — we're holding your usual corner. Bring the whole crew." },
+    61→];
+    62→
+    63→export function OnboardingWizard({ onDone }: { onDone: () => void }) {
+    64→  const { toast } = useToast();
+    65→  const { refresh, user } = useSession();
+    66→  const [step, setStep] = useState(0);
+    67→  const [tone, setTone] = useState("warm");
+    68→  const [greeting, setGreeting] = useState(user?.tenant?.settings.greeting || "");
+    69→  const [email, setEmail] = useState("");
+    70→  const [invites, setInvites] = useState<string[]>([]);
+    71→  const [waName, setWaName] = useState(user?.tenant?.name || "");
+    72→  const [waPhone, setWaPhone] = useState("+91 ");
+    73→  const [tempPasswords, setTempPasswords] = useState<{ email: string; tempPassword: string }[]>([]);
+    74→  const [saving, setSaving] = useState(false);
+    75→  const locations = useApiData<{ locations: LocationVM[] }>("/api/locations");
+    76→
+    77→  const addInvite = () => {
+    78→    const e = email.trim().toLowerCase();
+    79→    if (e && e.includes("@") && !invites.includes(e)) setInvites((v) => [...v, e]);
+    80→    setEmail("");
+    81→  };
+    82→
+    83→  const finish = async () => {
+    84→    setSaving(true);
+    85→    try {
+    86→      for (const inv of invites) {
+    87→        const res = await api.post<{ invite: { email: string; tempPassword: string } }>("/api/team", { email: inv, role: "observer" });
+    88→        setTempPasswords((t) => [...t, res.invite]);
+    89→      }
+    90→      await api.patch("/api/settings", {
+    91→        profile: { greeting: greeting || undefined },
+    92→        ai: { tone },
+    93→        whatsapp: { name: waName || undefined, phone: waPhone || undefined },
+    94→        onboardingDone: true,
+    95→      });
+    96→      await refresh();
+    97→      toast({ title: "Workspace ready", description: "Your 15-minute sync is running — drafts land within the hour." });
+    98→      setStep(5);
+    99→    } catch (e) {
+   100→      toast({ title: "Setup incomplete", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   101→    } finally {
+   102→      setSaving(false);
+   103→    }
+   104→  };
+   105→
+   106→  return (
+   107→    <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand/45 p-4 backdrop-blur-sm">
+   108→      <div className="flex max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-3xl bg-cream shadow-2xl">
+   109→        {/* Rail */}
+   110→        <div className="hidden w-56 shrink-0 flex-col border-r border-neutral-200/70 bg-white p-6 sm:flex">
+   111→          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-mint-deep">First-run setup</p>
+   112→          <p className="mt-1 text-[15px] font-bold">Sensiblee onboarding</p>
+   113→          <div className="mt-6 space-y-1">
+   114→            {STEPS.map((s, i) => (
+   115→              <div key={s.title} className="flex items-start gap-2.5 rounded-xl px-2 py-2">
+   116→                <span className={cn(
+   117→                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10.5px] font-bold",
+   118→                  i < step ? "bg-mint-deep text-white" : i === step ? "bg-brand text-white" : "bg-neutral-100 text-neutral-400"
+   119→                )}>
+   120→                  {i < step ? <Check size={11} /> : i + 1}
+   121→                </span>
+   122→                <div>
+   123→                  <p className={cn("text-[12.5px] font-semibold leading-tight", i === step ? "text-brand" : i < step ? "text-neutral-500" : "text-neutral-400")}>{s.title}</p>
+   124→                  <p className="text-[10.5px] text-neutral-400">{s.hint}</p>
+   125→                </div>
+   126→              </div>
+   127→            ))}
+   128→          </div>
+   129→          <div className="mt-auto rounded-xl bg-surface p-3">
+   130→            <p className="text-[11px] leading-relaxed text-neutral-400">Takes about 4 minutes. Everything here can be changed later in Settings.</p>
+   131→          </div>
+   132→        </div>
+   133→
+   134→        {/* Body */}
+   135→        <div className="relative flex min-w-0 flex-1 flex-col">
+   136→          {/* close / skip — returns to the dashboard without saving */}
+   137→          <button
+   138→            onClick={onDone}
+   139→            aria-label="Close setup — you can finish it later from Settings"
+   140→            title="Close — finish later from Settings"
+   141→            className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white text-neutral-400 shadow-sm ring-1 ring-neutral-200/70 transition-colors hover:bg-surface hover:text-brand"
+   142→          >
+   143→            <X size={16} />
+   144→          </button>
+   145→
+   146→          {/* mobile progress */}
+   147→          {step < STEPS.length && (
+   148→            <div className="border-b border-neutral-200/70 px-5 py-3 sm:hidden">
+   149→              <div className="flex items-center justify-between text-[11px] font-semibold text-neutral-400">
+   150→                <span>Step {step + 1} of {STEPS.length}</span><span className="font-bold text-brand">{STEPS[step].title}</span>
+   151→              </div>
+   152→              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+   153→                <div className="h-full rounded-full bg-mint-deep transition-all" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
+   154→              </div>
+   155→            </div>
+   156→          )}
+   157→
+   158→          <div className="flex-1 overflow-y-auto p-5 sm:p-7">
+   159→            {step === 0 && (
+   160→              <div>
+   161→                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-mint-soft text-mint-deep"><GoogleG size={22} /></span>
+   162→                <h2 className="mt-4 text-[20px] font-bold tracking-tight">Welcome to Sensiblee 👋</h2>
+   163→                <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-neutral-500">
+   164→                  Let&apos;s connect your Google Business Profiles. We request <span className="font-semibold text-brand">read-only access</span> to
+   165→                  reviews and locations — we can never post without your approval, and you can revoke access at any time.
+   166→                </p>
+   167→                <div className="mt-5 space-y-2.5">
+   168→                  {["Read reviews & ratings", "Read location profiles & hours", "Post replies only after your approval"].map((p) => (
+   169→                    <div key={p} className="flex items-center gap-2.5 rounded-xl bg-white px-3.5 py-2.5 ring-1 ring-neutral-200/70">
+   170→                      <CheckCircle2 size={15} className="text-mint-deep" />
+   171→                      <span className="text-[12.5px] text-neutral-600">{p}</span>
+   172→                    </div>
+   173→                  ))}
+   174→                </div>
+   175→                <Button className="mt-6 h-11 rounded-2xl bg-brand px-5 text-[13px] text-white hover:bg-brand-deep" onClick={() => setStep(1)}>
+   176→                  Continue with Google <ChevronRight size={15} className="ml-1" />
+   177→                </Button>
+   178→                <p className="mt-2.5 text-[11px] text-neutral-400">Demo OAuth — production uses live Google Business Profile OAuth.</p>
+   179→              </div>
+   180→            )}
+   181→
+   182→            {step === 1 && (
+   183→              <div>
+   184→                <h2 className="text-[20px] font-bold tracking-tight">Your locations</h2>
+   185→                <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-neutral-500">
+   186→                  {locations.data?.locations.length
+   187→                    ? "These profiles sync every 15 minutes. Historical reviews import immediately and are scored overnight."
+   188→                    : "Add the Google Business Profiles Sensiblee should monitor — historical reviews import immediately."}
+   189→                </p>
+   190→                <div className="mt-5 space-y-2.5">
+   191→                  {(locations.data?.locations || []).map((l) => (
+   192→                    <div key={l.id} className="flex w-full items-center gap-3 rounded-2xl border border-mint/60 bg-mint-soft/40 p-4 ring-1 ring-mint/40">
+   193→                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-mint-deep bg-mint-deep text-white">
+   194→                        <Check size={12} />
+   195→                      </span>
+   196→                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface"><MapPin size={15} className="text-neutral-400" /></span>
+   197→                      <div className="min-w-0 flex-1">
+   198→                        <p className="truncate text-[13.5px] font-semibold text-brand">{l.name}</p>
+   199→                        <p className="text-[11.5px] text-neutral-400">{l.area} · {l.reviews.toLocaleString("en-IN")} reviews · {l.rating}★ now</p>
+   200→                      </div>
+   201→                      <GoogleG size={15} className="shrink-0 opacity-50" />
+   202→                    </div>
+   203→                  ))}
+   204→                </div>
+   205→                <AddLocationInline onAdded={() => locations.reload()} />
+   206→              </div>
+   207→            )}
+   208→
+   209→            {step === 2 && (
+   210→              <div>
+   211→                <h2 className="text-[20px] font-bold tracking-tight">Set up your WhatsApp sender</h2>
+   212→                <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-neutral-500">
+   213→                  Review requests go out on the WhatsApp Business Cloud API with pre-approved templates, quality throttling and per-guest opt-in records.
+   214→                </p>
+   215→                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+   216→                  <label className="block">
+   217→                    <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Business display name</span>
+   218→                    <input value={waName} onChange={(e) => setWaName(e.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-neutral-200 bg-white px-3 text-[13px] outline-none focus:border-mint/60" />
+   219→                  </label>
+   220→                  <label className="block">
+   221→                    <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Sender number</span>
+   222→                    <input value={waPhone} onChange={(e) => setWaPhone(e.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-neutral-200 bg-white px-3 text-[13px] outline-none focus:border-mint/60" />
+   223→                  </label>
+   224→                </div>
+   225→                <div className="mt-4 rounded-2xl border border-mint/40 bg-mint-soft/30 p-4">
+   226→                  <p className="flex items-center gap-1.5 text-[11.5px] font-bold text-mint-deep"><WhatsAppIcon size={14} /> Template preview · category MARKETING · auto-approved</p>
+   227→                  <div className="mt-2.5 rounded-xl bg-white p-3.5 text-[12.5px] leading-relaxed text-neutral-600 shadow-sm">
+   228→                    Hi {"{name}"}! Thank you for dining with us at {waName || "our business"} tonight. If you enjoyed your meal, a quick Google review means the world to our team — {"{review_link}"}
+   229→                  </div>
+   230→                  <p className="mt-2.5 flex items-start gap-1.5 text-[11px] leading-relaxed text-mint-deep">
+   231→                    <ShieldCheck size={13} className="mt-0.5 shrink-0" />
+   232→                    Guests can opt out by replying STOP — we record consent per contact and exclude opted-out numbers automatically.
+   233→                  </p>
+   234→                </div>
+   235→              </div>
+   236→            )}
+   237→
+   238→            {step === 3 && (
+   239→              <div>
+   240→                <h2 className="text-[20px] font-bold tracking-tight">How should your replies sound?</h2>
+   241→                <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-neutral-500">
+   242→                  The AI learns this voice from your past replies plus these choices. You can refine it any time in Settings → AI &amp; brand voice.
+   243→                </p>
+   244→                <div className="mt-5 flex flex-wrap gap-2">
+   245→                  {TONES.map((t) => (
+   246→                    <button
+   247→                      key={t.key}
+   248→                      onClick={() => setTone(t.key)}
+   249→                      className={cn(
+   250→                        "rounded-full px-3.5 py-2 text-[12.5px] font-semibold transition-colors",
+   251→                        tone === t.key ? "bg-brand text-white" : "bg-white text-neutral-500 ring-1 ring-neutral-200/80 hover:text-brand"
+   252→                      )}
+   253→                    >
+   254→                      {t.label}
+   255→                    </button>
+   256→                  ))}
+   257→                </div>
+   258→                <label className="mt-5 block max-w-xs">
+   259→                  <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Sign replies as</span>
+   260→                  <input value={greeting} onChange={(e) => setGreeting(e.target.value)} placeholder={user?.name.split(" ")[0] || "Your name"} className="mt-1.5 h-10 w-full rounded-xl border border-neutral-200 bg-white px-3 text-[13px] outline-none focus:border-mint/60" />
+   261→                </label>
+   262→                <div className="mt-4 rounded-2xl border border-amber-200/70 bg-amber-soft/40 p-4">
+   263→                  <p className="flex items-center gap-1.5 text-[11.5px] font-bold text-amber-deep"><Sparkles size={13} /> Sample reply in this voice</p>
+   264→                  <p className="mt-2 text-[12.5px] leading-relaxed text-neutral-600">“{TONES.find((t) => t.key === tone)?.sample}” — {greeting || user?.name.split(" ")[0] || "Your name"}, {user?.tenant?.name}</p>
+   265→                </div>
+   266→              </div>
+   267→            )}
+   268→
+   269→            {step === 4 && (
+   270→              <div>
+   271→                <h2 className="text-[20px] font-bold tracking-tight">Invite your team</h2>
+   272→                <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-neutral-500">
+   273→                  Managers can draft and send; observers get the weekly digest only. Owners approve everything that touches Google.
+   274→                </p>
+   275→                <div className="mt-5 flex gap-2">
+   276→                  <input
+   277→                    value={email}
+   278→                    onChange={(e) => setEmail(e.target.value)}
+   279→                    onKeyDown={(e) => e.key === "Enter" && addInvite()}
+   280→                    placeholder="teammate@yourbusiness.in"
+   281→                    className="h-10 flex-1 rounded-xl border border-neutral-200 bg-white px-3 text-[13px] outline-none focus:border-mint/60"
+   282→                  />
+   283→                  <Button variant="outline" className="h-10 rounded-xl px-3.5 text-[12.5px]" onClick={addInvite}>
+   284→                    <Plus size={14} className="mr-1" /> Add
+   285→                  </Button>
+   286→                </div>
+   287→                <div className="mt-3 flex flex-wrap gap-2">
+   288→                  {invites.map((v) => (
+   289→                    <span key={v} className="flex items-center gap-1.5 rounded-full bg-white py-1.5 pl-3 pr-2 text-[12px] font-medium text-neutral-600 ring-1 ring-neutral-200/80">
+   290→                      {v}
+   291→                      <button onClick={() => setInvites((list) => list.filter((x) => x !== v))} className="rounded-full p-0.5 text-neutral-400 hover:bg-surface hover:text-brand" aria-label={`Remove ${v}`}>
+   292→                        <X size={12} />
+   293→                      </button>
+   294→                    </span>
+   295→                  ))}
+   296→                  {invites.length === 0 && <span className="text-[12px] text-neutral-400">No invites yet — you can add people later.</span>}
+   297→                </div>
+   298→                <div className="mt-5 rounded-2xl bg-brand p-4 text-white">
+   299→                  <p className="text-[12px] font-bold uppercase tracking-wider text-white/40">Ready to go</p>
+   300→                  <p className="mt-1.5 text-[13px] leading-relaxed text-white/80">
+   301→                    {locations.data?.locations.length || 0} location{(locations.data?.locations.length || 0) === 1 ? "" : "s"} · WhatsApp sender verified · {TONES.find((t) => t.key === tone)?.label} voice · {invites.length} teammate{invites.length === 1 ? "" : "s"} invited.
+   302→                  </p>
+   303→                </div>
+   304→              </div>
+   305→            )}
+   306→
+   307→            {/* success */}
+   308→            {step === 5 && (
+   309→              <div className="flex flex-col items-center py-6 text-center">
+   310→                <span className="relative flex h-16 w-16 items-center justify-center rounded-3xl bg-mint-soft">
+   311→                  <Rocket size={26} className="text-mint-deep" />
+   312→                  <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-amber-soft ring-2 ring-white" />
+   313→                  <span className="absolute -bottom-1 -left-1 h-2.5 w-2.5 rounded-full bg-mint ring-2 ring-white" />
+   314→                </span>
+   315→                <h2 className="mt-5 text-[22px] font-bold tracking-tight">You&apos;re live, {greeting || user?.name.split(" ")[0]} 🎉</h2>
+   316→                <p className="mt-2 max-w-sm text-[13.5px] leading-relaxed text-neutral-500">
+   317→                  Your first 15-minute sync is running. Historical reviews will finish scoring within the hour, and the AI queue is already warming up.
+   318→                </p>
+   319→                {tempPasswords.length > 0 && (
+   320→                  <div className="mt-4 w-full max-w-sm rounded-2xl border border-amber-200/70 bg-amber-soft/40 p-3.5 text-left">
+   321→                    <p className="text-[11px] font-bold uppercase tracking-wide text-amber-deep">Teammate temp passwords — share privately</p>
+   322→                    {tempPasswords.map((t) => (
+   323→                      <p key={t.email} className="mt-1.5 font-mono text-[11.5px] text-brand">{t.email} · {t.tempPassword}</p>
+   324→                    ))}
+   325→                  </div>
+   326→                )}
+   327→                <div className="mt-5 grid w-full max-w-sm grid-cols-3 gap-2.5">
+   328→                  {[
+   329→                    { v: String(locations.data?.locations.length || 0), l: "profiles live" },
+   330→                    { v: String((locations.data?.locations || []).reduce((a, l) => a + l.reviews, 0).toLocaleString("en-IN")), l: "reviews importing" },
+   331→                    { v: "48h", l: "to first campaign" },
+   332→                  ].map((s) => (
+   333→                    <div key={s.l} className="rounded-2xl bg-white p-3.5 ring-1 ring-neutral-200/70">
+   334→                      <p className="text-[18px] font-bold text-brand">{s.v}</p>
+   335→                      <p className="mt-0.5 text-[10.5px] text-neutral-400">{s.l}</p>
+   336→                    </div>
+   337→                  ))}
+   338→                </div>
+   339→                <Button className="mt-6 h-11 rounded-2xl bg-mint-deep px-6 text-[13px] text-white hover:bg-mint-deep/90" onClick={onDone}>
+   340→                  Go to dashboard <ChevronRight size={15} className="ml-1" />
+   341→                </Button>
+   342→              </div>
+   343→            )}
+   344→          </div>
+   345→
+   346→          {/* footer nav */}
+   347→          {step < 5 && (
+   348→            <div className="flex items-center justify-between border-t border-neutral-200/70 bg-white px-5 py-3.5 sm:px-7">
+   349→              <Button variant="ghost" className="h-9 rounded-xl text-[12.5px] text-neutral-500" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
+   350→                Back
+   351→              </Button>
+   352→              <div className="flex items-center gap-3">
+   353→                <span className="hidden text-[11.5px] text-neutral-400 sm:inline">{step + 1} / {STEPS.length}</span>
+   354→                <Button variant="ghost" className="h-9 rounded-xl text-[12.5px] text-neutral-500 hover:bg-surface" onClick={onDone} disabled={saving}>
+   355→                  Skip for now
+   356→                </Button>
+   357→                <Button className="h-9 rounded-xl bg-brand px-4.5 text-[12.5px] text-white hover:bg-brand-deep" onClick={() => (step === 4 ? finish() : setStep((s) => s + 1))} disabled={saving}>
+   358→                  {saving ? "Saving…" : step === 4 ? "Finish setup" : "Continue"} <ChevronRight size={14} className="ml-1" />
+   359→                </Button>
+   360→              </div>
+   361→            </div>
+   362→          )}
+   363→        </div>
+   364→      </div>
+   365→    </div>
+   366→  );
+   367→}
+   368→
+   369→function AddLocationInline({ onAdded }: { onAdded: () => void }) {
+   370→  const { toast } = useToast();
+   371→  const [open, setOpen] = useState(false);
+   372→  const [form, setForm] = useState({ name: "", area: "" });
+   373→  const [busy, setBusy] = useState(false);
+   374→  const add = async () => {
+   375→    if (!form.name.trim()) return;
+   376→    setBusy(true);
+   377→    try {
+   378→      await api.post("/api/locations", form);
+   379→      toast({ title: "Profile connected", description: `${form.name} will sync within 15 minutes.` });
+   380→      setForm({ name: "", area: "" });
+   381→      setOpen(false);
+   382→      onAdded();
+   383→    } catch (e) {
+   384→      toast({ title: "Could not connect", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   385→    } finally {
+   386→      setBusy(false);
+   387→    }
+   388→  };
+   389→  if (!open) {
+   390→    return (
+   391→      <button onClick={() => setOpen(true)} className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-neutral-300 py-3 text-[12px] font-semibold text-neutral-400 transition-colors hover:border-mint/60 hover:text-mint-deep">
+   392→        <Plus size={13} /> Connect another profile
+   393→      </button>
+   394→    );
+   395→  }
+   396→  return (
+   397→    <div className="mt-3 space-y-2 rounded-2xl border border-mint/40 bg-white p-3.5">
+   398→      <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Profile name — e.g. Spice Route Whitefield" className="h-10 w-full rounded-xl border border-neutral-200 bg-cream/60 px-3 text-[13px] outline-none focus:border-mint/60" />
+   399→      <input value={form.area} onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))} placeholder="Area — e.g. Whitefield, Bengaluru" className="h-10 w-full rounded-xl border border-neutral-200 bg-cream/60 px-3 text-[13px] outline-none focus:border-mint/60" />
+   400→      <div className="flex gap-2">
+   401→        <Button size="sm" className="h-9 flex-1 rounded-xl bg-brand text-[12.5px] text-white hover:bg-brand-deep" onClick={add} disabled={busy}>
+   402→          {busy ? "Connecting…" : <><Check size={13} className="mr-1" /> Connect</>}
+   403→        </Button>
+   404→        <Button size="sm" variant="ghost" className="h-9 rounded-xl text-[12.5px]" onClick={() => setOpen(false)}>Cancel</Button>
+   405→      </div>
+   406→    </div>
+   407→  );
+   408→}
+   409→
+   410→/* ================================ Settings ================================ */
+   411→
+   412→type SettingsPayload = {
+   413→  profile: { name: string; category: string; website: string; signature: string; greeting: string; whatsappName: string; whatsappPhone: string };
+   414→  ai: { tone: string; threshold: number; digestLanguage: string; brandVoice: string };
+   415→  notifs: { digest: boolean; negative: boolean; weekly: boolean; billing: boolean };
+   416→  locations: LocationVM[];
+   417→  team: { id: string; name: string; email: string; role: string; roleName: string | null; invitePending: boolean; initials: string }[];
+   418→  plan: { id?: string; name: string; monthlyInr: number; halfYearlyInr?: number; annualInr?: number; waQuota: number; locations: number; seats: number } | null;
+   419→  usage: { l: string; u: string; p: number; warn: boolean }[];
+   420→  billingCycle: string;
+   421→  payment: { provider: string; label: string; mode: string; status: string; accountRef: string; methodLabel: string } | null;
+   422→};
+   423→
+   424→const PLAN_NAMES: Record<string, string> = { starter: "Starter", growth: "Growth", multi: "Scale" };
+   425→
+   426→function cycleLabel(cycle: string): string {
+   427→  return cycle === "annual" ? "Annual" : cycle === "half_yearly" ? "Half-yearly" : "Monthly";
+   428→}
+   429→
+   430→function cyclePrice(plan: SettingsPayload["plan"], cycle: string): string {
+   431→  if (!plan) return "—";
+   432→  const inrFmt = (n: number) => `₹${n.toLocaleString("en-IN")}`;
+   433→  if (cycle === "annual") return `${inrFmt(plan.annualInr ?? 0)}/year`;
+   434→  if (cycle === "half_yearly") return `${inrFmt(plan.halfYearlyInr ?? 0)} / 6 months`;
+   435→  return `${inrFmt(plan.monthlyInr)}/month`;
+   436→}
+   437→
+   438→function SectionCard({ icon, title, sub, children }: { icon: React.ReactNode; title: string; sub: string; children: React.ReactNode }) {
+   439→  return (
+   440→    <section className="overflow-hidden rounded-2xl border border-neutral-200/70 bg-white">
+   441→      <div className="flex items-start gap-3 border-b border-neutral-100 px-5 py-4">
+   442→        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-mint-soft text-mint-deep">{icon}</span>
+   443→        <div>
+   444→          <h2 className="text-[14.5px] font-bold">{title}</h2>
+   445→          <p className="mt-0.5 text-[12px] text-neutral-400">{sub}</p>
+   446→        </div>
+   447→      </div>
+   448→      <div className="p-5">{children}</div>
+   449→    </section>
+   450→  );
+   451→}
+   452→
+   453→function Field({ label, children }: { label: string; children: React.ReactNode }) {
+   454→  return (
+   455→    <label className="block">
+   456→      <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">{label}</span>
+   457→      <div className="mt-1.5">{children}</div>
+   458→    </label>
+   459→  );
+   460→}
+   461→
+   462→const inputCls = "h-10 w-full rounded-xl border border-neutral-200 bg-cream/60 px-3 text-[13px] outline-none transition-colors focus:border-mint/60 focus:bg-white";
+   463→
+   464→type AccountPayload = { account: { name: string; email: string; phone: string; role: string; lastLoginAt: string | null } };
+   465→
+   466→// Personal profile + password — visible to every role (owner, managers, observers).
+   467→// Team members only see this block: their role governs everything else.
+   468→export function AccountSections() {
+   469→  const { toast } = useToast();
+   470→  const { user, refresh } = useSession();
+   471→  const account = useApiData<AccountPayload>("/api/account");
+   472→  const [profile, setProfile] = useState({ name: "", email: "", phone: "" });
+   473→  const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
+   474→  const [savingProfile, setSavingProfile] = useState(false);
+   475→  const [savingPw, setSavingPw] = useState(false);
+   476→  const [loaded, setLoaded] = useState(false);
+   477→
+   478→  useEffect(() => {
+   479→    if (account.data && !loaded) {
+   480→      const a = account.data.account;
+
+[showing lines 1-480 of 1766; use offset=481 with limit to continue reading]

@@ -1,0 +1,673 @@
+     1→// Sensiblee platform admin console — dark slate surface, separate from client app
+     2→// Views: Platform overview, Tenants, Billing, Plans, System
+     3→"use client";
+     4→
+     5→import { useState } from "react";
+     6→import { Badge } from "@/components/ui/badge";
+     7→import { Button } from "@/components/ui/button";
+     8→import { useToast } from "@/hooks/use-toast";
+     9→import { ADDONS, KPIS, MRR_SERIES, PAYMENTS, PLANS, TENANTS, TENANT_DETAILS, LLM_USAGE, SYSTEM_JOBS, type Tenant } from "./data";
+    10→import {
+    11→  cn,
+    12→  Activity,
+    13→  Building2,
+    14→  Check,
+    15→  CreditCard,
+    16→  ExternalLink,
+    17→  Gauge,
+    18→  KeyRound,
+    19→  Landmark,
+    20→  Layers,
+    21→  LayoutDashboard,
+    22→  RefreshCw,
+    23→  Send,
+    24→  Server,
+    25→  Users,
+    26→  Wallet,
+    27→  Webhook,
+    28→  X,
+    29→  Zap,
+    30→  UserPlus,
+    31→} from "./deps";
+    32→import { LogoLockup, StatusBadge } from "./brand";
+    33→import { MrrChart, StatCard } from "./widgets";
+    34→
+    35→type ViewKey = "platform" | "tenants" | "billing" | "plans" | "system";
+    36→
+    37→const NAV: { key: ViewKey; label: string; icon: React.ReactNode }[] = [
+    38→  { key: "platform", label: "Platform", icon: <LayoutDashboard size={16} /> },
+    39→  { key: "tenants", label: "Tenants", icon: <Building2 size={16} /> },
+    40→  { key: "billing", label: "Billing", icon: <CreditCard size={16} /> },
+    41→  { key: "plans", label: "Plans & pricing", icon: <Layers size={16} /> },
+    42→  { key: "system", label: "System", icon: <Server size={16} /> },
+    43→];
+    44→
+    45→export function AdminConsole({ onExit }: { onExit: () => void }) {
+    46→  const [view, setView] = useState<ViewKey>("platform");
+    47→  const [navOpen, setNavOpen] = useState(false);
+    48→
+    49→  return (
+    50→    <div className="flex h-screen bg-brand-deep text-white">
+    51→      <aside
+    52→        className={cn(
+    53→          "fixed inset-y-0 left-0 z-40 flex w-[240px] flex-col border-r border-white/10 bg-brand transition-transform lg:static lg:translate-x-0",
+    54→          navOpen ? "translate-x-0" : "-translate-x-full"
+    55→        )}
+    56→      >
+    57→        <div className="px-5 pb-5 pt-6">
+    58→          <LogoLockup size={30} light />
+    59→        </div>
+    60→        <div className="mx-4 mb-5 rounded-xl border border-mint/25 bg-mint/10 px-3 py-2.5">
+    61→          <p className="text-[10.5px] font-semibold uppercase tracking-wider text-mint">Platform operator</p>
+    62→          <p className="mt-0.5 text-[13px] font-semibold text-white">Sensiblee HQ</p>
+    63→        </div>
+    64→        <nav className="flex-1 space-y-1 px-3" aria-label="Admin sections">
+    65→          {NAV.map((n) => (
+    66→            <button
+    67→              key={n.key}
+    68→              onClick={() => { setView(n.key); setNavOpen(false); }}
+    69→              className={cn(
+    70→                "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors",
+    71→                view === n.key ? "bg-mint text-brand-deep shadow-sm" : "text-white/55 hover:bg-white/5 hover:text-white"
+    72→              )}
+    73→              aria-current={view === n.key ? "page" : undefined}
+    74→            >
+    75→              {n.icon}
+    76→              {n.label}
+    77→            </button>
+    78→          ))}
+    79→        </nav>
+    80→        <div className="border-t border-white/10 p-3">
+    81→          <div className="flex items-center gap-2.5 px-2 py-2">
+    82→            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-mint text-[11px] font-bold text-brand-deep">OP</span>
+    83→            <div className="min-w-0 flex-1 leading-tight">
+    84→              <p className="truncate text-[12.5px] font-semibold">Ops Console</p>
+    85→              <p className="truncate text-[11px] text-white/40">admin.sensiblee.com</p>
+    86→            </div>
+    87→            <button onClick={onExit} title="Back to prototype entry" className="rounded-lg p-1.5 text-white/40 hover:bg-white/5 hover:text-white">
+    88→              <ExternalLink size={14} />
+    89→            </button>
+    90→          </div>
+    91→        </div>
+    92→      </aside>
+    93→      {navOpen && <button className="fixed inset-0 z-30 bg-black/50 lg:hidden" aria-label="Close menu" onClick={() => setNavOpen(false)} />}
+    94→
+    95→      <div className="flex min-w-0 flex-1 flex-col">
+    96→        <header className="flex items-center gap-3 border-b border-white/10 bg-brand-deep/80 px-4 py-3 backdrop-blur lg:px-7">
+    97→          <button className="rounded-lg p-2 text-white/60 hover:bg-white/5 lg:hidden" onClick={() => setNavOpen(true)} aria-label="Open menu">
+    98→            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+    99→          </button>
+   100→          <div>
+   101→            <h2 className="text-[14.5px] font-semibold">
+   102→              {view === "platform" && "Platform overview"}
+   103→              {view === "tenants" && "Tenant management"}
+   104→              {view === "billing" && "Subscriptions & billing"}
+   105→              {view === "plans" && "Plans & pricing"}
+   106→              {view === "system" && "System health"}
+   107→            </h2>
+   108→            <p className="text-[11.5px] text-white/40">admin.sensiblee.com · role: super-admin</p>
+   109→          </div>
+   110→          <Badge className="ml-auto border-mint/30 bg-mint/10 text-mint hover:bg-mint/10">All systems operational</Badge>
+   111→        </header>
+   112→
+   113→        <main className="flex-1 overflow-y-auto px-4 py-5 lg:px-7 lg:py-6">
+   114→          <div className="mx-auto max-w-[1200px]">
+   115→            {view === "platform" && <PlatformView onGo={setView} />}
+   116→            {view === "tenants" && <TenantsView />}
+   117→            {view === "billing" && <BillingView />}
+   118→            {view === "plans" && <PlansView />}
+   119→            {view === "system" && <SystemView />}
+   120→          </div>
+   121→        </main>
+   122→      </div>
+   123→    </div>
+   124→  );
+   125→}
+   126→
+   127→/* --------------------------- Platform overview --------------------------- */
+   128→
+   129→function PlatformView({ onGo }: { onGo: (v: ViewKey) => void }) {
+   130→  const k = KPIS.admin;
+   131→  const due = TENANTS.filter((t) => t.status === "past_due");
+   132→  const trials = TENANTS.filter((t) => t.status === "trial");
+   133→
+   134→  return (
+   135→    <div className="space-y-5">
+   136→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   137→        <DarkStat label="MRR" value={k.mrr} delta={k.mrrDelta} hint="Sep · +6 new subscriptions" />
+   138→        <DarkStat label="Active tenants" value={`${k.active} / ${k.tenants}`} hint="3 trials in flight" icon={<Building2 size={15} />} />
+   139→        <DarkStat label="Reviews processed" value={k.reviewsProcessed} hint="lifetime across all tenants" icon={<Zap size={15} />} />
+   140→        <DarkStat label="WhatsApp messages" value={k.waMessages} hint="30d · quality rating high" icon={<Send size={15} />} />
+   141→      </div>
+   142→
+   143→      <div className="grid gap-5 xl:grid-cols-3">
+   144→        <div className="rounded-2xl border border-white/10 bg-brand p-5 xl:col-span-2">
+   145→          <div className="mb-4 flex items-start justify-between">
+   146→            <div>
+   147→              <h3 className="text-[15px] font-semibold">Momentum — MRR since launch</h3>
+   148→              <p className="mt-0.5 text-xs text-white/40">₹ lakh per month · Razorpay settled</p>
+   149→            </div>
+   150→            <Button size="sm" variant="outline" className="h-8 border-white/15 bg-transparent text-[12px] text-white/70 hover:bg-white/5 hover:text-white" onClick={() => onGo("billing")}>
+   151→              Open billing <Wallet size={13} className="ml-1" />
+   152→            </Button>
+   153→          </div>
+   154→          <MrrChart data={MRR_SERIES} />
+   155→        </div>
+   156→
+   157→        <div className="space-y-5">
+   158→          <div className="rounded-2xl border border-amber-300/20 bg-amber-soft/10 p-4">
+   159→            <h3 className="flex items-center gap-2 text-[13.5px] font-semibold text-amber-300">
+   160→              <Gauge size={15} /> Collections watchlist
+   161→            </h3>
+   162→            <div className="mt-3 space-y-2">
+   163→              {due.map((t) => (
+   164→                <div key={t.id} className="flex items-center justify-between rounded-xl bg-brand-deep/60 px-3 py-2.5 text-[12.5px]">
+   165→                  <div>
+   166→                    <p className="font-semibold text-white">{t.business}</p>
+   167→                    <p className="text-[11px] text-white/40">auto-debit failed · day 2 of dunning</p>
+   168→                  </div>
+   169→                  <span className="font-bold text-amber-300">₹{t.mrr.toLocaleString("en-IN")}</span>
+   170→                </div>
+   171→              ))}
+   172→              {trials.map((t) => (
+   173→                <div key={t.id} className="flex items-center justify-between rounded-xl bg-brand-deep/60 px-3 py-2.5 text-[12.5px]">
+   174→                  <div>
+   175→                    <p className="font-semibold text-white">{t.business}</p>
+   176→                    <p className="text-[11px] text-white/40">trial ends in 12 days</p>
+   177→                  </div>
+   178→                  <span className="font-semibold text-mint">convert?</span>
+   179→                </div>
+   180→              ))}
+   181→            </div>
+   182→          </div>
+   183→
+   184→          <div className="rounded-2xl border border-white/10 bg-brand p-4">
+   185→            <h3 className="text-[13.5px] font-semibold">AI cost control</h3>
+   186→            <div className="mt-3">
+   187→              <div className="mb-1 flex justify-between text-[12px] text-white/50">
+   188→                <span>{LLM_USAGE.cost} of {LLM_USAGE.budget}</span>
+   189→                <span className="text-mint">75%</span>
+   190→              </div>
+   191→              <div className="h-2 rounded-full bg-brand-deep"><div className="h-full rounded-full bg-mint" style={{ width: "75%" }} /></div>
+   192→              <p className="mt-2 text-[11.5px] leading-relaxed text-white/40">
+   193→                {LLM_USAGE.tokens} tokens · {LLM_USAGE.drafts.toLocaleString("en-IN")} drafts this month across tenants. Budget guardrail pauses batch jobs, never live replies.
+   194→              </p>
+   195→            </div>
+   196→          </div>
+   197→        </div>
+   198→      </div>
+   199→
+   200→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+   201→        <div className="mb-4 flex items-center justify-between">
+   202→          <h3 className="text-[15px] font-semibold">Top tenants by reviews processed</h3>
+   203→          <Button size="sm" variant="outline" className="h-8 border-white/15 bg-transparent text-[12px] text-white/70 hover:bg-white/5 hover:text-white" onClick={() => onGo("tenants")}>
+   204→            Manage tenants <Users size={13} className="ml-1" />
+   205→          </Button>
+   206→        </div>
+   207→        <div className="space-y-2.5">
+   208→          {[...TENANTS].sort((a, b) => b.reviews - a.reviews).slice(0, 4).map((t) => (
+   209→            <div key={t.id} className="flex items-center gap-3">
+   210→              <span className="w-40 shrink-0 truncate text-[12.5px] font-medium text-white/80">{t.business}</span>
+   211→              <div className="h-5 flex-1 overflow-hidden rounded-md bg-brand-deep">
+   212→                <div className="flex h-full items-center justify-end rounded-md bg-gradient-to-r from-mint-deep to-mint pr-2 text-[10px] font-bold text-brand-deep" style={{ width: `${(t.reviews / 1921) * 100}%` }}>
+   213→                  {t.reviews.toLocaleString("en-IN")}
+   214→                </div>
+   215→              </div>
+   216→              <Badge variant="outline" className="border-white/15 text-white/50">{t.plan}</Badge>
+   217→            </div>
+   218→          ))}
+   219→        </div>
+   220→      </div>
+   221→    </div>
+   222→  );
+   223→}
+   224→
+   225→function DarkStat({ label, value, delta, hint, icon }: { label: string; value: string; delta?: string; hint?: string; icon?: React.ReactNode }) {
+   226→  return (
+   227→    <div className="rounded-2xl border border-white/10 bg-brand p-4 transition-colors hover:border-mint/30">
+   228→      <div className="flex items-center gap-2 text-white/50">
+   229→        {icon}
+   230→        <span className="text-[12.5px] font-medium">{label}</span>
+   231→        {delta && <span className="ml-auto rounded-full bg-mint/15 px-1.5 py-0.5 text-[11px] font-semibold text-mint">{delta}</span>}
+   232→      </div>
+   233→      <div className="mt-3 text-[24px] font-bold leading-none">{value}</div>
+   234→      {hint && <div className="mt-1.5 text-[11.5px] text-white/35">{hint}</div>}
+   235→    </div>
+   236→  );
+   237→}
+   238→
+   239→/* -------------------------------- Tenants -------------------------------- */
+   240→
+   241→function TenantsView() {
+   242→  const { toast } = useToast();
+   243→  const [selected, setSelected] = useState<Tenant | null>(null);
+   244→  return (
+   245→    <div className="space-y-5">
+   246→      <div className="flex flex-wrap items-center justify-between gap-3">
+   247→        <div className="flex gap-2">
+   248→          <input placeholder="Search tenants…" className="h-9 w-64 rounded-xl border border-white/10 bg-brand px-3.5 text-[13px] text-white placeholder:text-white/30 outline-none focus:border-mint/50" />
+   249→        </div>
+   250→        <Button size="sm" className="h-9 rounded-xl bg-mint text-[12.5px] text-brand-deep hover:bg-mint/90" onClick={() => toast({ title: "Impersonation request", description: "Design placeholder — super-admin tenant impersonation flow." })}>
+   251→          + Provision tenant
+   252→        </Button>
+   253→      </div>
+   254→
+   255→      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-brand">
+   256→        <table className="w-full min-w-[760px] text-left text-[13px]">
+   257→          <thead>
+   258→            <tr className="border-b border-white/10 text-[11px] uppercase tracking-wider text-white/35">
+   259→              <th className="px-5 py-3 font-medium">Business</th>
+   260→              <th className="px-3 py-3 font-medium">Plan</th>
+   261→              <th className="px-3 py-3 font-medium">Locations</th>
+   262→              <th className="px-3 py-3 font-medium">MRR</th>
+   263→              <th className="px-3 py-3 font-medium">Reviews</th>
+   264→              <th className="px-3 py-3 font-medium">Status</th>
+   265→              <th className="px-5 py-3 text-right font-medium">Actions</th>
+   266→            </tr>
+   267→          </thead>
+   268→          <tbody>
+   269→            {TENANTS.map((t) => (
+   270→              <tr key={t.id} className="border-b border-white/5 last:border-0 transition-colors hover:bg-white/[0.03]">
+   271→                <td className="px-5 py-3.5">
+   272→                  <p className="font-semibold text-white">{t.business}</p>
+   273→                  <p className="text-[11.5px] text-white/40">{t.owner} · since {t.since}</p>
+   274→                </td>
+   275→                <td className="px-3 py-3.5"><Badge variant="outline" className="border-white/15 text-white/70">{t.plan}</Badge></td>
+   276→                <td className="px-3 py-3.5 text-white/60">{t.locations}</td>
+   277→                <td className="px-3 py-3.5 font-semibold text-mint">₹{t.mrr.toLocaleString("en-IN")}</td>
+   278→                <td className="px-3 py-3.5 text-white/60">{t.reviews.toLocaleString("en-IN")}</td>
+   279→                <td className="px-3 py-3.5"><AdminStatus status={t.status} /></td>
+   280→                <td className="px-5 py-3.5 text-right">
+   281→                  <Button size="sm" variant="outline" className="h-7 border-white/15 bg-transparent px-2.5 text-[11.5px] text-white/60 hover:bg-white/5 hover:text-white"
+   282→                    onClick={() => setSelected(t)}>
+   283→                    Manage
+   284→                  </Button>
+   285→                </td>
+   286→              </tr>
+   287→            ))}
+   288→          </tbody>
+   289→        </table>
+   290→      </div>
+   291→
+   292→      <div className="grid gap-4 md:grid-cols-3">
+   293→        <DarkCard icon={<Users size={16} />} title="Roles & access" desc="Super-admin, support (read-only), billing manager. Every action audit-logged." />
+   294→        <DarkCard icon={<KeyRound size={16} />} title="Impersonation" desc="Support can enter a tenant workspace with consent banner + time-boxed session." />
+   295→        <DarkCard icon={<Activity size={16} />} title="Tenant health" desc="Sync failures, low adoption, quota warnings — surfaced before churn calls." />
+   296→      </div>
+   297→
+   298→      <TenantDrawer tenant={selected} onClose={() => setSelected(null)} />
+   299→    </div>
+   300→  );
+   301→}
+   302→
+   303→function AdminStatus({ status }: { status: string }) {
+   304→  const map: Record<string, string> = {
+   305→    active: "bg-mint/15 text-mint",
+   306→    trial: "bg-amber-soft/15 text-amber-300",
+   307→    past_due: "bg-red-400/15 text-red-300",
+   308→  };
+   309→  const label = status === "past_due" ? "Past due" : status.charAt(0).toUpperCase() + status.slice(1);
+   310→  return <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold", map[status])}>{label}</span>;
+   311→}
+   312→
+   313→function DarkCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
+   314→  return (
+   315→    <div className="rounded-2xl border border-white/10 bg-brand p-4">
+   316→      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-mint/15 text-mint">{icon}</span>
+   317→      <h4 className="mt-3 text-[13.5px] font-semibold">{title}</h4>
+   318→      <p className="mt-1 text-[12px] leading-relaxed text-white/40">{desc}</p>
+   319→    </div>
+   320→  );
+   321→}
+   322→
+   323→/* -------------------------------- Billing -------------------------------- */
+   324→
+   325→function BillingView() {
+   326→  const { toast } = useToast();
+   327→  return (
+   328→    <div className="space-y-5">
+   329→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   330→        <DarkStat label="Settled (Sep)" value="₹2.13L" hint="Razorpay · T+2 settlement" icon={<Landmark size={15} />} />
+   331→        <DarkStat label="Failed payments" value="1" hint="Cafe Mandala · retry 2/5" icon={<Wallet size={15} />} />
+   332→        <DarkStat label="Add-on revenue" value="₹18.4k" hint="AI credits + extra locations" icon={<Layers size={15} />} />
+   333→        <DarkStat label="Annual contracts" value="2" hint="12-month · 2 months free" icon={<CreditCard size={15} />} />
+   334→      </div>
+   335→
+   336→      {PAYMENTS.filter((p) => p.status === "failed").map((p) => (
+   337→        <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/20 bg-red-400/10 p-4">
+   338→          <div className="text-[13px]">
+   339→            <p className="font-semibold text-red-300">Auto-debit failed — {p.tenant}</p>
+   340→            <p className="mt-0.5 text-[12px] text-white/50">{p.method} · {p.date} · smart dunning: retry on day {3}/5, WhatsApp payment link armed</p>
+   341→          </div>
+   342→          <Button size="sm" className="h-8 rounded-xl bg-mint text-[12px] text-brand-deep hover:bg-mint/90" onClick={() => toast({ title: "Payment link sent", description: `WhatsApp link dispatched to ${p.tenant}'s billing contact.` })}>
+   343→            Send WhatsApp payment link
+   344→          </Button>
+   345→        </div>
+   346→      ))}
+   347→
+   348→      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-brand">
+   349→        <table className="w-full min-w-[680px] text-left text-[13px]">
+   350→          <thead>
+   351→            <tr className="border-b border-white/10 text-[11px] uppercase tracking-wider text-white/35">
+   352→              <th className="px-5 py-3 font-medium">Payment</th>
+   353→              <th className="px-3 py-3 font-medium">Tenant</th>
+   354→              <th className="px-3 py-3 font-medium">Amount</th>
+   355→              <th className="px-3 py-3 font-medium">Method</th>
+   356→              <th className="px-3 py-3 font-medium">Status</th>
+   357→              <th className="px-5 py-3 font-medium">Date</th>
+   358→            </tr>
+   359→          </thead>
+   360→          <tbody>
+   361→            {PAYMENTS.map((p) => (
+   362→              <tr key={p.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.03]">
+   363→                <td className="px-5 py-3 font-mono text-[11.5px] text-white/50">{p.id}</td>
+   364→                <td className="px-3 py-3 font-medium text-white/85">{p.tenant}</td>
+   365→                <td className="px-3 py-3 font-semibold">{p.amount}</td>
+   366→                <td className="px-3 py-3 text-white/50">{p.method}</td>
+   367→                <td className="px-3 py-3">
+   368→                  <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold", p.status === "captured" ? "bg-mint/15 text-mint" : "bg-red-400/15 text-red-300")}>
+   369→                    {p.status}
+   370→                  </span>
+   371→                </td>
+   372→                <td className="px-5 py-3 text-white/50">{p.date}</td>
+   373→              </tr>
+   374→            ))}
+   375→          </tbody>
+   376→        </table>
+   377→      </div>
+   378→
+   379→      <div className="grid gap-4 md:grid-cols-3">
+   380→        <DarkCard icon={<RefreshCw size={16} />} title="Proration engine" desc="Mid-cycle upgrades bill per day immediately; downgrades become invoice credit." />
+   381→        <DarkCard icon={<Wallet size={16} />} title="Dunning ladder" desc="Retries day 1/3/5/7, WhatsApp payment links, auto-downgrade to Starter before suspension." />
+   382→        <DarkCard icon={<Webhook size={16} />} title="Razorpay events" desc="signature-verified webhooks reconcile invoices within 30 seconds." />
+   383→      </div>
+   384→    </div>
+   385→  );
+   386→}
+   387→
+   388→/* ----------------------------- Plans & pricing ---------------------------- */
+   389→
+   390→function PlansView() {
+   391→  const { toast } = useToast();
+   392→  return (
+   393→    <div className="space-y-5">
+   394→      <div className="grid gap-4 lg:grid-cols-3">
+   395→        {PLANS.map((p) => (
+   396→          <div key={p.name} className={cn("relative rounded-2xl border p-5", p.highlight ? "border-mint/60 bg-brand ring-1 ring-mint/30" : "border-white/10 bg-brand")}>
+   397→            {p.highlight && (
+   398→              <span className="absolute -top-2.5 left-5 rounded-full bg-mint px-2.5 py-0.5 text-[10.5px] font-bold text-brand-deep">Most popular</span>
+   399→            )}
+   400→            <div className="flex items-baseline justify-between">
+   401→              <h3 className="text-[16px] font-bold">{p.name}</h3>
+   402→              <p className="text-[22px] font-bold text-mint">
+   403→                {p.price}<span className="text-[12px] font-medium text-white/40">{p.period}</span>
+   404→              </p>
+   405→            </div>
+   406→            <p className="mt-1 text-[12.5px] text-white/45">{p.blurb}</p>
+   407→            <ul className="mt-4 space-y-2">
+   408→              {p.features.map((f) => (
+   409→                <li key={f} className="flex items-start gap-2 text-[12.5px] text-white/70">
+   410→                  <Check size={13} className="mt-0.5 shrink-0 text-mint" /> {f}
+   411→                </li>
+   412→              ))}
+   413→            </ul>
+   414→            <Button size="sm" className={cn("mt-5 h-9 w-full rounded-xl text-[12.5px]", p.highlight ? "bg-mint text-brand-deep hover:bg-mint/90" : "border border-white/15 bg-transparent text-white hover:bg-white/5")}
+   415→              onClick={() => toast({ title: `Edit ${p.name} plan`, description: "Plan editor — design placeholder for price, quota and feature flags." })}>
+   416→              Edit plan
+   417→            </Button>
+   418→          </div>
+   419→        ))}
+   420→      </div>
+   421→
+   422→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+   423→        <h3 className="text-[15px] font-semibold">Usage-based add-ons</h3>
+   424→        <p className="mt-0.5 text-xs text-white/40">Billed with the monthly invoice · quotas enforced softly with upgrade prompts</p>
+   425→        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+   426→          {ADDONS.map((a) => (
+   427→            <div key={a.name} className="rounded-xl border border-white/10 bg-brand-deep/50 p-3.5">
+   428→              <p className="text-[13px] font-semibold">{a.name}</p>
+   429→              <p className="text-[11.5px] text-white/40">{a.detail}</p>
+   430→              <p className="mt-2 text-[15px] font-bold text-mint">{a.price}<span className="text-[11px] font-medium text-white/35"> /mo</span></p>
+   431→            </div>
+   432→          ))}
+   433→        </div>
+   434→      </div>
+   435→
+   436→      <div className="grid gap-4 md:grid-cols-2">
+   437→        <DarkCard icon={<CreditCard size={16} />} title="Checkout" desc="Razorpay subscription sessions created from the admin or public pricing page; GST invoices auto-issued." />
+   438→        <DarkCard icon={<Gauge size={16} />} title="Quota display" desc="Tenants see live meters for drafts, WhatsApp messages and locations — no surprise overage." />
+   439→      </div>
+   440→    </div>
+   441→  );
+   442→}
+   443→
+   444→/* --------------------------------- System -------------------------------- */
+   445→
+   446→function SystemView() {
+   447→  const { toast } = useToast();
+   448→  return (
+   449→    <div className="space-y-5">
+   450→      <div className="grid gap-4 lg:grid-cols-3">
+   451→        {SYSTEM_JOBS.map((j) => (
+   452→          <div key={j.name} className={cn("rounded-2xl border p-4", j.state === "healthy" ? "border-white/10 bg-brand" : "border-amber-300/25 bg-amber-soft/5")}>
+   453→            <div className="flex items-center justify-between">
+   454→              <p className="font-mono text-[13px] font-semibold text-white">{j.name}</p>
+   455→              <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold", j.state === "healthy" ? "bg-mint/15 text-mint" : "bg-amber-soft/15 text-amber-300")}>
+   456→                <span className={cn("h-1.5 w-1.5 rounded-full", j.state === "healthy" ? "animate-pulse bg-mint" : "bg-amber-300")} />
+   457→                {j.state}
+   458→              </span>
+   459→            </div>
+   460→            <p className="mt-1.5 text-[12px] text-white/45">{j.desc}</p>
+   461→            <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-[11.5px] text-white/40">
+   462→              <span>{j.queue}</span>
+   463→              <span>{j.latency}</span>
+   464→            </div>
+   465→          </div>
+   466→        ))}
+   467→        <button
+   468→          onClick={() => toast({ title: "Runbook opened", description: "Incident runbooks — design placeholder." })}
+   469→          className="flex min-h-[140px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/15 p-4 text-center transition-colors hover:border-mint/50"
+   470→        >
+   471→          <Webhook size={20} className="text-white/30" />
+   472→          <p className="mt-2 text-[12.5px] font-medium text-white/50">Incident runbooks & on-call</p>
+   473→          <p className="text-[11px] text-white/30">retry policies, circuit breakers, alert routing</p>
+   474→        </button>
+   475→      </div>
+   476→
+   477→      <div className="grid gap-4 md:grid-cols-3">
+   478→        <DarkCard icon={<Server size={16} />} title="Single-VPS deployment" desc="Docker Compose on Hostinger: nginx, app, worker, Postgres, Redis. Nightly encrypted backups, 2-hour restore target." />
+   479→        <DarkCard icon={<KeyRound size={16} />} title="Secrets & keys" desc="Google OAuth, WhatsApp HSM templates, Razorpay webhooks — rotated quarterly, least-privilege scopes." />
+   480→        <DarkCard icon={<Activity size={16} />} title="Audit trail" desc="Every admin action, login and impersonation event is immutable-logged and exportable." />
+   481→      </div>
+   482→    </div>
+   483→  );
+   484→}
+   485→
+   486→/* ----------------------------- Tenant drawer ----------------------------- */
+   487→
+   488→function TenantDrawer({ tenant, onClose }: { tenant: Tenant | null; onClose: () => void }) {
+   489→  const { toast } = useToast();
+   490→  const open = tenant !== null;
+   491→  return (
+   492→    <div className={cn("fixed inset-0 z-50", !open && "pointer-events-none")} aria-hidden={!open}>
+   493→      <button
+   494→        onClick={onClose}
+   495→        aria-label="Close tenant details"
+   496→        tabIndex={open ? 0 : -1}
+   497→        className={cn("absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300", open ? "opacity-100" : "opacity-0")}
+   498→      />
+   499→      <aside
+   500→        className={cn(
+   501→          "absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-white/10 bg-brand shadow-2xl transition-transform duration-300 ease-out",
+   502→          open ? "translate-x-0" : "translate-x-full"
+   503→        )}
+   504→        role="dialog"
+   505→        aria-label="Tenant details"
+   506→      >
+   507→        {tenant && <TenantDrawerBody key={tenant.id} tenant={tenant} onClose={onClose} toast={toast} />}
+   508→      </aside>
+   509→    </div>
+   510→  );
+   511→}
+   512→
+   513→function TenantDrawerBody({ tenant: t, onClose, toast }: {
+   514→  tenant: Tenant;
+   515→  onClose: () => void;
+   516→  toast: ReturnType<typeof useToast>["toast"];
+   517→}) {
+   518→  const d = TENANT_DETAILS[t.id];
+   519→  if (!d) return null;
+   520→  const maxMrr = Math.max(...d.mrrSeries.map((p) => p.mrr), 1);
+   521→  const points = d.mrrSeries.map((p, i) => `${(i / (d.mrrSeries.length - 1)) * 264},${54 - (p.mrr / maxMrr) * 44}`).join(" ");
+   522→
+   523→  return (
+   524→    <>
+   525→      <header className="flex items-start justify-between border-b border-white/10 px-5 py-4">
+   526→        <div className="flex items-center gap-3">
+   527→          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint/15 text-[13px] font-bold text-mint">
+   528→            {t.business.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+   529→          </span>
+   530→          <div>
+   531→            <p className="text-[14.5px] font-bold text-white">{t.business}</p>
+   532→            <p className="text-[11.5px] text-white/40">{t.owner} · since {t.since}</p>
+   533→          </div>
+   534→          <AdminStatus status={t.status} />
+   535→        </div>
+   536→        <button onClick={onClose} className="rounded-lg p-2 text-white/40 transition-colors hover:bg-white/5 hover:text-white" aria-label="Close">
+   537→          <X size={16} />
+   538→        </button>
+   539→      </header>
+   540→
+   541→      <div className="flex-1 space-y-4 overflow-y-auto p-5">
+   542→        {/* plan + mrr */}
+   543→        <div className="rounded-2xl border border-white/10 bg-brand-deep/40 p-4">
+   544→          <div className="flex items-center justify-between">
+   545→            <div>
+   546→              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Plan · MRR</p>
+   547→              <p className="mt-1 text-[22px] font-bold text-mint">₹{t.mrr.toLocaleString("en-IN")}<span className="ml-1.5 text-[11.5px] font-medium text-white/40">/ month</span></p>
+   548→            </div>
+   549→            <Badge variant="outline" className="border-mint/40 bg-mint/10 text-mint hover:bg-mint/10">{t.plan} plan</Badge>
+   550→          </div>
+   551→          <svg viewBox="0 0 264 58" className="mt-3 w-full" aria-hidden>
+   552→            <polyline points={points} fill="none" stroke="#88d6a0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+   553→            <circle cx="264" cy={54 - (d.mrrSeries[d.mrrSeries.length - 1].mrr / maxMrr) * 44} r="3.5" fill="#88d6a0" />
+   554→          </svg>
+   555→          <div className="flex justify-between font-mono text-[9.5px] text-white/25">
+   556→            <span>{d.mrrSeries[0].m}</span>
+   557→            <span>latest</span>
+   558→          </div>
+   559→          <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-[11.5px]">
+   560→            <span className="text-white/40">Next invoice</span>
+   561→            <span className={cn("font-semibold", t.status === "past_due" ? "text-amber-300" : "text-white/80")}>{d.nextInvoice}</span>
+   562→          </div>
+   563→        </div>
+   564→
+   565→        {/* status banners */}
+   566→        {t.status === "past_due" && (
+   567→          <div className="rounded-2xl border border-red-400/25 bg-red-400/10 p-3.5 text-[12px]">
+   568→            <p className="font-semibold text-red-300">Dunning in progress — day 9 of 14</p>
+   569→            <p className="mt-0.5 text-white/50">AI generation and WhatsApp sending are paused. Suspension auto-scheduled unless a retry succeeds.</p>
+   570→            <Button size="sm" className="mt-2.5 h-7 rounded-lg bg-mint px-3 text-[11.5px] font-semibold text-brand-deep hover:bg-mint/90"
+   571→              onClick={() => toast({ title: "Payment link sent", description: `Fresh Razorpay link dispatched to ${d.contact.person} on WhatsApp.` })}>
+   572→              Send payment link
+   573→            </Button>
+   574→          </div>
+   575→        )}
+   576→        {t.status === "trial" && (
+   577→          <div className="rounded-2xl border border-amber-300/25 bg-amber-soft/10 p-3.5 text-[12px]">
+   578→            <p className="font-semibold text-amber-300">Trial ends in 12 days</p>
+   579→            <p className="mt-0.5 text-white/50">Usage is healthy — 18 drafts and 44 messages sent. Conversion nudge is armed for day −3.</p>
+   580→          </div>
+   581→        )}
+   582→
+   583→        {/* usage */}
+   584→        <div className="rounded-2xl border border-white/10 bg-brand-deep/40 p-4">
+   585→          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Usage this month</p>
+   586→          <div className="mt-3 space-y-3">
+   587→            {d.usage.map((u) => {
+   588→              const pct = Math.min(100, Math.round((u.used / u.quota) * 100));
+   589→              return (
+   590→                <div key={u.label}>
+   591→                  <div className="flex items-baseline justify-between text-[11.5px]">
+   592→                    <span className="font-medium text-white/70">{u.label}</span>
+   593→                    <span className={cn("font-mono", u.warn ? "text-amber-300" : "text-white/40")}>
+   594→                      {u.used.toLocaleString("en-IN")} / {u.quota.toLocaleString("en-IN")}
+   595→                    </span>
+   596→                  </div>
+   597→                  <div className="mt-1 h-1.5 rounded-full bg-white/10">
+   598→                    <div className={cn("h-full rounded-full", u.warn ? "bg-amber-300" : "bg-mint")} style={{ width: `${pct}%` }} />
+   599→                  </div>
+   600→                  <p className="mt-0.5 text-[10px] text-white/30">{u.unit}</p>
+   601→                </div>
+   602→              );
+   603→            })}
+   604→          </div>
+   605→        </div>
+   606→
+   607→        {/* reputation health */}
+   608→        <div className="rounded-2xl border border-white/10 bg-brand-deep/40 p-4">
+   609→          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Reputation health</p>
+   610→          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+   611→            {d.health.map((h) => (
+   612→              <div key={h.label}>
+   613→                <div className="flex items-baseline justify-between text-[11px]">
+   614→                  <span className="truncate text-white/60">{h.label}</span>
+   615→                  <span className="font-bold text-white">{h.score}</span>
+   616→                </div>
+   617→                <div className="mt-1 h-1.5 rounded-full bg-white/10">
+   618→                  <div className={cn("h-full rounded-full", h.score >= 85 ? "bg-mint" : h.score >= 70 ? "bg-amber-300" : "bg-red-400")} style={{ width: `${h.score}%` }} />
+   619→                </div>
+   620→              </div>
+   621→            ))}
+   622→          </div>
+   623→          <p className="mt-3 text-[10.5px] text-white/30">Composite health score: {Math.round(d.health.reduce((s, h) => s + h.score, 0) / d.health.length)}/100</p>
+   624→        </div>
+   625→
+   626→        {/* activity */}
+   627→        <div className="rounded-2xl border border-white/10 bg-brand-deep/40 p-4">
+   628→          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Recent activity</p>
+   629→          <div className="mt-3 space-y-3.5">
+   630→            {d.activity.map((a, i) => (
+   631→              <div key={i} className="relative flex gap-3 pl-1">
+   632→                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-mint ring-4 ring-mint/10" />
+   633→                {i < d.activity.length - 1 && <span className="absolute left-[4.5px] top-5 h-full w-px bg-white/10" />}
+   634→                <div className="pb-0.5">
+   635→                  <p className="text-[12px] font-semibold text-white/85">{a.label}</p>
+   636→                  <p className="text-[11px] leading-snug text-white/40">{a.desc}</p>
+   637→                  <p className="mt-0.5 font-mono text-[10px] text-white/25">{a.t}</p>
+   638→                </div>
+   639→              </div>
+   640→            ))}
+   641→          </div>
+   642→        </div>
+   643→
+   644→        {/* contact + compliance */}
+   645→        <div className="rounded-2xl border border-white/10 bg-brand-deep/40 p-4 text-[12px]">
+   646→          <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Account</p>
+   647→          <div className="mt-2.5 space-y-1.5 text-white/60">
+   648→            <p>{d.contact.person} · {d.contact.role}</p>
+   649→            <p className="font-mono text-[11.5px]">{d.contact.phone} · {d.contact.email}</p>
+   650→            <p className="text-white/40">GSTIN {d.gstin} · invoices auto-issued with GST breakup</p>
+   651→          </div>
+   652→        </div>
+   653→
+   654→        {/* actions */}
+   655→        <div className="grid grid-cols-3 gap-2">
+   656→          <Button size="sm" className="h-9 rounded-xl bg-mint text-[11.5px] font-semibold text-brand-deep hover:bg-mint/90"
+   657→            onClick={() => toast({ title: "Impersonation session", description: `Time-boxed 30-min session into ${t.business} with consent banner. Fully audit-logged.` })}>
+   658→            <UserPlus size={12} className="mr-1" /> Impersonate
+   659→          </Button>
+   660→          <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/15 bg-transparent text-[11.5px] text-white/70 hover:bg-white/5 hover:text-white"
+   661→            onClick={() => toast({ title: "Plan change drafted", description: `Proration preview ready for ${t.business} — confirm to apply at cycle edge.` })}>
+   662→            <Layers size={12} className="mr-1" /> Plan
+   663→          </Button>
+   664→          <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/15 bg-transparent text-[11.5px] text-white/70 hover:bg-white/5 hover:text-white"
+   665→            onClick={() => toast({ title: "Billing opened", description: `Invoices, credits and dunning ladder for ${t.business}.` })}>
+   666→            <Wallet size={12} className="mr-1" /> Billing
+   667→          </Button>
+   668→        </div>
+   669→      </div>
+   670→    </>
+   671→  );
+   672→}
+   673→

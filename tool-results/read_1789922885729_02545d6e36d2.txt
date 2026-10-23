@@ -1,0 +1,353 @@
+     1→# Worklog
+     2→
+     3→---
+     4→Task ID: 1
+     5→Agent: main (Super Z)
+     6→Task: Sensiblee SaaS platform - two production specification PDFs (Phase 1 MVP + Phase 2) + logo pack
+     7→
+     8→Work Log:
+     9→- Loaded pdf + docx skills; routed to PDF Report route (ReportLab) per brief
+    10→- Asked clarifying questions; user re-confirmed original brief; proceeded with build-ready depth, Next.js stack, INR pricing, PDF format, brand palette (#1F2937/#FEF3C7/#88D6A0/#F9FAFB/#FEFCF5)
+    11→- Read ALL pdf skill files: SKILL.md, briefs/report.md, configs/fonts.md, typesetting/{cover,palette,overflow,pagination,typography,charts,fill-engine,geometry,cover-backgrounds}.md
+    12→- Outline submitted (38 sections: 20 for Phase 1 doc, 18 for Phase 2 doc)
+    13→- Verified env: playwright node OK, reportlab/pypdf/matplotlib/PIL OK, FreeSerif fonts present
+    14→
+    15→Stage Summary:
+    16→- Plan: brand palette maps to cascade tiers (FEFCF5=XL page bg, F9FAFB=surface, 1F2937=M header fill + text, 88D6A0=XS accent, FEF3C7=L callout tint); TocDocTemplate+multiBuild; covers via Template 07 structure adapted to brand slate bg, rendered with html2poster.js --width 794px; merge via pypdf; QA via pdf_qa.py + font.check + toc.check + pages.clean
+    17→- Assets dir: /home/z/my-project/scripts/sensiblee/assets; deliverables: /home/z/my-project/download/sensiblee/
+    18→
+    19→---
+    20→Task ID: 2
+    21→Agent: main (Super Z)
+    22→Task: Build all deliverables (logo pack, diagrams, charts, 2 spec PDFs) and QA
+    23→
+    24→Work Log:
+    25→- Logo: designed S-wave SVG mark (slate tile + mint wave + amber dot), 4 text-perfect lockups via Playwright screenshots at 3x, plus z-ai AI exploration image -> download/sensiblee/brand/
+    26→- Diagrams: diagram_arch (Phase 1 deployment), diagram_pipeline (review lifecycle), diagram_phase2 (platform map) as HTML+CSS with SVG connectors, shot at 2x, overlap fixes applied
+    27→- Charts: make_charts.py (rating trend line, sentiment donut w/ rich legend, request funnel) following charts.md (no top/right spines, dashed grid, constrained_layout)
+    28→- Engine: sensiblee_common.py - FreeSerif family + install_font_fallback, brand palette mapped to cascade tiers, TocDocTemplate+multiBuild w/ clickable TOC + body-start roman/arabic footer, safe_keep_together, CondPageBreak H1 guard, Paragraph-wrapped zebra tables w/ width assertion
+    29→- Phase 1: content_p1a/b (20 chapters), gen_phase1.py -> 31-page body; cover_phase1.html (Template 07 adapted, poster_validate+cover_validate PASS) -> html2poster 794px -> pypdf merge (32 pages)
+    30→- Phase 2: content_p2a/b (19 chapters), gen_phase2.py -> 19-page body; cover_phase2.html -> merged (20 pages)
+    31→- QA: code.sanitize before each run; meta.brand, pages.clean, font.check (0 issues), toc.check (clean) on both; pdf_qa.py --skip-cover: PASS with 2 known false positives (stat-card row flagged as off-center tables; TOC-clickability heuristic - verified 58+42 /Link+Dest annotations present and valid)
+    32→- Fixed cover icon absolute-path bug (relative path per skill rule); delivered HTML sources in download/sensiblee/sources/
+    33→
+    34→Stage Summary:
+    35→- Deliverables: Sensiblee_Phase1_MVP_Production_Specification.pdf (32pp), Sensiblee_Phase2_Platform_Augmentation_Specification.pdf (20pp), brand pack (4 lockups + SVG icon + AI exploration), editable sources
+    36→- All content English, INR pricing, Next.js/JSX stack, Hostinger deployment, least-dependency architecture documented
+    37→
+    38→---
+    39→Task ID: 3
+    40→Agent: main (Super Z)
+    41→Task: Final verification and delivery of Sensiblee package
+    42→
+    43→Work Log:
+    44→- Re-verified both PDFs after context resumption: Phase 1 = 32pp/0.91MB/90 links, Phase 2 = 20pp/0.50MB/42 links, zero empty pages, correct metadata titles
+    45→- pypdf text-extraction quirk (KeyError bbox) identified as pypdf font-parser bug, not corruption - pymupdf verification clean
+    46→- Visual spot-check rendered 11 sample pages: covers, TOC, requirement tables, API tables, logo chapter embed, risk register, release train, success metrics - all render correctly with brand styling
+    47→- Verified brand pack: 4 lockups + AI exploration + SVG icon present and rendering correctly
+    48→- Replaced placeholder download/README.md with full package index (contents, brand guide, palette, decisions)
+    49→
+    50→Stage Summary:
+    51→- All deliverables confirmed and delivered in /home/z/my-project/download/sensiblee/
+    52→- Package: 2 spec PDFs, 5 brand PNGs, 8 editable sources, README index
+    53→
+    54→---
+    55→Task ID: 4
+    56→Agent: main (Super Z)
+    57→Task: Sensiblee UI/UX design prototype (interactive Next.js web app)
+    58→
+    59→Work Log:
+    60→- Loaded fullstack-dev skill; initialized scaffold; copied brand assets (sensiblee-icon.svg, lockup) to public/
+    61→- Design system: brand tokens in globals.css (--color-brand #1F2937, mint #88D6A0, amber #FEF3C7, cream #FEFCF5, surface #F9FAFB), Sensiblee metadata + favicon, LogoMark/LogoLockup inline SVG from vector source
+    62→- Built src/components/sensiblee/: data.ts (Spice Route Kitchen mock tenant: 8 reviews, campaigns, funnel, AI queue, trends, tenants, payments, INR plans, system jobs), brand.tsx (logo, StarRating, Sentiment/Status badges, GoogleG, WhatsApp/Qr icons), widgets.tsx (StatCard, recharts rating-trend/sentiment-donut/location-compare/MRR charts, funnel bars, deterministic QR pattern), client-dashboard.tsx + client-views2.tsx, admin-console.tsx
+    63→- Client surface (app.sensiblee.com, cream): sidebar shell + Overview, Review monitor (filters, AI drafts), WhatsApp/QR Requests composer, AI Assistant approval queue with working approve/edit/regenerate + toast + queue decrement, Analytics, Locations/sync engine
+    64→- Admin surface (admin.sensiblee.com, dark slate): Platform overview (MRR, collections watchlist, AI cost), Tenants, Billing/dunning, Plans & add-ons (INR), System health
+    65→- Landing entry: brand hero, module cards A-D, design-system strip (palette, 3 surfaces), separate-URL chips
+    66→- Fixed: brand-vs-deps import split across 4 files, missing Palette export, QrPattern refactored to pure function (react-hooks rules), eslint ignores for scripts/
+    67→- QA: bun lint clean; dev.log clean; agent-browser E2E: landing -> client (all 6 views + approve flow + toast) -> landing -> admin (all 5 views); mobile 390px (drawer nav, responsive grids); 0 console errors
+    68→
+    69→Stage Summary:
+    70→- Deliverable: interactive UI/UX design prototype on port 3000, single / route with surface switching
+    71→- 12 screens across 2 brand surfaces + landing, all interactive, mock-data driven, brand system applied throughout
+    72→
+    73→---
+    74→Task ID: 4-final
+    75→Agent: main (Super Z)
+    76→Task: Final delivery of UI/UX design prototype after session resume
+    77→
+    78→Work Log:
+    79→- Verified project tree intact: src/components/sensiblee/ (7 files: data, brand, widgets, client-dashboard, client-views2, admin-console, deps), src/app (globals.css with brand tokens, layout, page), public/ (sensiblee-icon.svg, lockup)
+    80→- Dev server confirmed running: HTTP 200 on localhost:3000
+    81→- Smoke test on rendered HTML: landing hero, client surface chip (app.sensiblee.com), admin surface chip (admin.sensiblee.com), brand palette, logo SVG — all PASS
+    82→- Called Complete tool to finalize delivery
+    83→
+    84→Stage Summary:
+    85→- UI/UX design prototype delivered: landing + client dashboard (6 views) + admin console (5 views), brand co-designed with S-wave logo, mint/amber/slate palette applied across both surfaces
+    86→
+    87→---
+    88→Task ID: 5
+    89→Agent: main (Super Z)
+    90→Task: Full marketing website + multi-view router (UI/UX and app co-designed, marketing pages added)
+    91→
+    92→Work Log:
+    93→- Loaded fullstack-dev skill; confirmed single-route constraint (/) — kept state-driven surface architecture
+    94→- Restructured page.tsx: top-level router (home | features | how | pricing | about | contact | privacy | terms | client | admin) with scroll-to-top on view change
+    95→- New src/components/sensiblee/marketing-chrome.tsx: MarketingNav (sticky, active-dot nav, mobile hamburger panel, Sign in + Book a demo) + MarketingFooter (dark slate, 4-column sitemap, WhatsApp/email, surface chips) + PageHero
+    96→- New marketing-pages.tsx: Features (4 module deep-dives with alternating mock visuals: review list / WhatsApp template + QR / AI draft card / health score bars), How it works (4-step connector timeline + trust cards), Pricing (monthly/annual toggle with live INR recalculation, highlighted Growth card, add-ons, 8-row comparison table, 6-question FAQ accordion) + CtaBand
+    97→- New marketing-pages2.tsx: About (story, values, brand palette strip), Contact (validated book-a-demo form with chip selectors, error states, success state; WhatsApp/email-only side cards, next-steps timeline), Privacy + Terms (6-section legal pages)
+    98→- Enhanced Home: hero with mint S-wave underline + full interactive product preview mock (window chrome, stat chips, SVG rating trend, AI draft card, review row), stats strip, module cards, how-teaser, 3 testimonials, pricing teaser, surfaces strip
+    99→- deps.ts: added ArrowRight, CheckCircle2, Quote, Linkedin, Instagram, Link2, Rocket, MessagesSquare, Smartphone, FileText, BadgeCheck
+   100→- layout.tsx metadata updated to marketing positioning (title, description, OG tags)
+   101→- QA: bun lint clean; agent-browser E2E — home hero/preview/stats, Features, How, Pricing (annual toggle → ₹1,249/₹2,916/₹5,833 verified, FAQ accordion opens), About, Contact (empty-submit validation errors verified; filled form → success state verified), Privacy, Terms, client dashboard entry via nav Sign in, admin via footer link; mobile 390px (hamburger menu, pricing, client drawer nav); 0 console errors throughout
+   102→
+   103→Stage Summary:
+   104→- Deliverable: complete marketing website (8 views) + client dashboard + admin console in one interactive prototype
+   105→- Marketing site co-designed with brand system: cream canvas, mint actions, slate console, S-wave mark carried through nav/footer/pages
+   106→- 20+ screens total across marketing + app surfaces, all browser-verified
+   107→
+   108→---
+   109→Task ID: 6
+   110→Agent: main (Super Z)
+   111→Task: Marketing depth (Customer Stories + Security & Trust) + app depth (Onboarding wizard, Settings, Review drawer)
+   112→
+   113→Work Log:
+   114→- marketing-pages3.tsx: StoriesPage (featured Spice Route case study with challenge/steps/results grid, Lumiere + Iron & Iris cards, aggregate strip) + SecurityPage (4 pillars, Google/WhatsApp/DPDP compliance cards, subprocessor table, SLA + practices, security@sensiblee.com note)
+   115→- marketing-chrome.tsx: MarketingView + "stories"/"security"; nav adds Stories; footer adds Customer stories (Company) + Security & trust (Legal)
+   116→- page.tsx: routes for stories/security; hero sub-links ("See customer stories" / "Security & trust")
+   117→- deps.ts: + Lock, Database, ScrollText, Fingerprint, UserPlus
+   118→- client-extras.tsx: OnboardingWizard (5-step overlay: OAuth consent → profile picker → WhatsApp sender + template + opt-in → tone chips with live sample → team invites → success screen; desktop rail + mobile progress bar), SettingsView (business profile + connected profiles, AI tone/auto-approve threshold slider, notification switches, team seats, plan & usage bars with 96% WhatsApp warning), ReviewDrawer (right slide-over: author card, sentiment/keywords, AI draft approve/edit/regenerate, internal note, activity timeline, awaiting state)
+   119→- client-dashboard.tsx: Settings nav item, Replay-onboarding sidebar button, Overview setup banner (90% complete), ReviewRow clickable with Details + keyboard access, drawer + wizard mounted at root
+   120→- FIX: client-extras.tsx STEPS[step].title crash on step 5 (success screen) — mobile progress bar was sm:hidden (CSS-only), not step-guarded; wrapped in {step < STEPS.length && ...}
+   121→- QA: bun lint clean; agent-browser E2E — Stories (featured + 2 cards + results), Security (all sections + subprocessor table), Settings (switch toggle + Save toast verified), wizard full walk desktop AND mobile 390px (progress bar, playful tone sample, invite chip, success screen, Go to dashboard), Review drawer (open, AI draft + 96% confidence, Approve→toast, note, awaiting state, close); console 0 errors after fix
+   122→- Note: dev-HMR churn caused phantom double-wizard/crash confusion during testing; root cause was the genuine step-5 render bug above, fixed and regression-verified on both viewports
+   123→
+   124→Stage Summary:
+   125→- Marketing site now 10 views: home, features, how, pricing, stories, security, about, contact, privacy, terms
+   126→- Client dashboard now 7 views + 2 overlays: overview, reviews, requests, ai, analytics, locations, settings + onboarding wizard + review detail drawer
+   127→- Prototype total ~27 interactive screens; all lint-clean and browser-verified
+   128→
+   129→---
+   130→Task ID: 7
+   131→Agent: main (Super Z)
+   132→Task: Loop-closure increment — guest QR surface (third surface), admin tenant drawer, client location drawer
+   133→
+   134→Work Log:
+   135→- data.ts: added TENANT_DETAILS (per-tenant MRR sparkline series, usage meters w/ warn flags, reputation health, activity timeline, contact/GSTIN/next invoice for all 6 tenants incl. Cafe Mandala dunning state + Bloom Florists trial state) and LOCATION_DETAILS (response stats, health breakdown, 5-entry sync logs w/ ok/warn/error states per location)
+   136→- guest-view.tsx (NEW): qr.sensiblee.in guest touchpoint — desktop shows explainer rail (3-step story, table-tent mock w/ QrPattern, no-PII/consent chips) + interactive phone frame; guest flow: mood tap (Smile/Meh/Frown) → happy path "rate us" (interactive star picker + Google hand-off) OR unhappy path private-feedback form (manager's phone, not the internet, disabled submit until text) → thank-you screen w/ WhatsApp loyalty opt-in switch + replay; "Powered by Sensiblee" footer
+   137→- admin-console.tsx: TenantDrawer dark slide-over (Manage button now opens it) — plan/MRR card w/ inline SVG sparkline, status banners (past_due dunning w/ Send payment link action; trial countdown), usage meters, reputation health grid + composite score, activity timeline, account/GSTIN, actions (Impersonate/Plan/Billing toasts)
+   138→- client-extras.tsx: LocationDrawer light slide-over — hero stats (rating/delta, reviews, response rate+avg), health breakdown w/ sub-70 warning note, location-filtered recent reviews w/ status badges, sync log w/ state icons, Sync now + Alert rules footer actions
+   139→- client-views2.tsx: LocationsView cards now clickable (role=button, keyboard access, hover lift, stopPropagation on inner buttons, Details ghost button); RequestsView QR kit card gains "Preview guest flow" button
+   140→- page.tsx: "guest" surface added w/ returnTo context (guest exit returns to home or client dashboard depending on origin); home surfaces strip third card now live (LIVE → chip) + "Open guest flow" CTA; ClientDashboard gets onPreviewGuest prop
+   141→- FIX: guest-view <p> containing LogoLockup <div> hydration error → div wrapper; LogoMark import cleanup
+   142→- FIX: pre-existing tsc error — LocationCompareChart data missing `responses` (added 212/168/96)
+   143→- deps.ts: + ChevronLeft, Smile, Meh, Frown
+   144→- QA: lint + tsc (src) clean; agent-browser E2E — guest happy path (mood→stars→post→thanks→opt-in), unhappy path (validation + private note), replay; return-context from client (remounts at overview, consistent w/ single-route architecture); admin drawer (Spice Route full content, Cafe Mandala dunning banner + payment-link toast); location drawer (HSR: 84% response, service 68 warning, 3 location-filtered reviews, sync log w/ error entry, both footer toasts); regression: home/client/pricing/stories OK; mobile 390px guest flow verified; console 0 errors after hydration fix
+   145→- Shots: guest-desktop, guest-mood-mob, guest-rate-mob, admin-tenant-drawer, location-drawer in scripts/sensiblee/shots/
+   146→
+   147→Stage Summary:
+   148→- Prototype now ~30 interactive screens across THREE surfaces: marketing (10 views), client dashboard (7 views + 3 overlays), admin console (5 views + tenant drawer), guest QR flow (4-step interactive)
+   149→- Full loop now demonstrable end-to-end: request (WhatsApp/QR) → guest experience (mood/rate/private note/opt-in) → review monitoring → AI draft → analytics → admin oversight
+   150→
+   151→---
+   152→Task ID: 7-end
+   153→Agent: main (Super Z)
+   154→Task: Session close — user signed off to continue tomorrow
+   155→
+   156→Work Log:
+   157→- User confirmed satisfaction ("its looking good") with Task 7 increment (guest QR surface + admin tenant drawer + client location drawer) and paused session
+   158→- No open bugs or incomplete work; all QA green at close (lint/tsc clean, 0 console errors)
+   159→
+   160→Stage Summary:
+   161→- State at pause: Sensiblee prototype ~30 screens / 3 surfaces, all verified; spec PDFs + brand pack delivered in download/sensiblee/
+   162→- Candidate next steps for tomorrow (user to choose): (a) polish/visual refinements from user review, (b) new screens or flows (e.g. competitor response view, WhatsApp inbox mock), (c) export prototype walkthrough as deck/PDF, (d) connect prototype to real backend scaffolding
+   163→
+   164→---
+   165→Task ID: 8
+   166→Agent: main (Super Z)
+   167→Task: Sensiblee — real & deployable full-stack build (marketing + client + admin + guest)
+   168→
+   169→Work Log:
+   170→- Loaded fullstack-dev + LLM skills; kept single-page-route architecture (sandbox) with URL-aware router (route-shared + router.tsx) synced to history API
+   171→- Prisma schema: 14 models (Tenant, Plan, User, Location, Review, AiDraft, Campaign, GuestFeedback, Invoice, ActivityLog, SyncLog, DemoRequest, SystemEvent); seeded 6 tenants / 9 locations / 78 reviews / 7 drafts / 7 campaigns / 24 feedback / 17 invoices (bun prisma/seed.ts)
+   172→- Auth: scrypt hashes + HMAC-signed httpOnly session cookie (lib/auth.ts); login/logout/me/signup/exit-impersonate; session context (lib/session.tsx); auth gates in app-shell for client/admin surfaces
+   173→- API (~30 route files): reviews (+reply/note/draft), locations (+sync via Google connector), campaigns (+send via WhatsApp connector), guest [code] + feedback (public), analytics/overview (computed trend/sentiment/keywords/funnel/health), settings, team, billing + change-plan, qr (real scannable PNG via qrcode pkg), admin overview/tenants(+detail/impersonate)/invoices(remind/mark-paid)/plans/system, demo-requests
+   174→- AI worker (lib/ai.ts): z-ai-web-dev-sdk reply drafting with tone presets + template fallback; classifyReview for sentiment/keywords on sync; live LLM verified in browser (regenerate produced new draft)
+   175→- Middleware: www/app./admin. host rewrites + deep-path preservation via x-ss-host/x-ss-path; /g/<code> guest deep links work on localhost and prod
+   176→- Frontend rewired off mock data: client dashboard 7 views live (Overview, Reviews w/ filters+CSV export+sync, Requests w/ real QR kit + campaign launch, AI queue w/ approve/edit/regenerate + autopilot threshold, Analytics, Locations + drawers, Settings w/ persistence + team invites + plan change), admin console 5 views (platform KPIs/MRR from invoices, demo pipeline, tenants + suspend/activate/plan/impersonate 30-min time-boxed w/ restore cookie, billing dunning, plan editor → public pricing instant, system jobs computed from live queues), guest flow standalone mode (real POSTs, google hand-off), marketing pricing from Plan table + contact form → DemoRequest, login/signup pages with demo chips
+   177→- QA: tsc clean, eslint clean; scripts/smoke-test.sh 42/42 passed (auth, drafts, reply, sync, QR, campaigns, guest, admin, impersonation cycle, guards); agent-browser E2E desktop+mobile 390px (login chips, AI approve+regenerate, campaign launch, sync, drawer, settings save, signout, admin impersonate→banner→exit, guest happy path persisted to DB, signup→auto-onboarding wizard→finish persisted, pricing annual toggle ₹1,249/₹2,916/₹5,833); console errors 0 after fixing p-in-button hydration warnings; fixed /api/settings usage shape crash
+   178→- Docs: .env.example (SESSION_SECRET, connector modes), README-DEPLOY.md (subdomain wiring, Hostinger/Vercel, sim→live switches, ops notes), package.json db:seed script
+   179→
+   180→Stage Summary:
+   181→- Sensiblee is now REAL: database, auth, AI drafts, QR, impersonation, dunning, demo pipeline — not a mock; deployable to www/app/admin.sensiblee.in from one codebase
+   182→- Delivered in workspace at port 3000; spec PDFs + brand pack remain in download/sensiblee/
+   183→
+   184→---
+   185→Task ID: 8-qa
+   186→Agent: main (Super Z)
+   187→Task: Final pre-review verification sweep + fixes before user review tonight
+   188→
+   189→Work Log:
+   190→- Verified src/ tsc clean (0 errors), eslint clean; scaffold examples/skills errors pre-existing and out of app scope
+   191→- Smoke suite regressed to 38/42 on re-runs — root cause: non-idempotent test state, NOT product bugs (overview ai-draft pick exhausted after prior runs → empty ID → Next.js 308 redirect body; invoice remindersSent exact-match :1 fails on increment)
+   192→- Fixed scripts/smoke-test.sh: (1) pick fresh 'new' review from /api/reviews?status=new with fallback to any review; (2) strip quotes from draft body for safe JSON; (3) capture remindersSent before and assert +1 increment
+   193→- Re-ran smoke suite twice back-to-back: 42/42 both runs (second run exercised the fallback path) — suite now idempotent
+   194→- Demo data had accumulated smoke artifacts (no 'new' reviews, 14 campaigns, 31 feedback, smoke demo requests) → re-ran bun prisma/seed.ts; pristine state restored (6 tenants / 9 users / 9 locations / 78 reviews / 7 drafts / 7 campaigns / 24 feedback / 17 invoices)
+   195→- Read-only API verification on fresh seed: login 200, overview KPIs (rating 3.86, 21 reviews/mo), ai queue 3 (Spice Route seeded drafts), admin MRR 6 pts
+   196→- Found + fixed real inconsistency: sidebar AI Assistant badge used kpis.pending (pendingDrafts + awaiting = 4) while queue shows 3 → added kpis.drafts to computeKpis, badge now uses drafts; Overview "Needs you now" stat keeps composite pending
+   197→- Fresh browser E2E (clean session, read-only): home 0 errors; client login→overview→AI queue ("Approval queue 3 pending", badge 3, Reviews badge 2) 0 errors; admin (platform/tenants w/ Manage cells/billing overdue+dunning/system) 0 errors; guest /g/spk-hsr renders mood step 0 errors; /pricing renders live DB plan prices (₹1,499/₹3,499/₹6,999 + annual) 0 errors
+   198→- Note: stale browser-session error log entries (form.usage.map, useEffect undefined) were pre-fix HMR artifacts — verified code + API current state clean (usage is array; useEffect imported)
+   199→
+   200→Stage Summary:
+   201→- Task 8 deliverable confirmed production-ready for user review: all four surfaces green, smoke suite idempotent 42/42, DB in pristine seeded demo state, badge consistency fix applied
+   202→- Review credentials: admin@sensiblee.in (platform) · anand@spiceroute.in (tenant) · Demo@1234
+   203→
+   204→---
+   205→Task ID: 9
+   206→Agent: main (Super Z)
+   207→Task: User feedback round 1 — branding, header prominence, CTAs, demo video, footer restructure, new pages (Blog / Knowledgebase / Ticket)
+   208→
+   209→Work Log:
+   210→- Tagline "Sensing Sensibly. Acting Intelligently" attached to logo in header (two-line caps block beside lockup, lg+) and footer (mint caps line under logo); TAGLINE export in chrome
+   211→- Header prominence: height 60→76px, logo 30→38px, menu 13.5px/medium → 15px/semibold, CTAs h-9→h-10; header = Watch Demo (Play icon) + Sign In + Free Trial (mint, bold); mobile menu updated; whitespace-nowrap fixes after desktop screenshot review
+   212→- CTA swap: all "Book a demo" buttons → "Free Trial" (→ signup) with "Watch Demo" secondary (scrolls to #demo-video on home from any page via demoVideoHandler, 260ms settle delay to dodge mobile menu close layout shift — fixed scroll overshoot found at 390px)
+   213→- Demo video CREATED: scripted one-take screencast via agent-browser record (title card → home/demo section → tenant login → reviews → review drawer → AI approve → requests → analytics → admin tenants+drawer+billing → guest QR happy path → end card); take-3 hit 56.03s; ffmpeg → h264 mp4 1280w 3.76MB + webm 3.0MB in public/demo/; branded title/end cards (public/demo/*.html) + poster png; takes 1-2 scrapped (156s/240s — inter-command dead air got filmed)
+   214→- Home: new two-column section id=demo-video (video player + "Sign up for Free Trial" dark card with bullets) after hero; hero h1 4xl/54 → 5xl/56 max-w-4xl; SectionHead h2 26px → 30/34px + text-brand; card h3s bumped; pricing teaser CTA → signup
+   215→- Headings enlarged + darkened across all marketing pages: PageHero h1 → 5xl/54; Features/How/Pricing/About/Contact heroes → 5xl/52; legal h1 32→36px; section h2s +2-6px each (pages/pages2/pages3); CtaBand h3 20→24px, buttons now Free Trial + Watch Demo
+   216→- Footer: Product col = Features/How/Pricing/Review Requests/Reputation Analytics/Customer Stories/Watch Demo(demo action, Play icon); Company = About/Blog/Contact; Support col (was Platform) = Knowledgebase/Submit a Ticket/Security; app./admin. chips removed; copyright → "© 2026 Sensiblee by Naqsh Digital Technologies Pvt. Ltd. All Rights Reserved."
+   217→- NEW pages (marketing-pages4.tsx): BlogPage (3 full field-note articles, list↔article state), KnowledgebasePage (15 Q&As in 5 categories, live search + empty state), TicketPage (validated form: name/email/business/topic/priority/message → API)
+   218→- Schema +7 lines: SupportTicket model (number unique, priority, status); prisma db push; POST /api/support/ticket (public, validated, SS-T-<id> numbers) — required dev-server restart to pick up regenerated Prisma client (HMR alone insufficient)
+   219→- QA: tsc 0 src errors, eslint clean; smoke 42/42 (after re-seed); browser E2E: header CTAs (Watch Demo scrolls to video from home AND pricing, Free Trial → /signup), video element loads mp4 (dur 56s ready 4), blog index+article, KB search "quota" 1 hit + empty state, ticket empty-submit 3 validation errors → full submit → "Ticket SS-T-… received" + DB row verified, footer text verified verbatim, mobile 390px menu + demo section (scroll lands at 96px), 12/12 marketing pages 0 console errors
+   220→- Final state: DB re-seeded pristine (78 reviews / 7 drafts / 3 in Spice Route queue), tickets table cleared; demo video 56s matches "60-second tour" labels
+   221→
+   222→Stage Summary:
+   223→- All 13 feedback items implemented and browser-verified; Sensiblee now has a real product demo video embedded on the home page, three new real pages (Blog/Knowledgebase/Ticket) backed by a new DB model, and the rebranded header/footer per Naqsh Digital
+   224→- Dev server restart needed once (prisma client regen) — supervisor-style restart via setsid; keep in mind for future schema changes
+   225→
+   226→---
+   227→Task ID: 9-fix
+   228→Agent: main (Super Z)
+   229→Task: Post-implementation verification sweep of Task 9 (13 feedback items) + header overflow fix + last "Book a demo" remnant
+   230→
+   231→Work Log:
+   232→- Audited Task 9 state against worklog: all 13 items confirmed in code and live (tagline, header prominence, Free Trial/Sign In/Watch Demo header CTAs, enlarged headings across pages, demo video mp4+webm in public/demo/ embedded in two-column #demo-video section, footer Support/Product/Company restructure, copyright line)
+   233→- Live browser verification: video element loads (readyState 4, 2 sources) and PLAYS (2.5s into 56s); Watch Demo from header scrolls #demo-video to 96px below viewport top; footer columns + copyright verified verbatim; Blog (3 articles), Knowledgebase (search + quota content), Ticket (5-field validated form) all render; "Book a Demo" absent site-wide except contact page
+   234→- FOUND + FIXED remnant: contact page eyebrow chip still said "Book a demo" → changed to "Free trial · Talk to us" (marketing-pages2.tsx)
+   235→- FOUND + FIXED header overflow: at 1440px tagline touched nav (0px gap) and CTA cluster overhung container by 81px; total content 1194px vs 1112px available (max-w-6xl)
+   236→  - Fix: header container max-w-6xl → max-w-7xl; nav + CTA cluster + hamburger breakpoint md → xl (full chrome ≥1280px, hamburger below); tagline/divider lg → xl; tagline 10.5px/0.13em → 10px/0.11em
+   237→  - Verified: 1440/1280 → tagline 152px wide, 29px gap tagline↔nav, 0px CTA overflow, burger hidden; 1024/768/390 → hamburger fallback; 390px menu contains all 8 items (nav + Watch Demo + Sign In + Free Trial)
+   238→- QA re-run: tsc 0 src errors, eslint clean, smoke 42/42, DB re-seeded pristine after smoke, browser errors [] across checked pages
+   239→- Screenshots: scripts/sensiblee/shots/final-home-desktop.png, final-demo-section.png, header-1440-fixed.png, header-1024.png
+   240→
+   241→Stage Summary:
+   242→- Task 9 feedback round fully verified complete with two residual defects fixed (contact eyebrow, header responsive overflow); all surfaces green, demo data pristine
+   243→
+   244→---
+   245→Task ID: 10
+   246→Agent: main (Super Z)
+   247→Task: Feedback round 2 — brand assets (logos + Poppins), header/footer refinements, home page FAQ + heading visibility
+   248→
+   249→Work Log:
+   250→- Processed uploaded brand assets (scripts/process_logos.py): cropped main lockup (mark + wordmark + tagline, descriptor line excluded) from both files → public/brand/logo-header.png (from OPAQUE, 1214x315, cream #FBF9F4 bg chroma-removed so it blends on cream header) and logo-footer.png (from TRANSPARENT, 1588x414, as-is); full originals kept in public/brand/
+   251→- Poppins implemented globally per Typography spec: next/font/google Poppins weights 400/500/600/700/800; --font-sans → var(--font-poppins); font variable moved to <html> (was on body — Tailwind v4 default-font resolution couldn't see it, h1 fell back to ui-sans-serif; verified Poppins active via document.fonts.check)
+   252→- Header: SVG lockup+text tagline replaced by official logo image (h-11, tagline baked in); menu font text-neutral-500 → text-neutral-900 (black); Watch Demo + Sign In converted to real buttons (h-10, white bg, neutral-300 border, hover:border-mint) alongside mint Free Trial
+   253→- Footer: logo = transparent artwork on white rounded plate (dark-navy wordmark unreadable on dark bg without plate); text tagline line removed (baked in logo); social icons row added — Facebook/LinkedIn/Instagram/YouTube inline SVGs (brand.tsx), links to sensiblee handles, target=_blank; Product column trimmed to Features/How it works/Pricing/Customer Stories/Watch Demo (Review Requests + Reputation Analytics removed per feedback)
+   254→- Home: "One brand, three surfaces" section deleted (incl. onOpenApp/onOpenAdmin/onOpenGuest usage cleanup; hero keeps onOpenApp); FAQ section added before CTA band — 8 Q&As (trial, Google access, AI voice, WhatsApp compliance, multi-location, security, cancellation, GST) in 2-col accordion with chevron rotation; SectionHead h2 30/34 bold → 34/40 EXTRAbold (800) + eyebrow 11.5px
+   255→- "in rupees" removed: home teaser → "Honest pricing"; pricing page h1 → "Honest pricing, built to scale." (About body copy + FAQ question mentioning rupees intentionally kept — different context)
+   256→- QA: tsc 0 src errors (fixed transient onOpenApp/Building2 missing after over-aggressive import cleanup), eslint clean, smoke 42/42, DB re-seeded pristine, fresh browser session 0 errors on home + pricing (mid-edit ReferenceError noise was stale HMR chunks), screenshots t10-hero/sections/faq-open/footer.png
+   257→
+   258→Stage Summary:
+   259→- Round-2 feedback fully implemented: official logo assets live in header/footer, Poppins brand typography active site-wide, black header menu, buttonized header CTAs, social icons, trimmed Product column, surfaces strip removed, 8-item FAQ added, headings 34/40 extrabold, "in rupees" copy removed
+   260→
+   261→---
+   262→Task ID: 11-header-polish
+   263→Agent: main (Super Z)
+   264→Task: Feedback round 3 — bigger logo w/ clearer tagline, favicon from official logo, Sign In button alignment, home headings rebalance (smaller h2 / bolder labels)
+   265→
+   266→Work Log:
+   267→- Logo assets re-processed (scripts/process_logo_v2.py): regenerated logo-header.png + logo-footer.png from the uploaded originals with identical crop/chroma pipeline as Task 10 PLUS premultiplied-alpha unsharp mask (radius 1.4 / 65% / threshold 2) — crisper edges and tagline strokes at small render sizes, no halo artifacts
+   268→- Header logo 44px -> 52px (h-[52px], renders 200x52); footer logo 40px -> 46px (h-[46px] on white plate, renders 176x46) — baked-in tagline now visibly larger and sharper; verified 1440px header: logo-to-nav gap 130.9px, CTA cluster ends exactly at container inner edge (1340 vs 1360), no overflow
+   269→- Favicon derived from the OFFICIAL logo mark (speech bubble + 5 stars + sparkles) cropped from trans-Logo original (mark bbox 416x388 in native res): src/app/icon.png 512x512 transparent, src/app/favicon.ico 16/32/48, src/app/apple-icon.png 180x180 on white (iOS flattens transparency to black); removed metadata.icons from layout.tsx — App Router file conventions now inject <link rel="icon" favicon.ico 48x48> + <link rel="icon" icon.png 512x512> + <link rel="apple-touch-icon">; endpoints all 200 (image/x-icon, image/png)
+   270→- Sign In header button alignment FIXED: was `flex h-10` without items-center (text hugged top edge); added items-center justify-center — computed style now center/center, matches Watch Demo button
+   271→- Home SectionHead rebalance per feedback ("headings little smaller while labels bigger and bolder"): eyebrow 11.5px/bold -> 14px/extrabold (uppercase, mint-deep) — "The platform / How it works / Early operators / Pricing / FAQs" labels now prominent; h2 34/40 extrabold -> 30/34 extrabold; SectionHead is home-page-scoped, other marketing pages untouched
+   272→- QA: tsc 0 src errors, eslint clean, smoke 42/42, DB re-seeded pristine; browser: home 1440/390 + pricing 1440 all green, 0 console errors / 0 page errors; screenshots t11-header-1440 / t11-sectionhead / t11-footer / t11-mobile-390 in scripts/sensiblee/shots/
+   273→
+   274→Stage Summary:
+   275→- Round-3 feedback fully implemented: larger sharper logo lockups in header/footer, official-mark favicon trio live (browser tab now shows the bubble-and-stars mark), Sign In text vertically centered, home section hierarchy rebalanced (bold 14px labels over 30/34px headings)
+   276→
+   277→---
+   278→Task ID: 12-logo-industries-video
+   279→Agent: main (Super Z)
+   280→Task: Feedback round 4 — bigger logo w/ easily readable tagline, adopt the latest logo shown in the demo video, new Industries section (visual/icon form), remake the demo video (slower, clearer, business value + platform flow for end users and businesses)
+   281→
+   282→Work Log:
+   283→- Logo assets re-processed (scripts/process_logo_v3.py): same official artwork crops as v2 PLUS tagline-band treatments for readability — header variant darkens the solid light-slate tagline ink toward dark slate (factor 0.45) and 1px-dilates its strokes; footer variant boosts the washed-out low-alpha tagline band to full opacity (alpha mean -> 238); both re-sharpened via premultiplied-alpha unsharp mask; new logo-mark.png (512px square, mark only) exported for app-surface chips
+   284→- NOTE: this task spans a context continuation — the prior pass (recovered from filesystem mtimes, unlogged) had already: run v3 at 10:01, updated public/demo/title.html + end.html cards (10:04, "A 2-minute product tour"), recorded takes + assembled the new video (10:42-10:55), added the Industries section + code logo size bumps, and taken t12-login/industries shots; this pass verified everything end-to-end and completed QA/worklog
+   285→- Header logo 52px -> 60px (header inner height 76px -> 84px to hold it); footer logo 46px -> 52px on white plate; tagline "Sensing Sensibly. Acting Intelligently." baked into both assets now renders dark and crisp (verified in 1440/390 screenshots)
+   286→- Logo consistency: the remade demo video's title/end cards use the same v3-processed logo-header.png / logo-footer.png — site header, footer, favicon mark and video branding now all show one identical latest lockup; favicon trio (icon.png/favicon.ico/apple-icon.png from Task 11) still valid since the mark artwork itself is unchanged
+   287→- NEW home section "Industries" (between How-it-works teaser and Early operators): eyebrow INDUSTRIES, h2 "Built for every guest-facing business", 8 icon cards in 2/3/4-col responsive grid — Hotels & Resorts (Hotel), Restaurants & Bars (UtensilsCrossed), Cafés & Bakeries (Coffee), Clinics & Healthcare (Stethoscope), Salons & Spas (Scissors), Fitness & Wellness (Dumbbell), Retail & Boutiques (ShoppingBag), Education & Coaching (GraduationCap); mint-soft icon chips + brand h3 + 11.5px example lines, matches SectionHead design language
+   288→- Demo video remade: 142s (was 56s), 1280x800 h264 mp4 + vp9 webm in public/demo/ (9.7MB each), new poster; structure = branded title card ("A 2-minute product tour") -> Step captions throughout (Step 2 reputation-at-a-glance, Step 4 WhatsApp & QR turn happy guests into reviewers, "The guest experience - scan QR -> mood -> stars -> done", "Unhappy guests? A private channel - you hear it first, not Google") -> tenant dashboard -> review requests/campaigns/funnel -> guest QR happy path + private complaint channel -> end card (logo plate + www.sensiblee.in + free 14-day trial); slower pace with per-screen value captions for businesses AND end users
+   289→- QA: tsc 0 src errors, eslint clean, smoke 42/42, DB re-seeded pristine (6 tenants / 9 users / 9 locations / 78 reviews / 7 drafts / 7 campaigns / 24 feedback / 17 invoices); fresh browser session: home 1440 header geometry (logo 60px, 116px gap to nav, CTA ends 1340 vs container 1360 -> no overflow), 1280 CTA right 1260 vs 1280 -> no overflow, Industries section 8 cards render, #demo-video video loads (readyState 4, duration 142.17s) and PLAYS (4.0s progress, unpaused), 390px mobile header hamburger fallback fine, 0 console/page errors
+   290→- Screenshots: scripts/sensiblee/shots/t12-header-1440.png, t12-industries-final.png, t12-footer-1440.png, t12-mobile-390.png (+ prior pass t12-login.png, t12-industries.png); video QA frames scripts/sensiblee/frames/v1_t*.jpg
+   291→
+   292→Stage Summary:
+   293→- Round-4 feedback fully implemented and verified: logo enlarged to 60px/52px with darkened dilated tagline that reads easily at a glance, one consistent latest lockup across site + video + mark, visual 8-industry section live on home, and a 2m22s slower clearer demo video that narrates business value and the full platform flow for businesses and their guests
+   294→
+   295→---
+   296→Task ID: 13-logo-carousel
+   297→Agent: main (Super Z)
+   298→Task: Feedback round 5 — client brand logos carousel on the home page (placeholder logos acceptable, to be swapped for real artwork later)
+   299→
+   300→Work Log:
+   301→- NEW src/components/sensiblee/brand-logos.tsx: 8 placeholder client wordmark lockups drawn as inline SVGs (icon + text, viewBox 190x44, rendered h-7 sm:h-8) — Spice Route, Fern Court, Mysore Roast, Lumière Dental, Bloom & Blade, Iron & Iris, Vastra & Co., Bright Minds; lineup mirrors the Industries grid and the pilot-cohort testimonials; all strokes/fills use currentColor so CSS controls tint (neutral-400 at rest -> brand on hover, transition-colors); Poppins applies automatically since inline SVG inherits page fonts; title tooltip per logo
+   302→- Home page: new "Clients we serve" section inserted between hero stats strip and #demo-video — small uppercase label "Trusted by guest-facing teams across India" + infinite marquee; track = two identical copies (second aria-hidden), each copy flex gap-12/14 with matching pr so the -50% translate loops seamlessly; edge fade via inline style maskImage linear-gradient (10%/90%); 34s linear loop
+   303→- globals.css: @keyframes marquee (translateX 0 -> -50%), .animate-marquee utility, .marquee-strip:hover .animate-marquee pause rule, prefers-reduced-motion disable
+   304→- Fixed during verification: Tailwind arbitrary variant group-hover:[animation-play-state:paused] did NOT compile (0 group-hover rules found in dev CSS) — replaced with plain CSS .marquee-strip:hover rule; motion-reduce:animate-none also swapped for explicit @media rule
+   305→- Verified with real pointer: animation runs (translateX -313 -> -452 over 3s), pauses frozen on hover (playState paused, x stable over 2.5s), resumes on mouse leave; 16 svgs total (8 + 8 aria-hidden duplicate), track width 3107px
+   306→- QA: tsc 0 src errors, eslint clean (globals.css "file ignored" warning is eslint not linting CSS — harmless), smoke 42/42, DB re-seeded pristine; browser 0 console/page errors; screenshots t13-marquee-1440.png / t13-marquee-390.png (mobile shows h-7 logos behind edge fade)
+   307→
+   308→Stage Summary:
+   309→- Home now carries a social-proof client logo carousel in the classic slot under the hero: 8 grayscale wordmarks looping slowly with edge fade, pause-on-hover, reduced-motion safe; to go live with real clients just swap the SVG components in brand-logos.tsx (or replace with <img> tags) — the marquee logic needs no changes
+   310→
+   311→---
+   312→Task ID: 14-pricing-trial-restyle
+   313→Agent: main (Super Z)
+   314→Task: Feedback round 6 — footer regroup, centered section labels, smaller h2s, bigger carousel, Enterprise rename, Try-for-Free, 7-day trial, new prices 1099/2499/4999, monthly/half-yearly/annual cycles (1/2 months free), Growth 2 GBPs
+   315→
+   316→Work Log:
+   317→- NOTE: spans a context continuation — prior pass (recovered from mtimes 18:45-19:06, unlogged) had already implemented most items; this pass audited all 10 against code + live app, completed the remainder, and ran full QA
+   318→- Prior-pass work verified in place: footer Security & trust moved Support -> Legal; SectionHead redesigned (centered, mint pill eyebrow w/ dot accents, 15px extrabold, h2 30/34 -> 26/30); carousel logos h-7/sm:h-8 -> h-9/sm:h-11 (44px @1440) + label 13px/neutral-500; Plan model + halfYearlyInr/annualInr (5x monthly = 1 month free, 10x = 2 months free); seed + pricing-page fallbacks 1099/5495/10990, 2499/12495/24990, 4999/24995/49980; plan 3 renamed Enterprise (id "multi" retained everywhere incl. API); Growth features "2 Google Business Profiles"; pricing page cycle switcher (Monthly / Half-yearly - 1 month free / Annual - 2 months free) with per-month equivalent + "billed every 6 months/yearly" notes + "2 months free vs monthly" badges; client Settings Plan & billing cycleLabel/cyclePrice; admin Plans & pricing editor 3 price inputs per plan; all "Free Trial" CTAs -> "Try for Free"; 14-day -> 7-day across marketing/auth/FAQs/KB/About/Contact + public/demo/end.html; demo video re-encoded (144.1s, end card now "free 7-day trial", parts 0-2 unchanged so demo-poster.png still accurate)
+   319→- Completed this pass: KB stale answer "Growth 1,000/month, Multi 4,000/month" -> "Enterprise 5,000/month" (marketing-pages4); teaser sub-line now mentions cycles ("billed monthly, half-yearly (1 month free) or annually (2 months free)"); casing normalized "Try for free" -> "Try for Free" x2 (CtaBand button + teaser card buttons)
+   320→- Dev server had died between sessions — restarted (db push + prisma generate + setsid bun run dev); smoke then green
+   321→- QA: tsc 0 src errors, eslint clean, smoke 42/42 (incl. updated assertions: planName Enterprise, PATCH halfYearly/annual), DB re-seeded pristine; browser: home 1440 (6 centered pill eyebrows, h2 30px, 44px carousel logos, hero "Try for Free" + "7-day trial - No card required"), pricing page annual toggle shows Rs916/Rs2,083/Rs4,165 per month + Rs10,990/Rs24,990/Rs49,980 billed yearly (math verified), Growth 2 GBP + Enterprise 5 GBP, client Settings "Enterprise - Rs4,999/month - Billed Monthly", admin plans editor 9 inputs with exact values, video duration 144.2s plays to end card, 0 console/page errors
+   322→- Screenshots: t14-home-1440.png, t14-sectionheads.png, t14-pricing-annual.png, t14-app-billing.png, t14-admin-plans.png, t14-mobile-390.png
+   323→
+   324→Stage Summary:
+   325→- Round-6 feedback fully implemented and verified: pricing is now a three-cycle system (monthly / half-yearly 1-month-free / annual 2-months-free) at 1,099/2,499/4,999 with Enterprise as the top tier and 2 GBPs on Growth; trial copy is 7 days site-wide incl. the video end card; home sections carry centered styled labels with smaller headings; carousel and footer regrouped as asked; smoke + browser QA green on all surfaces
+   326→
+   327→---
+   328→Task ID: 15-users-roles-account
+   329→Agent: main (Super Z)
+   330→Task: Feedback round 7 — 4-user-type role model, personal profile (name/email/mobile) + password change in both dashboards, logout→login page, Tenants→Clients rename, hide platform-admin from frontend
+   331→
+   332→Work Log:
+   333→- NOTE: Task 14 (footer regroup, centered section labels, smaller h2, bigger carousel, Enterprise rename, Try for Free, 7-day trial, 1099/2499/4999 pricing w/ cycles, Growth 2 GBP) was already completed + QA'd in the prior session (worklog entry "14-pricing-trial-restyle"); this task is the user's next feedback round
+   334→- User model: User.phone added (db push + client regen); role comment now covers 6 roles — tenant: owner|manager|observer · platform: platform_admin (super)|platform_manager|platform_observer; seed adds platform staff (meera@sensiblee.in manager, vikram@sensiblee.in observer, invitePending) + phones for all users; seed fix Enterprise annualInr 49980→49990 (exactly 10× monthly); signup API trial 14→7 days + starter mrrInr 1499→1099 + saves phone
+   335→- Auth layer: requirePlatformAdmin accepts all 3 platform roles; new requirePlatformOperator (admin+manager; observer → 403 "Read-only access") + requireSuperAdmin; mutation guards wired — tenants PATCH / invoices PATCH / plans PATCH / system POST / demo-requests PATCH → operator; impersonate POST → super admin; admin team POST/DELETE → super admin; demo-requests GET → staff
+   336→- NEW /api/account (GET/PATCH name+email+phone; re-signs session token on name/email change) + /api/account/password (verify current, min 8, must differ) + /api/admin/team (GET list, POST invite w/ temp password) + /api/admin/team/[id] DELETE (super-admin only, protects platform_admin accounts + self); /api/auth/me returns phone
+   337→- Client Settings: new AccountSections (Your profile w/ name+mobile+email + Save; Sign-in & security w/ current/new/confirm + Update password) shown for owners at top of Settings; non-owner roles (manager/observer) now get a LIMITED settings page with only these two cards — business profile/AI/notifications/team/plan are owner-governed (matches user's role model)
+   338→- Admin console: NAV + "Platform team" (Users) + "My account" (UserCog); roleLabel() helper; sidebar chip shows initials+email (URL removed); header "Sensiblee operations · <role>" (+ "· read-only" for observers); logout → admin login gate (was marketing home)
+   339→- NEW TeamView: lists platform staff w/ role pills + invite-pending badges + last sign-in; super admin can invite (Manager—operate / Observer—read-only role picker, temp password toast) and remove; managers/observers see read-only note
+   340→- NEW AccountView (dark theme): profile + password cards for platform staff
+   341→- Role-gated UI: observer/manager disables Activate/Suspend/plan change/impersonate (super only)/invoice actions/plan save/system run/demo-status; PlatformView+canOperate for "Mark contacted"
+   342→- Tenants→Clients rename across admin UI: nav, header "Client management", search, count badge, "Active clients", "Top clients by reviews processed", "Manage clients", billing table header, drawer aria-labels + toasts "Client activated/suspended", impersonation/health/quota card copy, auth-pages "Tenant owner"→"Business owner", KB "per-tenant"→"per-client"; internal API/model names unchanged
+   343→- Frontend admin-mention purge: login page platform-admin demo card REMOVED (single Business owner card remains); AlreadyIn "Platform admin · Sensiblee HQ"→"Sensiblee HQ" + "Go to console"; marketing-pages4 KB "Platform admins on longer cycles"→"Teams on longer cycles"; admin console no longer displays admin.sensiblee.in anywhere
+   344→- Routing fixes: client logout → navigate login surface (URL /login, verified) instead of marketing home; admin logout → admin gate; client dashboard unknown-view fallback (route.view not in NAV → overview) so /login on app host renders the gate; app-shell routes ALL platform_* roles to admin console (bug found in QA: platform_manager login previously landed on client dashboard with no workspace) + admin gate accepts platform staff
+   345→- Smoke test extended 42→63 checks: account get/phone-patch, password change (reject wrong current, reject same, change→login w/ new→old rejected→restore), manager/observer logins, observer mutation blocked, manager cannot invite/remove staff, super-admin staff invite+remove, team API blocked for tenant
+   346→- QA: tsc 0 src errors, eslint clean, smoke 63/63, DB re-seeded pristine (now 6 tenants / 11 users incl. 2 platform staff / 9 locations / 78 reviews); browser QA (fresh sessions after a dev-HMR poisoned-tab false alarm): login page single demo card, admin platform overview/Clients/team invite+remove w/ toasts/account save toast, manager read-only gating (plans disabled, no team buttons), owner settings profile+security cards, manager limited settings (profile+password only), logout→/login (client) + admin gate (admin), mobile 390 settings OK, 0 console errors
+   347→- Screenshots: scripts/sensiblee/shots/t15-login.png, t15-admin-platform.png, t15-admin-clients.png, t15-admin-team.png, t15-admin-account.png, t15-admin-logout.png, t15-admin-manager-plans.png, t15-admin-manager-team.png, t15-client-settings.png, t15-client-settings-manager.png, t15-client-logout.png, t15-mobile-settings-390.png
+   348→- ENV NOTE: sandbox now reaps background processes at bash-invocation end — dev server must be (re)started within the same invocation as curl/browser QA ("(probe || (nohup bun run dev …)); <tests>"); a dev-HMR Fast-Refresh loop can poison a tab → use fresh AGENT_BROWSER_SESSION + full reload before concluding a bug
+   349→
+   350→Stage Summary:
+   351→- The 4-user-type model is now real end-to-end: business owner (full workspace control), owner-defined tenant team members (limited personal-info-only settings), platform super admin (everything incl. team + impersonation), platform admin team members (manager=operate / observer=read-only, managed by super admin in a new Platform team view)
+   352→- Both dashboards gained editable personal profile (name/email/mobile) + password change; logout returns to the correct login surface; admin UI speaks "Clients"; platform admin identity/URL is invisible on all public surfaces; smoke 63/63, tsc/eslint clean, data pristine
+   353→

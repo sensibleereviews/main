@@ -1,0 +1,255 @@
+     1→// Sensiblee CMS — list content (FAQs, blog posts, testimonials) shared by the seed
+     2→// script and by marketing renderers as fallback when the CMS tables are empty.
+     3→// Blog post bodies use paragraphs separated by a blank line.
+     4→
+     5→export type CmsFaqSeed = { section: "home" | "pricing" | "knowledge"; category: string; question: string; answer: string };
+     6→export type CmsPostSeed = {
+     7→  slug: string; tag: string; title: string; excerpt: string; readTime: string;
+     8→  author: string; authorRole: string; publishedAt: string; body: string;
+     9→};
+    10→export type CmsTestimonialSeed = { quote: string; name: string; role: string; stars: number };
+    11→
+    12→/* --------------------------------- FAQs --------------------------------- */
+    13→
+    14→export const FAQ_SEED: CmsFaqSeed[] = [
+    15→  // Home FAQs (8)
+    16→  { section: "home", category: "General", question: "How does the 7-day free trial work?", answer: "Sign up with your Google account, pick your business profiles and Sensiblee starts working immediately — full features, no credit card. When the trial ends, choose a plan or your data stays safe in read-only mode." },
+    17→  { section: "home", category: "General", question: "Do I need to give Sensiblee access to my Google account?", answer: "You connect your Google Business Profiles through Google's official sign-in — we never see or store your password. You can revoke access at any time, from Google or from Settings." },
+    18→  { section: "home", category: "General", question: "How does the AI write replies in my voice?", answer: "The assistant learns from your past replies, tone presets you pick, and the review itself. Every draft lands in your approval queue — nothing is ever posted without a human pressing approve." },
+    19→  { section: "home", category: "General", question: "Are WhatsApp review requests compliant?", answer: "Yes. Requests go through WhatsApp Business templates with opt-out handling built in. Guests can stop receiving asks with one tap, and we rate-limit so you never spam your own customers." },
+    20→  { section: "home", category: "General", question: "Can I manage multiple locations or brands?", answer: "Every plan includes multi-location dashboards with per-branch health scores, staff attribution and comparison views. Multi-branch brands can group outlets under one organisation." },
+    21→  { section: "home", category: "General", question: "Is my guest and business data secure?", answer: "Data is encrypted in transit and at rest, hosted in-region, and never sold or shared. Private guest feedback is visible only to you — platform staff cannot read it." },
+    22→  { section: "home", category: "General", question: "What happens to my data if I cancel?", answer: "You can export everything — reviews, replies, feedback and analytics — as CSV at any time. After cancellation your account goes read-only for 90 days, then is permanently deleted." },
+    23→  { section: "home", category: "General", question: "Do you charge in rupees? What about GST?", answer: "Yes — pricing is in INR with GST invoices for Indian businesses. Pay monthly, save one month on half-yearly billing, or save two months on annual billing. Upgrade, downgrade or cancel from Settings whenever you like." },
+    24→  // Pricing FAQs (6)
+    25→  { section: "pricing", category: "Pricing", question: "Is there a setup fee or annual contract?", answer: "No. Pricing is monthly, per brand, and you can cancel from the dashboard with 15 days notice. Prefer to commit? Half-yearly billing gives you one month free and annual billing gives you two months free." },
+    26→  { section: "pricing", category: "Pricing", question: "Do I need WhatsApp Business API approval?", answer: "We handle it. Onboarding includes registering your number on the WhatsApp Cloud API and getting your request templates approved — usually inside 48 hours." },
+    27→  { section: "pricing", category: "Pricing", question: "Is it safe to let AI reply to my customers?", answer: "The AI only drafts — every reply needs a human click before it posts. You set the guardrails (tone, escalations, forbidden words) and can switch to draft-only mode anytime." },
+    28→  { section: "pricing", category: "Pricing", question: "Does this work with Google's policies?", answer: "Yes. We use the official Google Business Profile API for reading and replying, and review requests never incentivise ratings — that keeps you inside Google's review guidelines." },
+    29→  { section: "pricing", category: "Pricing", question: "What happens after my trial or if a payment fails?", answer: "You get a 7-day trial with full features. If a payment fails we retry on day 2 and 4, pause syncing on day 6, and keep your data safe for 90 days." },
+    30→  { section: "pricing", category: "Pricing", question: "Can I add more locations later?", answer: "Anytime. Extra locations are ₹799/month each on any plan, and upgrading between plans is prorated automatically." },
+    31→  // FAQs page (15, grouped by category)
+    32→  { section: "knowledge", category: "Getting started", question: "How do I connect my Google Business Profile?", answer: "Sign in, open Settings → Business profile, and click Connect Google. You'll approve read-only access on Google's own consent screen — we never ask for your Google password. Historical reviews import immediately; live syncing starts within 15 minutes." },
+    33→  { section: "knowledge", category: "Getting started", question: "How long does setup really take?", answer: "Most venues are live in under an hour: connect Google (2 min), confirm your AI tone (3 min), upload staff or locations if you have them (10 min), and print your first QR kit (5 min). The 5-step wizard inside the app walks you through each one." },
+    34→  { section: "knowledge", category: "Getting started", question: "Can I invite my team?", answer: "Yes — Settings → Team lets you invite managers (approve & reply), observers (read-only) and marketing seats (requests & campaigns, no replies). Invites arrive over WhatsApp with a temporary password." },
+    35→  { section: "knowledge", category: "Review monitoring & sync", question: "How often do reviews sync?", answer: "Every 15 minutes per connected profile. You can also trigger a manual sync from Locations → Sync now. If a review arrived on Google but hasn't appeared after 30 minutes, open the location's sync log — every poll and its result is recorded there." },
+    36→  { section: "knowledge", category: "Review monitoring & sync", question: "A sync shows a warning — what does that mean?", answer: "Warnings mean Google's API responded slowly or partially (often during their maintenance windows). Data self-heals on the next successful poll. An error entry means we skipped a cycle; three consecutive errors raise an alert to our on-call channel automatically." },
+    37→  { section: "knowledge", category: "Review monitoring & sync", question: "Do you support Facebook or Zomato reviews?", answer: "Google Business Profile is fully live today. Facebook Pages is in beta with design partners and Zomato/Swiggy are on the Phase 2 roadmap — sentiment tagging in the current build is already platform-neutral, so historical imports slot in when connectors ship." },
+    38→  { section: "knowledge", category: "AI drafts & replies", question: "How does the AI learn my voice?", answer: "You pick a base tone — warm, formal or playful — and Sensiblee studies your published replies and signature. Every draft shows its confidence score; below your chosen threshold it stays in the approval queue, above it you can enable autopilot for low-risk 5★ replies." },
+    39→  { section: "knowledge", category: "AI drafts & replies", question: "Can I edit a draft before it posts?", answer: "Always. Open the draft in the AI Assistant queue or the review drawer, edit inline, and approve — the edited text is what gets published and what the AI learns from next time. You can also regenerate for a different take in your tone." },
+    40→  { section: "knowledge", category: "AI drafts & replies", question: "What happens to a 1★ or 2★ review?", answer: "Low-star reviews are flagged urgent, get an apologetic-tone draft immediately, and never auto-post — a human approves every difficult reply. If the review came through your QR mood screen, the guest's private note is attached so you know what actually went wrong." },
+    41→  { section: "knowledge", category: "WhatsApp & QR requests", question: "Who receives WhatsApp review requests?", answer: "Only guests who opted in — via the QR mood screen switch, a checkbox on your booking flow, or your imported consent list. Every message carries an opt-out; Meta policy and DPDP consent rules are enforced in the product, not just the paperwork." },
+    42→  { section: "knowledge", category: "WhatsApp & QR requests", question: "What is included in my WhatsApp quota?", answer: "Quota is per plan (Starter 200/month, Growth 1,000/month, Enterprise 5,000/month) and counts delivered messages. The Settings → usage meter shows live consumption; we warn you at 85% and never silently bill overage." },
+    43→  { section: "knowledge", category: "WhatsApp & QR requests", question: "How do table QR kits work?", answer: "Each location gets a unique short code (like spk-hsr). The Requests page renders print-ready table tents with that code — scan, tap a mood, and the guest is routed to Google (delighted) or a private manager note (disappointed). Reprint as often as you like; the code never changes." },
+    44→  { section: "knowledge", category: "Billing & account", question: "How does the free trial work?", answer: "7 days, full features of your chosen plan, no card required. At day 5 we'll ask (gently, over WhatsApp) whether you'd like to continue — if you do nothing, the workspace pauses and your data waits for 90 days." },
+    45→  { section: "knowledge", category: "Billing & account", question: "Can I change plans or cancel?", answer: "Upgrade or downgrade anytime from Settings → Plan; changes prorate automatically. Cancel from the same page — no calls, no retention scripts. Invoices are GST-compliant and available in Billing → Invoices." },
+    46→  { section: "knowledge", category: "Billing & account", question: "Do you offer half-yearly or annual billing?", answer: "Yes — half-yearly billing gives you one month free and annual gives you two months free (the pricing page shows all three options). Teams on longer cycles also get a named success manager and a quarterly reputation review." },
+    47→];
+    48→
+    49→/* ------------------------------- Blog posts ------------------------------ */
+    50→
+    51→export const POST_SEED: CmsPostSeed[] = [
+    52→  {
+    53→    slug: "response-rate-is-the-most-underrated-lever-in-hospitality-reputation",
+    54→    tag: "Reputation playbook",
+    55→    title: "Response rate is the most underrated lever in hospitality reputation",
+    56→    excerpt: "Google's own data says 88% of guests would use a business that replies to reviews. Most Indian hospitality businesses reply to fewer than one in five. Here's why the gap is your cheapest growth channel.",
+    57→    readTime: "6 min read",
+    58→    author: "Anand Menon",
+    59→    authorRole: "Co-founder, Sensiblee",
+    60→    publishedAt: "2026-09-12",
+    61→    body: [
+    62→      "Ask any hotelier or restaurateur what drives their Google rating and you'll hear about food, service and ambience. Ask them what drives their conversion from those ratings and the answers get vague — which is a problem, because the difference between a profile that wins the click and one that loses it is rarely the stars alone. It's what happens underneath them.",
+    63→      "Google has published that 88% of guests are likely to use a business that responds to all of its reviews, positive or negative. Compare that with what actually happens on the ground: across the hundreds of Indian hospitality profiles we analysed before building Sensiblee, fewer than one in five reviews received any reply at all. Five-star reviews — your best free marketing — sat unanswered. One-star reviews, the most urgent conversations you will ever have with a departing customer, sat even longer.",
+    64→      "The maths of replying is startlingly favourable. A reply costs you three minutes; a drafted reply costs you thirty seconds of approval. What it buys is three separate things at once. First, the departing guest sees the reply — studies consistently show a thoughtful response recovers a meaningful share of complainants, and recovered complainants become your loudest advocates. Second, every future reader of that review sees the reply; you are not writing to one guest, you are auditioning for the next fifty who read it. Third, review activity itself is a freshness signal — profiles that engage rank and convert better over time.",
+    65→      "So why doesn't it happen? Because response rate is an operations problem disguised as a marketing one. The owner who could reply is running the floor. The manager who could reply doesn't have the voice signed off. The evening rush means the review from last Saturday gets seen on Thursday. This is exactly the gap a sensing-and-drafting system closes: every review arrives scored and triaged, a reply in your voice is already waiting, and the only human decision left is approve, edit or regenerate.",
+    66→      "The operators we work with set a simple target: 100% response rate on negative reviews within 24 hours, and 90% on positive reviews within a week. Negative-first sequencing matters — an apology issued quickly reads as culture, while the same apology issued late reads as damage control. Positive replies matter almost as much: a specific, warm thank-you that names the dish or the staff member turns a one-time guest into a returning one, and quietly tells every reader what to order.",
+    67→      "If you take one number from this post, take this one: none of this requires a single new guest. Response rate is the rare growth lever that works entirely on the reviews you already received. That is why we built Sensiblee around it — sensing every review the moment it lands, drafting the reply in your voice, and making the whole loop calm enough that it actually survives a Saturday night.",
+    68→    ].join("\n\n"),
+    69→  },
+    70→  {
+    71→    slug: "whatsapp-review-requests-the-polite-way-to-multiply-your-google-reviews",
+    72→    tag: "Review requests",
+    73→    title: "WhatsApp review requests: the polite way to multiply your Google reviews",
+    74→    excerpt: "Email review requests get ignored; SMS feels invasive. In India, WhatsApp is where your guest already is. The craft is in the ask — here's the template, timing and consent playbook we see working.",
+    75→    readTime: "7 min read",
+    76→    author: "Meera Krishnan",
+    77→    authorRole: "Head of Customer Success, Sensiblee",
+    78→    publishedAt: "2026-09-02",
+    79→    body: [
+    80→      "Every operator knows the asymmetry: your happiest guests walk out glowing, and never write a line. Your unhappiest guests, meanwhile, need no invitation at all. The result is a Google profile that systematically under-represents your best days. Review requests exist to correct that imbalance — and in India, there is exactly one channel where they work.",
+    81→      "Email open rates for review requests hover in the low twenties, and SMS feels like a utility bill. WhatsApp is different: it is the inbox where family photos and the building society committee live. A well-crafted WhatsApp message to a guest who just paid the bill feels like a thank-you note, not a survey. In our design-partner cohort, a single well-timed WhatsApp burst lifted monthly review volume between 1.7x and 2.9x — with ratings intact, because the guests being asked were the ones already smiling.",
+    82→      "The craft is in three decisions: who, when and what. Who: ask the guests your own data says were delighted — the tables that lingered, the patients who rebooked, the members who referred a friend. Sensiblee's mood screen exists precisely to sort delighted from disappointed before the ask is ever made. When: within two hours of the visit, while the feel-good is still chemically present, and never during the meal. A message that lands at the wrong moment is an interruption; the same message two hours later is a memory-jogger. What: short, personal, and honest. Name the dish if your POS knows it. Thank them for coming. One link, one ask, no nesting of surveys inside surveys.",
+    83→      "Consent is not a footnote here — it is the entire licence to operate. Meta's WhatsApp Business policy and India's DPDP Act both draw the same line: message people who agreed to be messaged, make opting out effortless, and never let the review ask masquerade as something else. Every template we ship carries an explicit opt-out and is sent only to guests who opted in, at the venue or afterwards. The counterintuitive truth we've learned: telling guests up front that you'll only message occasionally makes them more likely to engage, not less.",
+    84→      "One warning from the field: never gate the ask on happiness in a way the guest can feel. If a guest taps \"not great\" and the request link vanishes, you've taught them that honesty has a cost — and some of them will head straight to Google to prove a point. The correct design offers every guest a voice: the delighted get a graceful path to Google, the disappointed get a private line to the manager's phone. Both feel respected; only one becomes public.",
+    85→      "Done this way, review requests stop being extraction and start being hospitality's last course — a warm message, a genuine thank-you, and an easy door for the guests who want the world to know what you did right.",
+    86→    ].join("\n\n"),
+    87→  },
+    88→  {
+    89→    slug: "the-qr-on-the-table-turning-dissent-into-private-feedback-and-delight-into-public-proof",
+    90→    tag: "Guest experience",
+    91→    title: "The QR on the table: turning dissent into private feedback and delight into public proof",
+    92→    excerpt: "A table-tent QR code is the fastest feedback loop in hospitality — if you design the two paths correctly. The mood-first flow that protects your rating and your guest's dignity, explained.",
+    93→    readTime: "5 min read",
+    94→    author: "Anand Menon",
+    95→    authorRole: "Co-founder, Sensiblee",
+    96→    publishedAt: "2026-08-21",
+    97→    body: [
+    98→      "The table-tent QR code has a reputation problem, and it earned it. Most venues deployed a generic link to a feedback form, guests stopped scanning, and the industry concluded QR feedback was a fad. The failure wasn't the medium — it was the flow. A form asks for effort before it offers value. A well-designed flow asks one question first: how was it?",
+    99→      "That single tap changes everything, because the two answers need opposite destinations. The guest who taps the smile is standing in your restaurant, pleasantly full, phone in hand. This is the highest-intent moment for a public Google review you will ever get — better than any WhatsApp follow-up, because the experience is not a memory, it is a present-tense fact. Hand that guest a graceful, one-tap path to your Google profile and a startling number of them finish the job before the plates are cleared.",
+   100→      "The guest who taps the frown needs the opposite: privacy. Research after research confirms the majority of unhappy guests who post publicly do so because no easier channel to be heard existed in the moment. Give them a private note that lands on the manager's phone — not the internet — and you have intercepted the review before it was written. Not suppressed it: intercepted. The difference matters. A guest who is heard privately still posts publicly when the recovery is genuine — and a public review that begins \"I had an issue, and the manager called me within the hour\" is worth more than a flawless five-star record, because it shows the reader how you behave when things go wrong.",
+   101→      "The design rules fall out of that symmetry. One question before any form field. No personally identifiable information demanded up front — a guest who fears a follow-up call will censor themselves. An explicit, honest consent line if you want to message them later, unticked by default. And a thank-you screen that respects both outcomes: the delighted guest sees their review fly, the disappointed guest sees a promise with a name on it.",
+   102→      "There is an operational dividend too. Private feedback arrives tagged by location and moment, which turns mood data into a shift-level instrument. When one outlet's frown rate doubles for two weekends, that is not noise — that is a staffing change, a supplier switch, or a menu experiment showing up in the data before it shows up in your rating. The venues that act on mood signals in days keep the dips minor; the ones that wait for the monthly rating average inherit the damage.",
+   103→      "None of this requires an app download, a loyalty program or a change in guest behaviour. It requires respecting the two guests in front of you: the one who wants to shout your name from a rooftop, and the one who wants to tell you, quietly, what went wrong. The QR code is simply the door — what matters is that both rooms are worth walking into.",
+   104→    ].join("\n\n"),
+   105→  },
+   106→  {
+   107→    slug: "how-the-ai-learns-your-restaurants-voice-and-when-it-holds-back",
+   108→    tag: "AI drafts",
+   109→    title: "How the AI learns your restaurant's voice (and when it holds back)",
+   110→    excerpt: "An AI reply that sounds like a call centre is worse than no reply at all. Here is how a voice-tuned draft engine actually learns — and why the best systems know when not to post anything.",
+   111→    readTime: "6 min read",
+   112→    author: "Anand Menon",
+   113→    authorRole: "Co-founder, Sensiblee",
+   114→    publishedAt: "2026-08-08",
+   115→    body: [
+   116→      "The first question every owner asks us is not about accuracy or speed — it is about voice. \u201cWill it sound like us?\u201d It is the right question. A generic, template-flavoured reply is worse than silence, because your Google profile is read by thousands of future guests and every word is an audition. The good news is that voice is learnable; the honest news is that it takes more than a tone switch.",
+   117→      "A voice-tuned draft engine learns from three sources, in rising order of importance. First, the base tone you pick — warm, formal or playful — which sets the skeleton. Second, your published history: the replies you have already written on Google carry your actual rhythm, your favourite phrases, how you sign off, whether you name dishes and staff or keep things short. Third, the review itself: what was praised, what went wrong, and the emotional temperature behind the words. The draft that emerges is not retrieved from a library — it is composed for that specific review, in your recorded voice.",
+   118→      "Confidence scoring is the part most operators never see but always feel. Every draft carries an internal estimate of how well it matches your voice and the review's intent. Below your chosen threshold, the draft waits in the approval queue no matter what. Above it, some teams enable autopilot for low-risk five-star replies — the \u201cthank you, see you next Sunday\u201d class of response that carries almost no reputational risk. The threshold is yours to move, and most operators start conservative and loosen it only after a fortnight of reading their drafts.",
+   119→      "Then there is the discipline of holding back. A one-star review alleging food safety issues should never meet an auto-posted reply; it needs a human who can state facts, show accountability and move the conversation offline. Our system hard-stops on categories like these — safety, discrimination claims, legal threats — regardless of confidence. The AI's job is to make your team fast at the ninety percent of replies that are routine, so the team's judgement is entirely spent on the ten percent that are not.",
+   120→      "Voice also drifts, and the system should drift with you. A café that adds a brunch menu, a hotel that repositions as a boutique stay, a cloud kitchen that spins up a second brand — each changes how it speaks. Because the engine keeps learning from every approved reply (and from every edit you make to a draft), the voice model refreshes continuously. Edits matter most: when you change a draft before posting, that edited text becomes the new benchmark, which is why we treat your edit as teaching, not correction.",
+   121→      "The test we apply internally is simple: would a regular guest reading the reply on Google recognise it as the same business they know? If the answer is yes across warm reviews, angry reviews and the strange ones in between, the voice has landed. That is the bar we build to — drafts that are unmistakably yours, and a system quiet enough to know when a human should take the keyboard.",
+   122→    ].join("\n\n"),
+   123→  },
+   124→  {
+   125→    slug: "the-reputation-health-score-explained-what-goes-into-the-number",
+   126→    tag: "Metrics & analytics",
+   127→    title: "The Reputation Health Score, explained: what goes into the number",
+   128→    excerpt: "One number that captures ratings, responsiveness, volume, sentiment and recovery — weighted the way guests actually behave. We open up the maths behind the score and how to move it.",
+   129→    readTime: "7 min read",
+   130→    author: "Meera Krishnan",
+   131→    authorRole: "Head of Customer Success, Sensiblee",
+   132→    publishedAt: "2026-07-25",
+   133→    body: [
+   134→      "Every Monday morning, the owners we work with open one number before anything else: their Reputation Health Score. It exists because a raw star average hides too much. A 4.2 with no replies and falling volume is a very different business from a 4.2 with a 95% response rate and a climbing trend — yet on Google they look identical. The score exists to make that difference visible, and actionable, at a glance.",
+   135→      "The score blends five inputs. Star rating carries the most weight, as it should — it is the number guests filter by. Response rate comes next: Google's own research says 88% of guests would use a business that replies to its reviews, so silence is penalised. Review volume follows, because a steady flow of fresh reviews signals a live, visited business and protects you when the odd bad day lands. Sentiment mix reads the words, not just the stars — \u201cgreat food but chaotic service\u201d is worth more than a bare three stars and less than a bare five. And finally recovery: how well you bring unhappy guests back, measured through your responses and private feedback outcomes.",
+   136→      "Two design choices matter more than the weights. First, trend beats snapshot: the score rewards the direction of travel, so a business climbing from 3.6 to 4.1 scores better than a stagnant 4.3. Second, it is computed per location and rolled up, which turns multi-branch brands into a fair comparison instead of a blame game. Your Koramangala café and your Indiranagar café live under the same number, but the score quietly shows you which one is carrying the brand and which one is borrowing against it.",
+   137→      "The score is honest about time. Reviews accumulate slowly, which means the number you see today is the residue of the last ninety days of behaviour. That lag is a feature: it stops one brilliant week or one terrible Saturday from whipsawing the dashboard, and it matches how guests actually decide — nobody reads one review, they read your last twenty. The practical consequence is that meaningful movement takes weeks of consistent replying, requesting and recovering before the needle commits.",
+   138→      "How do you move it? The levers, in order of speed: reply to every review you are currently ignoring (immediate response-rate gain), fix the one keyword that dominates your negative reviews — parking, wait times, portion sizes — and watch sentiment lift within a month, then turn on systematic WhatsApp requests so your volume stops depending on whoever was most annoyed that day. Teams that do all three typically see ten to twenty points within a quarter. Teams that only chase stars plateau, because stars are one-fifth of the story.",
+   139→      "Treat the score the way you treat your kitchen's food-cost percentage: a single number that opens a conversation, not closes one. Click into it, see which input is dragging, and you will know this week's priority — more replies, more requests, or a hard look at the thing guests keep mentioning. That is the whole point. A number you can act on is worth ten dashboards you can only admire.",
+   140→    ].join("\n\n"),
+   141→  },
+   142→  {
+   143→    slug: "the-24-hour-playbook-for-turning-a-1-star-review-into-a-repeat-guest",
+   144→    tag: "Reputation playbook",
+   145→    title: "The 24-hour playbook for turning a 1-star review into a repeat guest",
+   146→    excerpt: "The first day after a brutal review decides whether you lose that guest forever or win back something rarer — a critic turned advocate. Hour by hour, what actually works.",
+   147→    readTime: "6 min read",
+   148→    author: "Anand Menon",
+   149→    authorRole: "Co-founder, Sensiblee",
+   150→    publishedAt: "2026-07-11",
+   151→    body: [
+   152→      "It lands at 9:40 on a Monday morning: a one-star review, detailed, public, unfair in places and accurate in others. What you do in the next twenty-four hours does more for your reputation than the next month of marketing. Not because the review itself is consequential — most readers skim past an individual bad review — but because your response is the only part of the exchange you control, and it is read a hundred times more often than it is written.",
+   153→      "Hour zero to two: get the facts before the feelings. Pull the bill, the CCTV timestamp, the server who handled the table, the private feedback note if the guest came through your QR flow. You are not building a legal case; you are arming the apology with specifics. The single most common failure in review recovery is the vague sorry — \u201cwe're sorry you felt that way\u201d — which reads as evasion and often escalates the guest. A reply that names the actual failure (\u201cthe forty-minute wait between starter and main\u201d) proves a human investigated.",
+   154→      "Hour two to six: reply publicly, once, properly. The structure that works: acknowledge the specific failure, take responsibility without deflection, state what you have already changed, and offer a named human and a direct channel to continue. Three sentences is usually enough; two paragraphs is a ceiling. Never argue the facts point by point in public, never blame the guest, and never copy-paste a reply another reviewer can see echoed on your profile. Speed matters here — a same-day reply signals a managed business, and a week-late one reads as damage control no matter how well it is written.",
+   155→      "Hour six to twenty-four: go private. If the guest's history or the review suggests they are reachable, a personal call or WhatsApp message from the manager does what no public reply can: it shows the recovery is not theatre. This is where the actual win rate lives. In our design-partner cohort, roughly a third of well-handled one-star guests return, and a meaningful share of those revise their review upward — the \u201cI had an issue and the owner called me within the hour\u201d review is the single most persuasive artifact on any profile, because it shows the reader how you behave when things go wrong.",
+   156→      "Day two onwards: close the loop internally. Every one-star review is a process failure wearing a customer's name. Was it the Saturday-night staffing plan, the new supplier, the ticket system that lost the reservation? Log it against the keyword it represents — wait times, order errors, billing, cleanliness — and look for the pattern after ten instances, not one. The venues that improve their score fastest are not the ones with the best apologies; they are the ones whose apologies become rarer because the underlying issue got fixed.",
+   157→      "None of this is complicated, and all of it is hard at 11 p.m. after a double shift. That is the real reason recovery fails — not a shortage of sincerity, but a shortage of hours. It is exactly why we built Sensiblee to flag the urgent reviews within minutes, draft the accountable reply in your voice, and hand the manager a shortlist: call these two, approve these five. The playbook fits in a day. The system is what makes the day possible.",
+   158→    ].join("\n\n"),
+   159→  },
+   160→  {
+   161→    slug: "a-google-business-profile-checklist-for-indian-restaurants",
+   162→    tag: "Local presence",
+   163→    title: "A Google Business Profile checklist for Indian restaurants",
+   164→    excerpt: "Your profile is your real storefront — most guests decide before they reach your website. Twenty minutes with this checklist fixes the gaps that quietly cost you covers every week.",
+   165→    readTime: "5 min read",
+   166→    author: "Meera Krishnan",
+   167→    authorRole: "Head of Customer Success, Sensiblee",
+   168→    publishedAt: "2026-06-27",
+   169→    body: [
+   170→      "Before a guest tastes your food, they experience your Google Business Profile. In Indian metros, the majority of first visits now begin as a map search — \u201cbiryani near me\u201d, \u201cbreakfast Indiranagar\u201d — and the decision happens on the results screen: stars, photos, hours, price band. The profile that looks maintained wins the tap. The good news is that most profiles fail on a dozen small, fixable things rather than anything structural.",
+   171→      "Start with the fundamentals. Name exactly as it appears on your signboard — no keyword stuffing, Google penalises it. Primary category set to what you really are (North Indian Restaurant, Café, Bakery — not the generic \u201cRestaurant\u201d), with secondary categories for what else you serve. Hours that include holidays and Ramadan/eid variations, because wrong hours are the fastest way to betray a hungry visitor. And a phone number someone actually answers, linked to your WhatsApp-capable line if you take bookings there.",
+   172→      "Then the visual storefront. Upload ten to fifteen photos that answer the questions guests actually have: the dining room at different times of day, the signature dishes shot close, the exterior sign (crucial for first-time visitors finding you), and the menu. Replace anything older than a season — a profile whose newest photo is last year's Diwali setup reads as closed or careless. Add your menu with prices, or link a current PDF; guests filter hard on price bands, and an absent menu pushes them to a competitor who shows one.",
+   173→      "Now the reputation layer. Turn on review replies and commit to answering everything — Google's data says 88% of guests would choose a business that responds to reviews, and Indian diners read the owner replies closely for tone. Post weekly: a dish of the week, a weekend announcement, a festival offer. Posts expire from prominence quickly, but their absence from a profile is conspicuous. And add the booking or ordering link that matches how you actually want guests to arrive — table booking, delivery partner, WhatsApp — rather than defaulting to a generic website link.",
+   174→      "Finally, the hygiene pass that separates managed profiles from abandoned ones: check that your location pin sits on your entrance, not the middle of the block; answer the Q&A section yourself by seeding the five questions guests always ask (parking, alcohol license, kids friendly, group bookings, Jain options); verify that the attributes — wheelchair access, outdoor seating, payment modes including UPI — are current; and read your profile's own analytics monthly to see which search queries surface you and which photos guests open. Every item here takes minutes. Together they compound into the one thing no ad budget buys: a profile that looks exactly like the well-run business behind it.",
+   175→    ].join("\n\n"),
+   176→  },
+   177→  {
+   178→    slug: "why-every-review-reply-should-carry-a-staff-name",
+   179→    tag: "Team operations",
+   180→    title: "Why every review reply should carry a staff name",
+   181→    excerpt: "Signed replies lift team morale, sharpen accountability, and measurably improve how guests read your profile. The case for putting names on every public thank-you and apology.",
+   182→    readTime: "5 min read",
+   183→    author: "Anand Menon",
+   184→    authorRole: "Co-founder, Sensiblee",
+   185→    publishedAt: "2026-06-13",
+   186→    body: [
+   187→      "Scroll any Indian restaurant's Google reviews and you will see the same unsigned sign-offs: \u201c— Team\u201d, \u201c— Management\u201d, or nothing at all. It reads as harmless convention. It is actually a missed management tool. The name at the bottom of a reply changes who the reply is for, who owns it, and how the next thousand readers judge the business.",
+   188→      "For guests, a named reply converts institutional boilerplate into human contact. \u201cThank you, Priya will pass your compliments to Suresh at the tandoor\u201d tells every reader there are real people here who know each other's work. The effect is strongest in complaints: an apology signed by \u201cRohit, Floor Manager\u201d with a direct line is a commitment with a face on it, and guests respond to that — reply threads under named, specific responses measurably reduce public escalation, because there is no longer an anonymous wall to shout at.",
+   189→      "For the team, attribution is quiet accountability. When replies carry staff names, three things happen: praise flows to the people who earned it, service failures get owned by the person closest to fixing them, and the reply habit stops being the owner's Sunday chore. Staff who see their name answering reviews take the same pride in the profile that they take in the floor. Several of our design partners made review mentions part of shift stand-ups — five minutes on what guests named, good and bad — and the practice did more for service quality than any training module.",
+   190→      "Privacy and comfort deserve a caveat: the name on the reply does not have to be the person who served the table, and it should never be a personal mobile number. First name and role is enough. Managers can reply on behalf of team members, and the guest's own words do the crediting when reviews name staff — \u201cAnanya at reception was wonderful\u201d deserves an answer that lets Ananya's work be visible again.",
+   191→      "Operationally, staff-level attribution is where reputation data becomes management data. When every reply and every review mention is tagged to a person or shift, patterns surface that averages hide: the breakfast crew's ratings diverging from dinner's, a new hire's section recovering slowly, a floor manager whose complaints all cluster on billing rather than service. This is why Sensiblee treats staff attribution as a first-class module rather than a nice-to-have — the health score you run the business on is only as useful as your ability to see whose behaviour moves it.",
+   192→      "Start small: make every reply this week carry a first name and a role. Watch two things — how differently guests respond to the named apologies, and how differently the team responds to named praise. Both will tell you, within a fortnight, why we think anonymity on a review profile is a quiet tax on everything you are trying to build.",
+   193→    ].join("\n\n"),
+   194→  },
+   195→  {
+   196→    slug: "from-mood-screens-to-menu-changes-acting-on-guest-feedback-weekly",
+   197→    tag: "Guest experience",
+   198→    title: "From mood screens to menu changes: acting on guest feedback weekly",
+   199→    excerpt: "Feedback is only worth the decisions it changes. A weekly rhythm that turns QR mood taps and review keywords into menu, staffing and offers — without a single new meeting.",
+   200→    readTime: "6 min read",
+   201→    author: "Meera Krishnan",
+   202→    authorRole: "Head of Customer Success, Sensiblee",
+   203→    publishedAt: "2026-05-30",
+   204→    body: [
+   205→      "Most feedback systems in hospitality share the same fate: they collect faithfully and change nothing. Guest notes pile up, ratings charts get glanced at, and the menu meets the real world twice a year. The venues that compound small improvements week after week are the ones with a rhythm — a fixed, short loop that turns signals into decisions. Here is the one we watch work, in venues from darshinis to bakeries to bistros.",
+   206→      "The signal layer should already exist before the rhythm does. Table QR mood screens capture the in-the-moment voice: the tap that says tonight's service delighted or disappointed, attached to a location, a daypart and often a written note. Google reviews add the public, considered version of the same story, and their keywords — \u201cparking\u201d, \u201cportion\u201d, \u201cslow service\u201d, the dish names people love — are the vocabulary your decisions will use. Neither stream is better; the QR flow is instant and private, the reviews are public and comparative. Run on both and you get the full sentence.",
+   207→      "Once a week — same day, same fifteen minutes — someone owns three questions. What did guests praise most this week? What was the loudest complaint, and is it new or a pattern? And what one change will we test next week because of it? The discipline is the singularity: one change per week, explicitly named, with an owner. \u201cWe'll improve service\u201d is a wish; \u201cSundays get a second floor cashier until 2 p.m. for four weeks, Meera owns the check\u201d is a decision. Mood data supports this granularity — when the frown rate for Sunday brunch doubled for two weekends straight at one café, that was not noise; it was a staffing change showing up in data before it hit the monthly rating.",
+   208→      "The feedback-to-menu pipeline deserves its own note. Reviews contain a free-running census of what guests actually order and love — the three dishes that appear in every five-star review are your real signature list, whatever the chef's intent says. Guests also vote with adjectives: \u201ctoo sweet\u201d on a dessert, \u201ccould be hotter\u201d on delivery, \u201cbest filter coffee in the area\u201d on the hero item. Feed these into a monthly menu review and you get quieter, cheaper iteration than any focus group: adjust the sweetness, re-bag the delivery items, push the coffee harder on the highlights card.",
+   209→      "Close the loop outward, too, and the volume of feedback itself grows. When guests see their note change something — the new weekday lunch combo that a fortnight of mood taps asked for — tell them so: a reply on the review, a line on the QR thank-you screen, a WhatsApp broadcast to your opted-in list. \u201cYou asked, we changed it\u201d is the highest-trust message a food brand can send, and it teaches guests that speaking up is worth their ten seconds. The venues that thank and report back see their feedback volume climb, which feeds the whole loop again.",
+   210→      "Fifteen minutes, one owner, one change, one closing of the loop. That is the entire system, and it fits inside the business you already run. What it needs from technology is only honesty: signals that are complete, tagged and available on Monday morning — which is precisely the job Sensiblee does quietly in the background all week.",
+   211→    ].join("\n\n"),
+   212→  },
+   213→  {
+   214→    slug: "cafe-cloud-kitchen-or-fine-dining-reputation-plays-that-fit-each-format",
+   215→    tag: "Industry notes",
+   216→    title: "Café, cloud kitchen or fine dining: reputation plays that fit each format",
+   217→    excerpt: "The same five-star goal needs different mechanics across formats. Where cafés should lean on QR, why cloud kitchens live on delivery-platform ratings, and what fine dining must protect hardest.",
+   218→    readTime: "6 min read",
+   219→    author: "Anand Menon",
+   220→    authorRole: "Co-founder, Sensiblee",
+   221→    publishedAt: "2026-05-16",
+   222→    body: [
+   223→      "Ask what builds a great restaurant reputation and the answer sounds universal: good food, honest service, consistent execution. True, and incomplete. The mechanics — where reviews come from, which metrics matter, what a bad day costs — differ sharply across formats. A strategy that lifts a neighbourhood café can be dead weight for a cloud kitchen, and fine dining carries exposures the others never meet. One reputation playbook, three translations.",
+   224→      "Cafés live on habit and proximity, which makes their Google profile a walk-in engine: most customers passed your door or your map pin before they ever booked anything. Volume is the café's friend — high footfall means high review capacity — so the plays that pay are the fast, in-the-moment ones. Table QR mood screens convert today's delighted regular into this week's public review while the coffee is still warm, and a response rate near 100% on a steady stream of four-to-five-star reviews builds the local-authority signal that map searches reward. The café's risk is complacency at the top: a stagnant profile with old photos and unanswered June reviews tells the neighbourhood the energy has moved elsewhere.",
+   225→      "Cloud kitchens run on a different map. The guest never sees the premises; the delivery app's rating and reviews are the storefront, and Google complements rather than leads. Here the review ask has to ride the delivery moment: a WhatsApp note after a successful order, timed while the meal is being eaten, beats every other channel — and packaging, spill-proofing and temperature become reputation variables as literal as any waiter's manner. One-star reviews about \u201carrived cold\u201d are process data, not sentiment. The kitchen's advantage is control: no dining-room variables, so keyword analysis of reviews points almost purely at food and delivery experience, which makes the weekly fix-list unusually actionable.",
+   226→      "Fine dining plays a smaller-numbers, higher-stakes game. Review volume is lower, so each review weighs more — a single unresolved one-star review on a forty-review profile moves both stars and reader confidence far more than it would in a high-volume café. The expectations being priced are experience-level: pacing, occasion handling, the anniversary that must not fail. Fine dining's reputation plays are therefore protective and personal — meticulous pre-arrival communication, private feedback channels that catch disappointment before it books a public slot, replies that read with the same craft as the menu, and staff-named follow-ups that make the post-visit call part of the luxury. When a ₹3,000-per-head room answers a guest the way a quick-service counter does, the format itself loses the argument.",
+   227→      "What stays constant across all three is the loop: sense every signal wherever your guests actually speak, ask the happy ones at the moment they are happiest, answer everyone in a voice that fits the format, and let one weekly number tell you where to push. What changes is the weighting — cafés push volume and freshness, kitchens push delivery-experience keywords and post-order asks, fine dining pushes recovery depth and reply craft.",
+   228→      "The mistake to avoid is importing another format's playbook wholesale — the café that spams its fine-dining guests with WhatsApp bursts, the kitchen that invests in table tents nobody will ever see. Match the mechanism to the moment your guest actually experiences, and the same engine that serves a darshini's ratings serves a tasting menu's. Sensiblee is built to flex exactly that way; the principles above are how we configure it, format by format.",
+   229→    ].join("\n\n"),
+   230→  },
+   231→];
+   232→
+   233→/* ------------------------------ Testimonials ----------------------------- */
+   234→
+   235→export const TESTIMONIAL_SEED: CmsTestimonialSeed[] = [
+   236→  {
+   237→    quote: "The AI drafts sound like our floor manager on her best day. We answer every review now — even the Saturday-night ones.",
+   238→    name: "Anand Menon",
+   239→    role: "Spice Route Kitchen · 3 outlets, Bengaluru",
+   240→    stars: 5,
+   241→  },
+   242→  {
+   243→    quote: "WhatsApp requests after appointments nearly doubled our Google reviews in six weeks. Patients actually thank us for asking.",
+   244→    name: "Dr. Kavya Reddy",
+   245→    role: "Lumiere Dental Care · Hyderabad",
+   246→    stars: 5,
+   247→  },
+   248→  {
+   249→    quote: "One health score for both branches ended our Monday-morning arguments. The keyword radar caught a parking complaint trend early.",
+   250→    name: "Sameer Shah",
+   251→    role: "Iron & Iris Fitness · Pune",
+   252→    stars: 4.5,
+   253→  },
+   254→];
+   255→

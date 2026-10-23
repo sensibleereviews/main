@@ -1,0 +1,424 @@
+     1→// Sensiblee CMS — built-in content defaults (part 2: stories, security, about, contact, legal, knowledge, blog, ticket)
+     2→import type { PageHeroContent } from "./cms-defaults";
+     3→
+     4→export type StoryCard = {
+     5→  business: string; place: string; plan: string; quote: string; person: string; role: string;
+     6→  bullets: string[]; results: { metric: string; label: string }[];
+     7→};
+     8→
+     9→export type StoriesContent = PageHeroContent & {
+    10→  featured: {
+    11→    business: string; place: string; since: string; quote: string; person: string; role: string;
+    12→    challenge: string; steps: string[]; results: { metric: string; label: string }[];
+    13→  };
+    14→  stories: StoryCard[];
+    15→  aggregate: { v: string; l: string }[];
+    16→  ctaNote: string;
+    17→};
+    18→
+    19→export const STORIES_DEFAULTS: StoriesContent = {
+    20→  eyebrow: "Customer stories", title: "Proof, not", accent: "promises.",
+    21→  description: "Restaurants, clinics and studios across India run their reputation on Sensiblee. Here is what changed for the operators who let us share their numbers.",
+    22→  featured: {
+    23→    business: "Spice Route Kitchen",
+    24→    place: "South Indian restaurant group · 3 outlets, Bengaluru",
+    25→    since: "Customer since Feb 2026 · Enterprise plan",
+    26→    quote: "One health score for three outlets ended our Monday-morning arguments. The AI drafts sound like our floor manager on her best day — we answer every review now, even the Saturday-night ones.",
+    27→    person: "Anand Menon",
+    28→    role: "Founder & CEO, Spice Route Kitchen",
+    29→    challenge:
+    30→      "Three outlets meant three different standards of review handling. Koramangala replied within hours; HSR often went two weeks silent. Owner meetings were spent disputing whose branch was slipping instead of fixing what guests actually complained about.",
+    31→    steps: [
+    32→      "Connected all 3 Google Business Profiles in one afternoon; 1,700 historical reviews imported and scored overnight.",
+    33→      "WhatsApp post-dining bursts at Koramangala and Indiranagar; table QR kits at every HSR table by week two.",
+    34→      "AI reply queue with owner approval only for 1–2★ reviews — everything else goes out in the brand voice automatically.",
+    35→      "Weekly WhatsApp digest to the leadership group: health score, keyword radar and staff mentions.",
+    36→    ],
+    37→    results: [
+    38→      { metric: "4.1 → 4.65", label: "average rating in 12 weeks" },
+    39→      { metric: "+38%", label: "monthly review volume" },
+    40→      { metric: "92%", label: "response rate (from 54%)" },
+    41→      { metric: "-71%", label: "negative-review reply time" },
+    42→    ],
+    43→  },
+    44→  stories: [
+    45→    {
+    46→      business: "Lumiere Dental Care",
+    47→      place: "Dental clinic · Hyderabad",
+    48→      plan: "Growth plan",
+    49→      quote: "WhatsApp requests after appointments nearly doubled our Google reviews in six weeks. Patients actually thank us for asking — it feels like care, not marketing.",
+    50→      person: "Dr. Kavya Reddy",
+    51→      role: "Chief Dentist",
+    52→      bullets: [
+    53→        "Post-appointment WhatsApp requests via the practice-management export",
+    54→        "AI drafts tuned to a calm, clinical-but-warm voice",
+    55→        "Keyword radar surfaced 'wait time' complaints before they became trends",
+    56→      ],
+    57→      results: [
+    58→        { metric: "2.1×", label: "reviews per month" },
+    59→        { metric: "4.8★", label: "clinic rating, up from 4.5" },
+    60→        { metric: "6 wks", label: "to visible lift" },
+    61→      ],
+    62→    },
+    63→    {
+    64→      business: "Iron & Iris Fitness",
+    65→      place: "Fitness studio · Pune",
+    66→      plan: "Starter plan",
+    67→      quote: "We are a two-branch studio, not a tech company. Sensiblee just runs in the background — the weekly digest is the only report I actually read.",
+    68→      person: "Sameer Shah",
+    69→      role: "Co-founder",
+    70→      bullets: [
+    71→        "QR codes on the check-in desk and locker rooms",
+    72→        "Trial-class follow-ups converted quiet members into public advocates",
+    73→        "Parking complaint trend caught early and fixed with valet tie-up",
+    74→      ],
+    75→      results: [
+    76→        { metric: "+64", label: "new reviews in 90 days" },
+    77→        { metric: "9.4%", label: "request-to-review conversion" },
+    78→        { metric: "0", label: "unanswered reviews since April" },
+    79→      ],
+    80→    },
+    81→  ],
+    82→  aggregate: [
+    83→    { v: "+0.15★", l: "typical rating lift in 90 days" },
+    84→    { v: "2.1×", l: "median review volume growth" },
+    85→    { v: "92%", l: "average response rate" },
+    86→    { v: "48 hrs", l: "median time to first request sent" },
+    87→  ],
+    88→  ctaNote: "Bring your Google profile to the call — we will show your own numbers, not ours.",
+    89→};
+    90→
+    91→export type SecurityContent = PageHeroContent & {
+    92→  pillars: { title: string; body: string }[];
+    93→  compliance: { title: string; body: string }[];
+    94→  subprocessors: { name: string; role: string; data: string; region: string }[];
+    95→  sla: { k: string; v: string }[];
+    96→  practices: string[];
+    97→  ctaNote: string;
+    98→};
+    99→
+   100→export const SECURITY_DEFAULTS: SecurityContent = {
+   101→  eyebrow: "Security & trust", title: "Your guests' data,", accent: "guarded.",
+   102→  description: "Sensiblee sits between your Google profile, your guests' WhatsApp and your team. Here is exactly how that data is handled, protected and governed.",
+   103→  pillars: [
+   104→    {
+   105→      title: "Encrypted in transit & at rest",
+   106→      body: "TLS 1.3 for every connection, AES-256 for stored data. Review content, guest phone numbers and reply drafts never travel unencrypted — internally or to your browser.",
+   107→    },
+   108→    {
+   109→      title: "Minimal, purpose-bound data",
+   110→      body: "We hold only what reputation work needs: Google review content, the guest phone numbers your team explicitly uploads for requests, and product telemetry. Nothing scraped, nothing bought.",
+   111→    },
+   112→    {
+   113→      title: "Role-based access & audit trail",
+   114→      body: "Owner, Manager and Observer roles with least-privilege defaults. Every reply approval, campaign send and settings change is written to an immutable audit log you can export.",
+   115→    },
+   116→    {
+   117→      title: "Hosted in India, backed up daily",
+   118→      body: "Workloads run on isolated VPS infrastructure with daily encrypted backups and 30-day retention. Restores are tested quarterly — not assumed.",
+   119→    },
+   120→  ],
+   121→  compliance: [
+   122→    {
+   123→      title: "Google Business Profile API terms",
+   124→      body: "Sensiblee accesses reviews exclusively through the official Google Business Profile API with your explicit OAuth consent. We never scrape, and you can revoke access from your Google account at any time. API usage follows Google's branding and rate-limit guidelines.",
+   125→    },
+   126→    {
+   127→      title: "WhatsApp Business policy compliance",
+   128→      body: "Every request campaign runs on pre-approved message templates through the WhatsApp Business Cloud API. Messages go only to guests who opted in — a clear consent record is kept per contact. Quality rating and messaging limits are monitored continuously and throttled automatically.",
+   129→    },
+   130→    {
+   131→      title: "DPDP Act 2023 aligned",
+   132→      body: "Our consent, notice and erasure workflows are designed for India's Digital Personal Data Protection Act, with GDPR-aligned DSAR handling for international brands. Guests can opt out via a single reply; data is purged on schedule.",
+   133→    },
+   134→    {
+   135→      title: "Contractual clarity",
+   136→      body: "Standard terms include a Data Processing Addendum, 30-day notice before subprocessor changes, and your data returned in open formats on exit. No lock-in clauses, no dark patterns.",
+   137→    },
+   138→  ],
+   139→  subprocessors: [
+   140→    { name: "Google Business Profile API", role: "Review source (read-only)", data: "Reviews, ratings, replies", region: "Global (Google)" },
+   141→    { name: "WhatsApp Business Cloud API", role: "Request delivery", data: "Opted-in phone numbers, template status", region: "Meta (EU/IN)" },
+   142→    { name: "Razorpay", role: "Payments & auto-debit", data: "Billing contact, invoice history", region: "India" },
+   143→    { name: "LLM inference provider", role: "Draft & sentiment engine", data: "Review text (no guest PII)", region: "India / EU endpoints" },
+   144→    { name: "VPS provider (Hostinger)", role: "Application & database hosting", data: "All stored data (encrypted)", region: "India (Mumbai)" },
+   145→  ],
+   146→  sla: [
+   147→    { k: "99.9%", v: "monthly uptime target" },
+   148→    { k: "15 min", v: "review sync cadence" },
+   149→    { k: "24 h", v: "support response, WhatsApp & email" },
+   150→    { k: "RPO 24h", v: "backup point · RTO under 4h" },
+   151→  ],
+   152→  practices: [
+   153→    "Two-factor authentication enforced for all owner and admin roles",
+   154→    "OAuth tokens stored with per-client encryption; revocable in one click",
+   155→    "Quarterly access reviews and least-privilege audits",
+   156→    "Documented incident-response runbook with 72-hour breach notification",
+   157→    "Annual penetration test before each major release train",
+   158→  ],
+   159→  ctaNote: "Happy to walk your IT or legal team through our architecture — just ask.",
+   160→};
+   161→
+   162→export type AboutContent = PageHeroContent & {
+   163→  quote: string;
+   164→  introTitle: string;
+   165→  intro: string[];
+   166→  story: string[];
+   167→  values: { title: string; desc: string }[];
+   168→  vision: { title: string; text: string };
+   169→  mission: { title: string; text: string };
+   170→  teamTitle: string;
+   171→  teamSub: string;
+   172→  team: { name: string; role: string; initials: string; bio: string; photo: string }[];
+   173→  ctaNote: string;
+   174→};
+   175→
+   176→export const ABOUT_DEFAULTS: AboutContent = {
+   177→  eyebrow: "About Us", title: "Reputation deserves", accent: "a calmer engine.",
+   178→  description: "Sensiblee exists for the millions of restaurants, clinics, salons and studios that run brilliant businesses — and lose customers to a single unanswered review.",
+   179→  quote: "“Sensing Sensibly. Acting Intelligently.”",
+   180→  introTitle: "Sensiblee, in brief",
+   181→  intro: [
+   182→    "Sensiblee is an AI-powered customer experience intelligence platform. In one line: it connects to your Google Business Profiles through Google's official API, senses every review within fifteen minutes of arrival, drafts the reply in your brand voice for a human to approve, asks your happiest guests over WhatsApp and QR to share their experience publicly, and turns all of it into one Reputation Health Score you can run the business by.",
+   183→    "The platform runs on four calm modules — Review Monitoring, Review Requests, the AI Reputation Assistant and Reputation Analytics — designed to work as one, priced in rupees, billed on UPI, and operated from the phone behind the counter. Monitoring is always on; nothing is ever posted to Google without a person on your team clicking approve.",
+   184→  ],
+   185→  story: [
+   186→    "We started Sensiblee after watching a beloved Bengaluru café slide from 4.6 to 4.1 stars in a season — not because the food changed, but because twelve reviews went unanswered and three weekend surges went unmanaged. The owner had no idea until a regular mentioned it. That information gap is what we built against.",
+   187→    "Google reviews are the front door of Indian business today. Guests check them while standing outside; owners read them long after the moment has passed. Sensiblee closes that loop — sensing every review within fifteen minutes, drafting the reply in your voice, asking happy guests while the meal is still warm, and turning all of it into one health score you can run the business by.",
+   188→    "We are deliberately built for India: pricing in rupees, requests on WhatsApp, payments on UPI, and a dashboard that works on the phone behind the counter. Sensible tools for sensible operators.",
+   189→  ],
+   190→  values: [
+   191→    { title: "Sense sensibly", desc: "Data is only useful when it is calm and honest. We surface what changed, what it means and what to do — not vanity dashboards." },
+   192→    { title: "Act intelligently", desc: "AI does the heavy lifting; humans keep the judgement. Every public word passes through a person who owns the brand." },
+   193→    { title: "Earn every star", desc: "We never incentivise or filter reviews. Great service, asked for at the right moment, is the only sustainable way up." },
+   194→  ],
+   195→  vision: {
+   196→    title: "Our vision",
+   197→    text: "A future where every guest-facing business in India — from the corner café to the hundred-cover restaurant group — is judged by the experience it actually delivers, because every piece of guest feedback was heard, understood and answered in time.",
+   198→  },
+   199→  mission: {
+   200→    title: "Our mission",
+   201→    text: "To give operators a calm, honest engine for their online reputation: sense every signal the moment it lands, act on it intelligently with AI that never replaces human judgement, and make reputation a number the whole team can move — sensibly.",
+   202→  },
+   203→  teamTitle: "The people behind the platform",
+   204→  teamSub: "A small, hands-on team of operators, engineers and guest-experience people. We answer our own reviews — and your calls.",
+   205→  team: [
+   206→    { name: "Aarav Sharma", role: "Founder & CEO", initials: "AS", bio: "Fifteen years running guest-facing operations. Writes the first draft of every Sensiblee policy — and still reads the weekend digest.", photo: "" },
+   207→    { name: "Priya Nair", role: "Head of Product", initials: "PN", bio: "Designs the calm surfaces operators live in. Former product lead for hospitality SaaS; owns the reputation health score.", photo: "" },
+   208→    { name: "Rohan Mehta", role: "Head of Engineering", initials: "RM", bio: "Keeps the 15-minute sync honest and the AI humble. Builds on official APIs only — no exceptions.", photo: "" },
+   209→    { name: "Ananya Iyer", role: "Customer Success Lead", initials: "AI", bio: "Onboards every design-partner personally and runs the weekly voice-of-operator reviews that steer the roadmap.", photo: "" },
+   210→  ],
+   211→  ctaNote: "Meet the team behind the platform — 20 minutes, no slideware.",
+   212→};
+   213→
+   214→export type ContactContent = PageHeroContent & {
+   215→  sideTitle: string; sideSub: string; whatsapp: string; email: string; phoneDisplay: string;
+   216→  nextTitle: string; nextSteps: string[];
+   217→  inquiryNote: string;
+   218→  locationOptions: string[];
+   219→  volumeOptions: string[];
+   220→};
+   221→
+   222→export const CONTACT_DEFAULTS: ContactContent = {
+   223→  eyebrow: "Contact Us", title: "Let's talk about", accent: "your reputation.",
+   224→  description: "Questions about plans, Google sync, WhatsApp requests, onboarding — or just want to see the platform on your own reviews? Write to us; our team replies within one business day from hello@sensiblee.in.",
+   225→  sideTitle: "Reach us directly",
+   226→  sideSub: "Call, WhatsApp or email — whichever suits you. We reply within one business day.",
+   227→  whatsapp: "+91 93547 60585",
+   228→  email: "hello@sensiblee.in",
+   229→  phoneDisplay: "+91 93547 60585",
+   230→  nextTitle: "What happens next",
+   231→  nextSteps: [
+   232→    "We reply within one business day — from hello@sensiblee.in, WhatsApp or a quick call.",
+   233→    "A short conversation about your locations, review volume and what you want to fix first.",
+   234→    "If it's a fit: a 7-day free trial on your live Google profile — no card required.",
+   235→    "Go live the same week — first AI drafts on day one.",
+   236→  ],
+   237→  inquiryNote: "Prefer a guided demo? Mention it in your message — we'll set up a 20-minute walkthrough with your live Google profile. Demo workspace available instantly.",
+   238→  locationOptions: ["1 location", "2 locations", "3–5 locations", "6+ locations"],
+   239→  volumeOptions: ["< 50 reviews / month", "50–200 reviews / month", "200–500 reviews / month", "500+ reviews / month"],
+   240→};
+   241→
+   242→export type LegalContent = {
+   243→  updated: string;
+   244→  sections: { h: string; body: string[] }[];
+   245→};
+   246→
+   247→export const PRIVACY_DEFAULTS: LegalContent = {
+   248→  updated: "1 September 2026",
+   249→  sections: [
+   250→    {
+   251→      h: "1. What we collect",
+   252→      body: [
+   253→        "Business data you give us: your name, business name, contact details, Google Business Profile locations you connect, brand-voice samples and reply templates you approve.",
+   254→        "Review data we receive through the official Google Business Profile API: review text, star rating, reviewer display name and profile photo (as exposed by Google), timestamps and your published responses.",
+   255→        "Guest contact data for review requests: phone numbers and names supplied by you or your POS/PMS integrations, strictly for sending review invitations you have authorised.",
+   256→        "Usage data: product interaction events, device type and approximate city, used to keep the service fast and secure.",
+   257→      ],
+   258→    },
+   259→    {
+   260→      h: "2. How we use it",
+   261→      body: [
+   262→        "To monitor and score reviews (sentiment, keywords, urgency), draft replies in your brand voice, dispatch WhatsApp review requests, and produce the analytics inside your dashboard.",
+   263→        "We never sell your data, never rent contact lists, and never send communications to your guests other than the review invitations you configure.",
+   264→      ],
+   265→    },
+   266→    {
+   267→      h: "3. AI processing",
+   268→      body: [
+   269→        "Review text and approved brand-voice samples are processed by our AI provider under a zero-retention agreement to generate drafts, sentiment and keyword insights. Drafts are suggestions only — nothing is published to Google until a human on your team approves it.",
+   270→        "You may opt out of AI features at any time; monitoring and request modules remain fully functional.",
+   271→      ],
+   272→    },
+   273→    {
+   274→      h: "4. Sub-processors",
+   275→      body: [
+   276→        "Google (Business Profile API) for review sync and posting; Meta (WhatsApp Cloud API) for message delivery; Razorpay for subscription payments; a cloud-hosting provider within India for data storage; and our AI provider for draft generation. Each is bound by contractual confidentiality and security obligations.",
+   277→      ],
+   278→    },
+   279→    {
+   280→      h: "5. Retention & your rights",
+   281→      body: [
+   282→        "Business and review data are retained while your subscription is active and for 90 days after cancellation, then permanently deleted. Guest phone numbers are deleted 120 days after their last campaign activity.",
+   283→        "You may request access, correction, export or deletion of your data at any time via hello@sensiblee.in. We respond within 7 working days.",
+   284→      ],
+   285→    },
+   286→    {
+   287→      h: "6. Security",
+   288→      body: [
+   289→        "Data is encrypted in transit (TLS 1.2+) and at rest. Access is role-based and audit-logged; OAuth tokens to your Google profiles are revocable by you at any time from your Google account or our dashboard.",
+   290→      ],
+   291→    },
+   292→  ],
+   293→};
+   294→
+   295→export const TERMS_DEFAULTS: LegalContent = {
+   296→  updated: "1 September 2026",
+   297→  sections: [
+   298→    {
+   299→      h: "1. The service",
+   300→      body: [
+   301→        "Sensiblee is a subscription software service that monitors Google reviews across your connected Google Business Profiles, drafts AI-assisted replies, sends review requests via WhatsApp Cloud API and QR landing pages, and reports reputation analytics.",
+   302→        "We access Google data solely through Google's official Business Profile API and comply with the Google API Services User Data Policy, including its Limited Use requirements.",
+   303→      ],
+   304→    },
+   305→    {
+   306→      h: "2. Subscriptions & billing",
+   307→      body: [
+   308→        "Plans are billed monthly in advance in Indian Rupees through Razorpay (UPI, cards, net-banking, auto-debit). Prices and inclusions are those published on our pricing page for your plan at the time of renewal.",
+   309→        "Trials last 7 days with full features and no charge. Failed payments are retried on days 2 and 4; review syncing pauses on day 6 while your data is preserved for 90 days.",
+   310→      ],
+   311→    },
+   312→    {
+   313→      h: "3. Acceptable use & guest messaging",
+   314→      body: [
+   315→        "You agree to use review-request features only for guests who have consented to be contacted, to honour opt-outs immediately, and never to offer incentives for reviews in a manner that violates Google's review policies.",
+   316→        "You are responsible for replies you approve and messages you send through the platform. We may throttle templates flagged by WhatsApp quality systems to protect number standing.",
+   317→      ],
+   318→    },
+   319→    {
+   320→      h: "4. Your responsibilities",
+   321→      body: [
+   322→        "Maintain the accuracy of your Google Business Profile information, keep your WhatsApp business number active, and ensure a designated approver reviews AI drafts within the response windows you configure.",
+   323→      ],
+   324→    },
+   325→    {
+   326→      h: "5. Intellectual property & confidentiality",
+   327→      body: [
+   328→        "You own your business data, review content and brand materials. We own the platform, models configuration and analytics IP. Both parties agree to keep non-public information of the other party confidential.",
+   329→      ],
+   330→    },
+   331→    {
+   332→      h: "6. Liability & termination",
+   333→      body: [
+   334→        "You may cancel anytime with 15 days notice; access continues until the paid period ends. Aggregate liability is limited to fees paid in the preceding three months. Neither party is liable for indirect or consequential damages.",
+   335→        "These terms are governed by the laws of India; courts at Bengaluru, Karnataka have exclusive jurisdiction.",
+   336→      ],
+   337→    },
+   338→  ],
+   339→};
+   340→
+   341→export type KnowledgeContent = PageHeroContent & {
+   342→  categories: { cat: string; blurb: string }[];
+   343→  searchPlaceholder: string;
+   344→  ctaTitle: string; ctaSub: string; ctaButton: string;
+   345→  noMatchTitle: string; noMatchSub: string;
+   346→};
+   347→
+   348→export const KNOWLEDGE_DEFAULTS: KnowledgeContent = {
+   349→  eyebrow: "FAQs", title: "Answers, before you", accent: "need them.",
+   350→  description: "How Sensiblee behaves in the real world — sync cadence, AI approvals, WhatsApp consent, billing. Short answers, no support ticket required.",
+   351→  categories: [
+   352→    { cat: "Getting started", blurb: "From signup to your first AI-approved reply." },
+   353→    { cat: "Review monitoring & sync", blurb: "Google sync health, cadence and troubleshooting." },
+   354→    { cat: "AI drafts & replies", blurb: "Tone, approval thresholds and autopilot." },
+   355→    { cat: "WhatsApp & QR requests", blurb: "Campaigns, templates, consent and quotas." },
+   356→    { cat: "Billing & account", blurb: "Plans, invoices, trials and cancellations." },
+   357→  ],
+   358→  searchPlaceholder: "Search the FAQs — try “sync”, “tone”, “quota”, “trial”…",
+   359→  ctaTitle: "Didn't find it here?",
+   360→  ctaSub: "Our support desk answers within one business day — usually much faster.",
+   361→  ctaButton: "Submit a Ticket",
+   362→  noMatchTitle: "No match",
+   363→  noMatchSub: "Try a broader word — or send us a ticket and we'll answer within one business day.",
+   364→};
+   365→
+   366→export type BlogContent = PageHeroContent & {
+   367→  footnote: string;
+   368→  ctaTitle: string; ctaSub: string;
+   369→};
+   370→
+   371→export const BLOG_DEFAULTS: BlogContent = {
+   372→  eyebrow: "Sensiblee blog", title: "Reputation, sized for", accent: "operators.",
+   373→  description: "Field notes on review response, WhatsApp requests, guest experience and the calm operations behind a five-star profile.",
+   374→  footnote: "New articles every fortnight — written by the operators, for the operators.",
+   375→  ctaTitle: "See it working on your own reviews",
+   376→  ctaSub: "A 2-minute demo, then a free 7-day trial on your live Google profile.",
+   377→};
+   378→
+   379→export type TicketContent = PageHeroContent & {
+   380→  topics: string[];
+   381→};
+   382→
+   383→export const TICKET_DEFAULTS: TicketContent = {
+   384→  eyebrow: "Support", title: "Submit a", accent: "ticket.",
+   385→  description: "One ticket, one owner, one business day. Technical issues, sync questions, billing — it all lands with a human who can actually fix it.",
+   386→  topics: ["Technical issue", "Google sync", "WhatsApp campaigns", "AI drafts & replies", "Billing & plans", "Feature request"],
+   387→};
+   388→
+   389→/* --------------------------- registry + default SEO --------------------------- */
+   390→
+   391→import { HOME_DEFAULTS, FEATURES_DEFAULTS, HOW_DEFAULTS, PRICING_DEFAULTS, type CmsSlug } from "./cms-defaults";
+   392→
+   393→export const PAGE_CONTENT_DEFAULTS: Record<CmsSlug, Record<string, unknown>> = {
+   394→  home: HOME_DEFAULTS as unknown as Record<string, unknown>,
+   395→  features: FEATURES_DEFAULTS as unknown as Record<string, unknown>,
+   396→  how: HOW_DEFAULTS as unknown as Record<string, unknown>,
+   397→  pricing: PRICING_DEFAULTS as unknown as Record<string, unknown>,
+   398→  stories: STORIES_DEFAULTS as unknown as Record<string, unknown>,
+   399→  security: SECURITY_DEFAULTS as unknown as Record<string, unknown>,
+   400→  about: ABOUT_DEFAULTS as unknown as Record<string, unknown>,
+   401→  contact: CONTACT_DEFAULTS as unknown as Record<string, unknown>,
+   402→  privacy: PRIVACY_DEFAULTS as unknown as Record<string, unknown>,
+   403→  terms: TERMS_DEFAULTS as unknown as Record<string, unknown>,
+   404→  knowledge: KNOWLEDGE_DEFAULTS as unknown as Record<string, unknown>,
+   405→  blog: BLOG_DEFAULTS as unknown as Record<string, unknown>,
+   406→  ticket: TICKET_DEFAULTS as unknown as Record<string, unknown>,
+   407→};
+   408→
+   409→export const CMS_DEFAULT_SEO: Record<CmsSlug, { title: string; description: string }> = {
+   410→  home: { title: "Sensiblee — AI powered Customer Experience Intelligence", description: "Sensing Sensibly. Acting Intelligently. Sensiblee turns your Google reviews into reputation growth — 15-minute monitoring, WhatsApp & QR review requests, AI-drafted replies you approve, and multi-location reputation analytics." },
+   411→  features: { title: "Features — four modules, one reputation engine | Sensiblee", description: "Review monitoring, WhatsApp & QR review requests, AI-drafted replies you approve, and reputation analytics — one calm platform for guest-facing businesses." },
+   412→  how: { title: "How it works — live in a day, working in a week | Sensiblee", description: "Connect your Google Business Profiles, sense every review on a 15-minute cadence, act with AI drafts and WhatsApp requests, learn from one health score." },
+   413→  pricing: { title: "Pricing — honest plans in ₹ | Sensiblee", description: "Plans from ₹1,099/month with all four modules included. Billed monthly, half-yearly (1 month free) or annually (2 months free). 7-day trial, no card required." },
+   414→  stories: { title: "Customer stories — proof, not promises | Sensiblee", description: "How restaurants, clinics and studios across India turned Google reviews into reputation growth with Sensiblee." },
+   415→  security: { title: "Security & trust | Sensiblee", description: "Encryption, role-based access, official APIs only, DPDP-aligned workflows and India hosting — exactly how Sensiblee handles your guests' data." },
+   416→  about: { title: "About Us — sensing sensibly, acting intelligently | Sensiblee", description: "Who we are, the platform in brief, and the team behind Sensiblee — a calmer reputation engine for the millions of Indian businesses that run brilliant operations but lose guests to unanswered reviews." },
+   417→  contact: { title: "Contact Us — we reply within a day | Sensiblee", description: "Call, WhatsApp or email the Sensiblee team — +91 93547 60585, hello@sensiblee.in. Questions about plans, sync, WhatsApp requests or onboarding, answered within one business day." },
+   418→  privacy: { title: "Privacy Policy | Sensiblee", description: "What data Sensiblee collects, how it is used, AI processing, sub-processors, retention and your rights." },
+   419→  terms: { title: "Terms of Service | Sensiblee", description: "The service, subscriptions and billing, acceptable use, responsibilities, IP and liability terms for Sensiblee." },
+   420→  knowledge: { title: "FAQs — answers before you need them | Sensiblee", description: "Sync cadence, AI approvals, WhatsApp consent, billing — short answers to the questions operators ask most." },
+   421→  blog: { title: "Blog — reputation, sized for operators | Sensiblee", description: "Field notes on review response, WhatsApp requests, guest experience and the calm operations behind a five-star profile." },
+   422→  ticket: { title: "Submit a ticket | Sensiblee", description: "One ticket, one owner, one business day — technical issues, sync questions and billing, answered by a human." },
+   423→};
+   424→

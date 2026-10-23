@@ -1,0 +1,484 @@
+   530→      {editing ? (
+   531→        <div className="space-y-3 rounded-2xl border border-mint/25 bg-brand-deep/40 p-4">
+   532→          <div className="grid gap-2.5 sm:grid-cols-2">
+   533→            <label className="block"><span className={lbl}>Title</span><input value={editing.title} disabled={!canEdit} onChange={(e) => set("title", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   534→            <label className="block"><span className={lbl}>Slug (legacy — public URL always comes from the title)</span><input value={editing.slug} disabled={!canEdit} onChange={(e) => set("slug", e.target.value)} className={cn(inp, "mt-1")} placeholder="auto from title" /></label>
+   535→            <label className="block"><span className={lbl}>Category chip</span><input value={editing.tag} disabled={!canEdit} onChange={(e) => set("tag", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   536→            <label className="block"><span className={lbl}>Read time</span><input value={editing.readTime} disabled={!canEdit} onChange={(e) => set("readTime", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   537→            <label className="block"><span className={lbl}>Author</span><input value={editing.author} disabled={!canEdit} onChange={(e) => set("author", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   538→            <label className="block"><span className={lbl}>Author role</span><input value={editing.authorRole} disabled={!canEdit} onChange={(e) => set("authorRole", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   539→          </div>
+   540→          <label className="block"><span className={lbl}>Excerpt</span><textarea rows={2} value={editing.excerpt} disabled={!canEdit} onChange={(e) => set("excerpt", e.target.value)} className={cn(inpArea, "mt-1")} /></label>
+   541→          <label className="block"><span className={lbl}>Article summary — shown in the “In this article” panel</span><textarea rows={2} value={editing.summary || ""} disabled={!canEdit} onChange={(e) => set("summary", e.target.value)} className={cn(inpArea, "mt-1")} /></label>
+   542→          <label className="block"><span className={lbl}>Body — paragraphs separated by a blank line; start a line with “## ” for a heading or “### ” for a sub-heading</span><textarea rows={10} value={editing.body} disabled={!canEdit} onChange={(e) => set("body", e.target.value)} className={cn(inpArea, "mt-1 font-mono text-[11.5px]")} /></label>
+   543→          <div className="grid gap-2.5 sm:grid-cols-2">
+   544→            <label className="block"><span className={lbl}>SEO title</span><input value={editing.seoTitle} disabled={!canEdit} onChange={(e) => set("seoTitle", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   545→            <label className="block"><span className={lbl}>SEO description</span><input value={editing.seoDescription} disabled={!canEdit} onChange={(e) => set("seoDescription", e.target.value)} className={cn(inp, "mt-1")} /></label>
+   546→            <label className="block"><span className={lbl}>Featured image (Media tab to upload)</span>
+   547→              <select value={editing.featuredMediaId || ""} disabled={!canEdit} onChange={(e) => set("featuredMediaId", e.target.value || null)} className={cn(inp, "mt-1 appearance-none")}>
+   548→                <option value="" className="bg-brand">— none —</option>
+   549→                {media.map((m) => <option key={m.id} value={m.id} className="bg-brand">{m.filename}</option>)}
+   550→              </select></label>
+   551→            <label className="block"><span className={lbl}>Publish date</span>
+   552→              <input type="date" value={String(editing.publishedAt).slice(0, 10)} disabled={!canEdit} onChange={(e) => set("publishedAt", e.target.value ? new Date(e.target.value).toISOString() : new Date().toISOString())} className={cn(inp, "mt-1")} /></label>
+   553→          </div>
+   554→          <button disabled={!canEdit} onClick={() => set("published", !editing.published)}
+   555→            className={cn("flex h-8 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold", editing.published ? "bg-mint/15 text-mint" : "bg-amber-400/15 text-amber-300")}>
+   556→            {editing.published ? "Published" : "Draft — hidden from visitors"}
+   557→          </button>
+   558→          <div className="flex gap-2 pt-1">
+   559→            {canEdit && <Button size="sm" className="h-9 flex-1 rounded-xl bg-mint text-[12.5px] font-semibold text-brand-deep hover:bg-mint/90" disabled={busy || !editing.title.trim()} onClick={save}><Save size={13} className="mr-1.5" /> {busy ? "Saving…" : isNew ? "Create article" : "Save article"}</Button>}
+   560→            <Button size="sm" variant="ghost" className="h-9 rounded-xl text-[12.5px] text-white/60 hover:bg-white/5 hover:text-white" onClick={() => setEditing(null)}>Cancel</Button>
+   561→          </div>
+   562→        </div>
+   563→      ) : (
+   564→        <div className="space-y-2">
+   565→          {rows.map((p) => (
+   566→            <div key={p.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-brand-deep/50 px-3.5 py-3">
+   567→              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/70">{p.tag.slice(0, 2).toUpperCase()}</span>
+   568→              <div className="min-w-0 flex-1">
+   569→                <p className="truncate text-[13px] font-semibold text-white">{p.title} {!p.published && <span className="text-[10.5px] font-bold uppercase text-amber-300">· draft</span>}</p>
+   570→                <p className="truncate text-[11px] text-white/40">/blog/{(p.title || "").toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-") || p.slug} · {new Date(p.publishedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} · {p.author}</p>
+   571→              </div>
+   572→              {canEdit && (
+   573→                <>
+   574→                  <button onClick={() => open(p)} className="rounded-lg p-1.5 text-white/40 hover:bg-white/5 hover:text-white" aria-label={`Edit ${p.title}`}><FileText size={14} /></button>
+   575→                  <button onClick={() => remove(p)} className="rounded-lg p-1.5 text-white/30 hover:bg-white/5 hover:text-red-300" aria-label={`Delete ${p.title}`}><Trash2 size={13} /></button>
+   576→                </>
+   577→              )}
+   578→            </div>
+   579→          ))}
+   580→          {posts.loading && <div className="h-24 animate-pulse rounded-xl bg-brand-deep/50" />}
+   581→        </div>
+   582→      )}
+   583→    </div>
+   584→  );
+   585→}
+   586→
+   587→/* -------------------------------- faqs tab -------------------------------- */
+   588→
+   589→type CmsFaqRow = { id: string; section: string; category: string; question: string; answer: string; sortOrder: number; published: boolean };
+   590→const emptyFaq = { section: "home", category: "General", question: "", answer: "", sortOrder: 99, published: true };
+   591→
+   592→function FaqsTab({ canEdit }: { canEdit: boolean }) {
+   593→  const { toast } = useToast();
+   594→  const faqs = useApiData<{ faqs: CmsFaqRow[] }>("/api/cms/faqs");
+   595→  const [section, setSection] = useState("home");
+   596→  const [editing, setEditing] = useState<CmsFaqRow | typeof emptyFaq | null>(null);
+   597→  const [isNew, setIsNew] = useState(false);
+   598→  const [busy, setBusy] = useState(false);
+   599→
+   600→  const save = async () => {
+   601→    if (!editing) return;
+   602→    setBusy(true);
+   603→    try {
+   604→      if (isNew) await api.post("/api/cms/faqs", editing);
+   605→      else await api.patch(`/api/cms/faqs/${(editing as CmsFaqRow).id}`, editing);
+   606→      toast({ title: isNew ? "FAQ added" : "FAQ saved", description: editing.question });
+   607→      setEditing(null);
+   608→      faqs.reload();
+   609→    } catch (e) {
+   610→      toast({ title: "Save failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   611→    } finally { setBusy(false); }
+   612→  };
+   613→
+   614→  const remove = async (f: CmsFaqRow) => {
+   615→    try { await api.del(`/api/cms/faqs/${f.id}`); faqs.reload(); toast({ title: "FAQ deleted" }); }
+   616→    catch (e) { toast({ title: "Delete failed", description: e instanceof Error ? e.message : "", variant: "destructive" }); }
+   617→  };
+   618→
+   619→  const rows = (faqs.data?.faqs || []).filter((f) => f.section === section);
+   620→
+   621→  return (
+   622→    <div className="space-y-3">
+   623→      <div className="flex flex-wrap items-center justify-between gap-2">
+   624→        <div className="flex gap-1.5">
+   625→          {[["home", "Homepage FAQs"], ["pricing", "Pricing FAQs"], ["knowledge", "FAQs"]].map(([k, label]) => (
+   626→            <button key={k} onClick={() => setSection(k)}
+   627→              className={cn("rounded-xl px-3 py-1.5 text-[12px] font-semibold", section === k ? "bg-mint text-brand-deep" : "bg-white/5 text-white/60 hover:text-white")}>
+   628→              {label}
+   629→            </button>
+   630→          ))}
+   631→        </div>
+   632→        {canEdit && <Button size="sm" className="h-8 rounded-xl bg-mint px-3.5 text-[12px] font-bold text-brand-deep hover:bg-mint/90" onClick={() => { setEditing({ ...emptyFaq, section, category: section === "pricing" ? "Pricing" : "General" }); setIsNew(true); }}><Plus size={13} className="mr-1" /> Add FAQ</Button>}
+   633→      </div>
+   634→
+   635→      {editing ? (
+   636→        <div className="space-y-2.5 rounded-2xl border border-mint/25 bg-brand-deep/40 p-4">
+   637→          <div className="grid gap-2.5 sm:grid-cols-3">
+   638→            <label className="block"><span className={lbl}>Section</span>
+   639→              <select value={editing.section} disabled={!canEdit} onChange={(e) => setEditing({ ...editing, section: e.target.value })} className={cn(inp, "mt-1 appearance-none")}>
+   640→                {["home", "pricing", "knowledge"].map((s) => <option key={s} value={s} className="bg-brand">{s}</option>)}
+   641→              </select></label>
+   642→            <label className="block sm:col-span-2"><span className={lbl}>Category (knowledge page groups by this)</span>
+   643→              <input value={editing.category} disabled={!canEdit} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className={cn(inp, "mt-1")} /></label>
+   644→          </div>
+   645→          <label className="block"><span className={lbl}>Question</span><input value={editing.question} disabled={!canEdit} onChange={(e) => setEditing({ ...editing, question: e.target.value })} className={cn(inp, "mt-1")} /></label>
+   646→          <label className="block"><span className={lbl}>Answer</span><textarea rows={4} value={editing.answer} disabled={!canEdit} onChange={(e) => setEditing({ ...editing, answer: e.target.value })} className={cn(inpArea, "mt-1")} /></label>
+   647→          <div className="flex flex-wrap items-center gap-2">
+   648→            <label className="block"><span className={lbl}>Sort order</span>
+   649→              <input type="number" value={editing.sortOrder} disabled={!canEdit} onChange={(e) => setEditing({ ...editing, sortOrder: Number(e.target.value) || 0 })} className={cn(inp, "mt-1 w-24")} /></label>
+   650→            <button disabled={!canEdit} onClick={() => setEditing({ ...editing, published: !editing.published })}
+   651→              className={cn("mt-4 flex h-8 items-center rounded-full px-3 text-[11px] font-bold", editing.published ? "bg-mint/15 text-mint" : "bg-amber-400/15 text-amber-300")}>
+   652→              {editing.published ? "Visible" : "Hidden"}
+   653→            </button>
+   654→          </div>
+   655→          <div className="flex gap-2 pt-1">
+   656→            {canEdit && <Button size="sm" className="h-9 flex-1 rounded-xl bg-mint text-[12.5px] font-semibold text-brand-deep hover:bg-mint/90" disabled={busy || !editing.question.trim() || !editing.answer.trim()} onClick={save}><Save size={13} className="mr-1.5" /> {busy ? "Saving…" : "Save FAQ"}</Button>}
+   657→            <Button size="sm" variant="ghost" className="h-9 rounded-xl text-[12.5px] text-white/60 hover:bg-white/5 hover:text-white" onClick={() => setEditing(null)}>Cancel</Button>
+   658→          </div>
+   659→        </div>
+   660→      ) : (
+   661→        <div className="space-y-2">
+   662→          {rows.map((f) => (
+   663→            <div key={f.id} className="flex items-start gap-3 rounded-xl bg-brand-deep/50 px-3.5 py-3">
+   664→              <div className="min-w-0 flex-1">
+   665→                <p className="text-[13px] font-semibold text-white">{f.question} {!f.published && <span className="text-[10.5px] font-bold uppercase text-amber-300">· hidden</span>}</p>
+   666→                <p className="mt-0.5 line-clamp-2 text-[11.5px] leading-relaxed text-white/40">{f.answer}</p>
+   667→                <p className="mt-1 text-[10.5px] text-white/25">{f.category} · order {f.sortOrder}</p>
+   668→              </div>
+   669→              {canEdit && (
+   670→                <>
+   671→                  <button onClick={() => { setEditing(f); setIsNew(false); }} className="rounded-lg p-1.5 text-white/40 hover:bg-white/5 hover:text-white" aria-label="Edit FAQ"><FileText size={14} /></button>
+   672→                  <button onClick={() => remove(f)} className="rounded-lg p-1.5 text-white/30 hover:bg-white/5 hover:text-red-300" aria-label="Delete FAQ"><Trash2 size={13} /></button>
+   673→                </>
+   674→              )}
+   675→            </div>
+   676→          ))}
+   677→          {faqs.loading && <div className="h-24 animate-pulse rounded-xl bg-brand-deep/50" />}
+   678→        </div>
+   679→      )}
+   680→    </div>
+   681→  );
+   682→}
+   683→
+   684→/* ---------------------------- testimonials tab ---------------------------- */
+   685→
+   686→type CmsTsmRow = { id: string; quote: string; name: string; role: string; stars: number; section: string; mediaId: string | null; sortOrder: number; published: boolean };
+   687→const emptyTsm = { quote: "", name: "", role: "", stars: 5, section: "home", mediaId: null as string | null, sortOrder: 99, published: true };
+   688→
+   689→function TestimonialsTab({ canEdit, media }: { canEdit: boolean; media: { id: string; filename: string }[] }) {
+   690→  const { toast } = useToast();
+   691→  const tsms = useApiData<{ testimonials: CmsTsmRow[] }>("/api/cms/testimonials");
+   692→  const [editing, setEditing] = useState<CmsTsmRow | typeof emptyTsm | null>(null);
+   693→  const [isNew, setIsNew] = useState(false);
+   694→  const [busy, setBusy] = useState(false);
+   695→
+   696→  const save = async () => {
+   697→    if (!editing) return;
+   698→    setBusy(true);
+   699→    try {
+   700→      if (isNew) await api.post("/api/cms/testimonials", editing);
+   701→      else await api.patch(`/api/cms/testimonials/${(editing as CmsTsmRow).id}`, editing);
+   702→      toast({ title: isNew ? "Testimonial added" : "Testimonial saved", description: editing.name });
+   703→      setEditing(null);
+   704→      tsms.reload();
+   705→    } catch (e) {
+   706→      toast({ title: "Save failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   707→    } finally { setBusy(false); }
+   708→  };
+   709→
+   710→  const remove = async (t: CmsTsmRow) => {
+   711→    try { await api.del(`/api/cms/testimonials/${t.id}`); tsms.reload(); toast({ title: "Testimonial deleted" }); }
+   712→    catch (e) { toast({ title: "Delete failed", description: e instanceof Error ? e.message : "", variant: "destructive" }); }
+   713→  };
+   714→
+   715→  const rows = tsms.data?.testimonials || [];
+   716→
+   717→  return (
+   718→    <div className="space-y-3">
+   719→      <div className="flex flex-wrap items-center justify-between gap-2">
+   720→        <Badge className="border-mint/30 bg-mint/10 text-mint hover:bg-mint/10">{rows.length} testimonial{rows.length === 1 ? "" : "s"}</Badge>
+   721→        {canEdit && <Button size="sm" className="h-8 rounded-xl bg-mint px-3.5 text-[12px] font-bold text-brand-deep hover:bg-mint/90" onClick={() => { setEditing({ ...emptyTsm }); setIsNew(true); }}><Plus size={13} className="mr-1" /> Add testimonial</Button>}
+   722→      </div>
+   723→
+   724→      {editing ? (
+   725→        <div className="space-y-2.5 rounded-2xl border border-mint/25 bg-brand-deep/40 p-4">
+   726→          <label className="block"><span className={lbl}>Quote</span><textarea rows={3} value={editing.quote} disabled={!canEdit} onChange={(e) => setEditing({ ...editing, quote: e.target.value })} className={cn(inpArea, "mt-1")} /></label>
+   727→          <div className="grid gap-2.5 sm:grid-cols-2">
+   728→            <label className="block"><span className={lbl}>Customer name</span><input value={editing.name} disabled={!canEdit} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className={cn(inp, "mt-1")} /></label>
+   729→            <label className="block"><span className={lbl}>Role line (business · city)</span><input value={editing.role} disabled={!canEdit} onChange={(e) => setEditing({ ...editing, role: e.target.value })} className={cn(inp, "mt-1")} /></label>
+   730→            <label className="block"><span className={lbl}>Stars</span>
+   731→              <select value={String(editing.stars)} disabled={!canEdit} onChange={(e) => setEditing({ ...editing, stars: Number(e.target.value) })} className={cn(inp, "mt-1 appearance-none")}>
+   732→                {["5", "4.5", "4"].map((s) => <option key={s} value={s} className="bg-brand">{s} ★</option>)}
+   733→              </select></label>
+   734→            <label className="block"><span className={lbl}>Photo (Media tab to upload)</span>
+   735→              <select value={editing.mediaId || ""} disabled={!canEdit} onChange={(e) => setEditing({ ...editing, mediaId: e.target.value || null })} className={cn(inp, "mt-1 appearance-none")}>
+   736→                <option value="" className="bg-brand">— initials avatar —</option>
+   737→                {media.map((m) => <option key={m.id} value={m.id} className="bg-brand">{m.filename}</option>)}
+   738→              </select></label>
+   739→          </div>
+   740→          <button disabled={!canEdit} onClick={() => setEditing({ ...editing, published: !editing.published })}
+   741→            className={cn("flex h-8 items-center rounded-full px-3 text-[11px] font-bold", editing.published ? "bg-mint/15 text-mint" : "bg-amber-400/15 text-amber-300")}>
+   742→            {editing.published ? "Visible" : "Hidden"}
+   743→          </button>
+   744→          <div className="flex gap-2 pt-1">
+   745→            {canEdit && <Button size="sm" className="h-9 flex-1 rounded-xl bg-mint text-[12.5px] font-semibold text-brand-deep hover:bg-mint/90" disabled={busy || !editing.quote.trim() || !editing.name.trim()} onClick={save}><Save size={13} className="mr-1.5" /> {busy ? "Saving…" : "Save testimonial"}</Button>}
+   746→            <Button size="sm" variant="ghost" className="h-9 rounded-xl text-[12.5px] text-white/60 hover:bg-white/5 hover:text-white" onClick={() => setEditing(null)}>Cancel</Button>
+   747→          </div>
+   748→        </div>
+   749→      ) : (
+   750→        <div className="space-y-2">
+   751→          {rows.map((t) => (
+   752→            <div key={t.id} className="flex items-start gap-3 rounded-xl bg-brand-deep/50 px-3.5 py-3">
+   753→              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold text-white/70">{t.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
+   754→              <div className="min-w-0 flex-1">
+   755→                <p className="text-[13px] font-semibold text-white">{t.name} <span className="text-[10.5px] font-bold text-mint">{t.stars}★</span>{!t.published && <span className="ml-1 text-[10.5px] font-bold uppercase text-amber-300">· hidden</span>}</p>
+   756→                <p className="text-[11px] text-white/40">{t.role}</p>
+   757→                <p className="mt-0.5 line-clamp-2 text-[11.5px] leading-relaxed text-white/50">&ldquo;{t.quote}&rdquo;</p>
+   758→              </div>
+   759→              {canEdit && (
+   760→                <>
+   761→                  <button onClick={() => { setEditing(t); setIsNew(false); }} className="rounded-lg p-1.5 text-white/40 hover:bg-white/5 hover:text-white" aria-label="Edit"><FileText size={14} /></button>
+   762→                  <button onClick={() => remove(t)} className="rounded-lg p-1.5 text-white/30 hover:bg-white/5 hover:text-red-300" aria-label="Delete"><Trash2 size={13} /></button>
+   763→                </>
+   764→              )}
+   765→            </div>
+   766→          ))}
+   767→          {tsms.loading && <div className="h-24 animate-pulse rounded-xl bg-brand-deep/50" />}
+   768→        </div>
+   769→      )}
+   770→    </div>
+   771→  );
+   772→}
+   773→
+   774→/* -------------------------------- media tab -------------------------------- */
+   775→
+   776→type CmsMediaRow = { id: string; filename: string; mime: string; size: number; alt: string; url: string; createdAt: string };
+   777→
+   778→function MediaTab({ canEdit, onChanged }: { canEdit: boolean; onChanged: () => void }) {
+   779→  const { toast } = useToast();
+   780→  const media = useApiData<{ media: CmsMediaRow[] }>("/api/cms/media");
+   781→  const [busy, setBusy] = useState(false);
+   782→  const rows = media.data?.media || [];
+   783→
+   784→  const upload = async (file: File) => {
+   785→    setBusy(true);
+   786→    try {
+   787→      const fd = new FormData();
+   788→      fd.append("file", file);
+   789→      const res = await fetch("/api/cms/media", { method: "POST", body: fd, credentials: "same-origin" });
+   790→      const data = await res.json();
+   791→      if (!res.ok) throw new Error(data?.error || "Upload failed");
+   792→      toast({ title: "Image uploaded", description: data.media.filename });
+   793→      media.reload();
+   794→      onChanged();
+   795→    } catch (e) {
+   796→      toast({ title: "Upload failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   797→    } finally { setBusy(false); }
+   798→  };
+   799→
+   800→  const remove = async (m: CmsMediaRow) => {
+   801→    try { await api.del(`/api/cms/media/${m.id}`); media.reload(); onChanged(); toast({ title: "Image deleted", description: m.filename }); }
+   802→    catch (e) { toast({ title: "Delete failed", description: e instanceof Error ? e.message : "", variant: "destructive" }); }
+   803→  };
+   804→
+   805→  const copyUrl = async (m: CmsMediaRow) => {
+   806→    try { await navigator.clipboard.writeText(m.url); toast({ title: "URL copied", description: m.url }); } catch { toast({ title: m.url }); }
+   807→  };
+   808→
+   809→  return (
+   810→    <div className="space-y-3">
+   811→      <div className="flex flex-wrap items-center justify-between gap-2">
+   812→        <p className="text-[12px] text-white/40">Images usable across the CMS — testimonial photos, blog featured images. Max 2 MB, images only.</p>
+   813→        {canEdit && (
+   814→          <label className={cn("flex h-8 cursor-pointer items-center rounded-xl bg-mint px-3.5 text-[12px] font-bold text-brand-deep hover:bg-mint/90", busy && "opacity-50")}>
+   815→            <ImagePlus size={13} className="mr-1.5" /> {busy ? "Uploading…" : "Upload image"}
+   816→            <input type="file" accept="image/*" className="hidden" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
+   817→          </label>
+   818→        )}
+   819→      </div>
+   820→      {rows.length === 0 && !media.loading ? (
+   821→        <div className="rounded-2xl border border-dashed border-white/15 bg-brand-deep/30 p-8 text-center">
+   822→          <Palette size={22} className="mx-auto text-white/20" />
+   823→          <p className="mt-2 text-[12.5px] text-white/40">No images yet — upload the first one.</p>
+   824→        </div>
+   825→      ) : (
+   826→        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+   827→          {rows.map((m) => (
+   828→            <div key={m.id} className="overflow-hidden rounded-2xl border border-white/10 bg-brand-deep/40">
+   829→              <img src={m.url} alt={m.alt || m.filename} className="aspect-video w-full bg-white/5 object-cover" />
+   830→              <div className="p-2.5">
+   831→                <p className="truncate text-[11.5px] font-semibold text-white">{m.filename}</p>
+   832→                <p className="text-[10px] text-white/30">{Math.round(m.size / 1024)} KB · {new Date(m.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p>
+   833→                <div className="mt-1.5 flex gap-1">
+   834→                  <button onClick={() => copyUrl(m)} className="rounded-lg bg-white/5 px-2 py-1 text-[10px] font-semibold text-white/60 hover:bg-white/10 hover:text-white">Copy URL</button>
+   835→                  {canEdit && <button onClick={() => remove(m)} className="rounded-lg p-1 text-white/30 hover:bg-white/5 hover:text-red-300" aria-label={`Delete ${m.filename}`}><Trash2 size={12} /></button>}
+   836→                </div>
+   837→              </div>
+   838→            </div>
+   839→          ))}
+   840→        </div>
+   841→      )}
+   842→    </div>
+   843→  );
+   844→}
+   845→
+   846→/* ------------------------------- banner tab ------------------------------- */
+   847→
+   848→function BannerTab({ canEdit }: { canEdit: boolean }) {
+   849→  const { toast } = useToast();
+   850→  const settings = useApiData<{ settings: { banner_enabled: string; banner_text: string; banner_link: string } }>("/api/cms/settings");
+   851→  const [draft, setDraft] = useState<{ banner_enabled: string; banner_text: string; banner_link: string } | null>(null);
+   852→  const [busy, setBusy] = useState(false);
+   853→  const s = draft || settings.data?.settings || { banner_enabled: "false", banner_text: "", banner_link: "" };
+   854→  const set = (k: keyof typeof s, v: string) => setDraft({ ...s, [k]: v });
+   855→
+   856→  const save = async () => {
+   857→    setBusy(true);
+   858→    try {
+   859→      await api.put("/api/cms/settings", s);
+   860→      toast({ title: "Banner saved", description: s.banner_enabled === "true" ? "The announcement bar is live on the website." : "Banner is switched off." });
+   861→      settings.reload();
+   862→    } catch (e) {
+   863→      toast({ title: "Save failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   864→    } finally { setBusy(false); }
+   865→  };
+   866→
+   867→  const NAV_TARGETS = [["", "— no link —"], ["features", "Features"], ["how", "How it works"], ["pricing", "Pricing"], ["stories", "Customer Stories"], ["about", "About Us"], ["contact", "Contact (Talk to us)"], ["knowledge", "FAQs"], ["blog", "Blog"]];
+   868→
+   869→  return (
+   870→    <div className="max-w-2xl space-y-3">
+   871→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+   872→        <h3 className="flex items-center gap-2 text-[15px] font-semibold text-white"><Megaphone size={15} className="text-mint" /> Announcement banner</h3>
+   873→        <p className="mt-1 text-[12px] text-white/40">A slim bar above the website header — for launches, cohorts and offers. Off = invisible.</p>
+   874→
+   875→        <div className="mt-4 space-y-2.5">
+   876→          <button disabled={!canEdit} onClick={() => set("banner_enabled", s.banner_enabled === "true" ? "false" : "true")}
+   877→            className={cn("flex h-9 items-center gap-2 rounded-full px-4 text-[12px] font-bold", s.banner_enabled === "true" ? "bg-mint/15 text-mint" : "bg-white/5 text-white/50")}>
+   878→            {s.banner_enabled === "true" ? "ON — showing on the site" : "OFF — hidden"}
+   879→          </button>
+   880→          <label className="block"><span className={lbl}>Text</span>
+   881→            <input value={s.banner_text} disabled={!canEdit} onChange={(e) => set("banner_text", e.target.value)} className={cn(inp, "mt-1")} placeholder="Now onboarding design partners for the June cohort." /></label>
+   882→          <label className="block"><span className={lbl}>Link</span>
+   883→            <select value={s.banner_link} disabled={!canEdit} onChange={(e) => set("banner_link", e.target.value)} className={cn(inp, "mt-1 appearance-none")}>
+   884→              {NAV_TARGETS.map(([v, label]) => <option key={v} value={v} className="bg-brand">{label}</option>)}
+   885→            </select></label>
+   886→          {s.banner_enabled === "true" && s.banner_text && (
+   887→            <div className="rounded-xl bg-white/5 p-3">
+   888→              <p className={lbl}>Preview</p>
+   889→              <div className="mt-2 rounded-lg bg-brand px-4 py-2 text-center text-[12.5px] font-medium text-white">
+   890→                ✦ {s.banner_text} {s.banner_link && <span className="font-bold text-mint">Learn more →</span>}
+   891→              </div>
+   892→            </div>
+   893→          )}
+   894→          {canEdit && <Button size="sm" className="h-9 w-full rounded-xl bg-mint text-[12.5px] font-bold text-brand-deep hover:bg-mint/90 sm:w-auto sm:px-5" disabled={busy} onClick={save}><Save size={13} className="mr-1.5" /> {busy ? "Saving…" : "Save banner"}</Button>}
+   895→        </div>
+   896→      </div>
+   897→      <div className="grid gap-4 md:grid-cols-2">
+   898→        <DarkCard icon={<RefreshCw size={15} />} title="Instant, cache-free" desc="Banner changes apply on the next page load — no deploy, no cache purge." />
+   899→        <DarkCard icon={<Globe size={15} />} title="One website, one source" desc="The same bar appears on www.sensiblee.in and any marketing deep link." />
+   900→      </div>
+   901→    </div>
+   902→  );
+   903→}
+   904→
+   905→/* ------------------------------- contact tab ------------------------------- */
+   906→
+   907→function ContactTab({ canEdit }: { canEdit: boolean }) {
+   908→  const { toast } = useToast();
+   909→  const settings = useApiData<{ settings: { contact_phone: string; contact_whatsapp: string; contact_email: string; contact_address: string } }>("/api/cms/settings");
+   910→  const [draft, setDraft] = useState<{ contact_phone: string; contact_whatsapp: string; contact_email: string; contact_address: string } | null>(null);
+   911→  const [busy, setBusy] = useState(false);
+   912→  const s = draft || settings.data?.settings || { contact_phone: "", contact_whatsapp: "", contact_email: "", contact_address: "" };
+   913→  const set = (k: keyof typeof s, v: string) => setDraft({ ...s, [k]: v });
+   914→
+   915→  // Derive the live footer rows exactly like the site does (src/lib/cms.ts).
+   916→  const digits = s.contact_phone.replace(/\D/g, "");
+   917→  const wa = s.contact_whatsapp.replace(/\D/g, "") || digits;
+   918→  const email = s.contact_email || "hello@sensiblee.in";
+   919→
+   920→  const save = async () => {
+   921→    setBusy(true);
+   922→    try {
+   923→      await api.put("/api/cms/settings", s);
+   924→      toast({ title: "Contact details saved", description: "The footer and legal pages now show the new details." });
+   925→      settings.reload();
+   926→    } catch (e) {
+   927→      toast({ title: "Save failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   928→    } finally { setBusy(false); }
+   929→  };
+   930→
+   931→  return (
+   932→    <div className="max-w-2xl space-y-3">
+   933→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+   934→        <h3 className="flex items-center gap-2 text-[15px] font-semibold text-white"><Phone size={15} className="text-mint" /> Get in Touch — footer contact</h3>
+   935→        <p className="mt-1 text-[12px] text-white/40">Shown in the website footer on every page and in the legal-page contact line. Leave a field empty to keep the built-in default.</p>
+   936→
+   937→        <div className="mt-4 space-y-2.5">
+   938→          <label className="block"><span className={lbl}>Phone (display)</span>
+   939→            <input value={s.contact_phone} disabled={!canEdit} onChange={(e) => set("contact_phone", e.target.value)} className={cn(inp, "mt-1")} placeholder="+91 93547 60585" />
+   940→            <span className="mt-1 block text-[10.5px] text-white/30">Tap-to-call and WhatsApp links are derived from this number automatically.</span></label>
+   941→          <label className="block"><span className={lbl}>WhatsApp number (optional)</span>
+   942→            <input value={s.contact_whatsapp} disabled={!canEdit} onChange={(e) => set("contact_whatsapp", e.target.value)} className={cn(inp, "mt-1")} placeholder="919354760585 — only if different from the phone above" /></label>
+   943→          <label className="block"><span className={lbl}>Email</span>
+   944→            <input value={s.contact_email} disabled={!canEdit} onChange={(e) => set("contact_email", e.target.value)} className={cn(inp, "mt-1")} placeholder="hello@sensiblee.in" /></label>
+   945→          <label className="block"><span className={lbl}>Address (Contact Us page card — one line per row)</span>
+   946→            <textarea value={s.contact_address || ""} disabled={!canEdit} rows={3} onChange={(e) => set("contact_address", e.target.value)} className={cn(inpArea, "mt-1")} placeholder={"Sensiblee by Naqsh Digital Technologies\nBengaluru, Karnataka, India"} /></label>
+   947→
+   948→          {(s.contact_phone || s.contact_email) && (
+   949→            <div className="rounded-xl bg-white/5 p-3">
+   950→              <p className={lbl}>Preview — footer “Get in Touch”</p>
+   951→              <ul className="mt-2 space-y-1.5 text-[12.5px] text-white/70">
+   952→                {s.contact_phone && <li><span className="text-white/35">Phone ·</span> {s.contact_phone}</li>}
+   953→                {s.contact_phone && <li><span className="text-white/35">WhatsApp ·</span> {s.contact_phone} <span className="text-white/30">(wa.me/{wa})</span></li>}
+   954→                {s.contact_email && <li><span className="text-white/35">Email ·</span> {email}</li>}
+   955→              </ul>
+   956→            </div>
+   957→          )}
+   958→          {canEdit && <Button size="sm" className="h-9 w-full rounded-xl bg-mint text-[12.5px] font-bold text-brand-deep hover:bg-mint/90 sm:w-auto sm:px-5" disabled={busy} onClick={save}><Save size={13} className="mr-1.5" /> {busy ? "Saving…" : "Save contact details"}</Button>}
+   959→        </div>
+   960→      </div>
+   961→      <div className="grid gap-4 md:grid-cols-2">
+   962→        <DarkCard icon={<RefreshCw size={15} />} title="Live without a deploy" desc="Saved details appear in the footer on the very next page load — no rebuild needed." />
+   963→        <DarkCard icon={<Globe size={15} />} title="Everywhere at once" desc="Footer on all 13 pages plus the privacy/terms contact line update together." />
+   964→      </div>
+   965→    </div>
+   966→  );
+   967→}
+   968→
+   969→/* -------------------------------- view shell -------------------------------- */
+   970→
+   971→export function WebsiteView({ canOperate }: { canOperate: boolean }) {
+   972→  const [tab, setTab] = useState("pages");
+   973→  const [mediaVersion, setMediaVersion] = useState(0);
+   974→  const media = useApiData<{ media: { id: string; filename: string }[] }>(mediaVersion >= 0 ? "/api/cms/media" : null);
+   975→
+   976→  const TABS = [
+   977→    { key: "pages", label: "Pages", icon: <FileText size={13} /> },
+   978→    { key: "blog", label: "Blog", icon: <Newspaper size={13} /> },
+   979→    { key: "faqs", label: "FAQs", icon: <HelpCircle size={13} /> },
+   980→    { key: "testimonials", label: "Testimonials", icon: <Quote size={13} /> },
+   981→    { key: "media", label: "Media", icon: <Palette size={13} /> },
+   982→    { key: "banner", label: "Banner", icon: <Megaphone size={13} /> },
+   983→    { key: "contact", label: "Contact", icon: <Phone size={13} /> },
+   984→  ];
+   985→
+   986→  return (
+   987→    <div className="space-y-5">
+   988→      <div className="rounded-2xl border border-white/10 bg-brand p-5">
+   989→        <div className="flex flex-wrap items-center justify-between gap-3">
+   990→          <div>
+   991→            <h3 className="text-[15px] font-semibold">Marketing website CMS</h3>
+   992→            <p className="mt-0.5 text-[12px] text-white/40">Every word, article, FAQ, testimonial and image on sensiblee.in — editable here, live instantly.</p>
+   993→          </div>
+   994→          <Badge className="border-mint/30 bg-mint/10 text-mint hover:bg-mint/10">13 pages managed</Badge>
+   995→        </div>
+   996→        <div className="mt-4"><TabsBar tabs={TABS} active={tab} onPick={setTab} /></div>
+   997→      </div>
+   998→
+   999→      {!canOperate && (
+  1000→        <p className="rounded-xl bg-brand-deep/50 px-3.5 py-3 text-[12px] text-white/40">Read-only access — observers can review content but not change it.</p>
+  1001→      )}
+  1002→
+  1003→      {tab === "pages" && <PagesTab canEdit={canOperate} />}
+  1004→      {tab === "blog" && <PostsTab canEdit={canOperate} media={media.data?.media || []} />}
+  1005→      {tab === "faqs" && <FaqsTab canEdit={canOperate} />}
+  1006→      {tab === "testimonials" && <TestimonialsTab canEdit={canOperate} media={media.data?.media || []} />}
+  1007→      {tab === "media" && <MediaTab canEdit={canOperate} onChanged={() => setMediaVersion((v) => v + 1)} />}
+  1008→      {tab === "banner" && <BannerTab canEdit={canOperate} />}
+  1009→      {tab === "contact" && <ContactTab canEdit={canOperate} />}
+  1010→    </div>
+  1011→  );
+  1012→}
+  1013→

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sensiblee Demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    background: #FEFCF5; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #1F2937; overflow: hidden;
+  }
+  .card { text-align: center; animation: rise .8s ease-out both; }
+  .logo-row img { height: 150px; width: auto; }
+  .tour {
+    display: inline-block; margin-top: 46px; padding: 14px 34px;
+    border-radius: 999px; background: #1F2937; color: #FEFCF5;
+    font-size: 20px; font-weight: 600; letter-spacing: 0.04em;
+  }
+  .tour span { color: #88D6A0; }
+  .wave { position: fixed; left: 0; right: 0; bottom: 0; height: 10px;
+    background: linear-gradient(90deg, #88D6A0 0%, #FEF3C7 100%); }
+  @keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-row">
+      <img src="/brand/logo-header.png" alt="Sensiblee — Sensing Sensibly. Acting Intelligently.">
+    </div>
+    <div class="tour">A <span>2-minute</span> product tour</div>
+  </div>
+  <div class="wave"></div>
+</body>
+</html>

@@ -1,0 +1,649 @@
+     1→     1→// Sensiblee client dashboard — shell, sidebar, Overview + Reviews (live API backed)
+     2→     2→"use client";
+     3→     3→
+     4→     4→import { useEffect, useMemo, useState } from "react";
+     5→     5→import { Badge } from "@/components/ui/badge";
+     6→     6→import { Button } from "@/components/ui/button";
+     7→     7→import { useToast } from "@/hooks/use-toast";
+     8→     8→import { api, useApiData } from "@/lib/client";
+     9→     9→import { useSession } from "@/lib/session";
+    10→    10→import { useRouter } from "@/lib/router";
+    11→    11→import type { ReviewVM, LocationVM } from "@/lib/viewmodels";
+    12→    12→import {
+    13→    13→  cn,
+    14→    14→  AlertTriangle,
+    15→    15→  BarChart3,
+    16→    16→  Bell,
+    17→    17→  Check,
+    18→    18→  ChevronDown,
+    19→    19→  ChevronRight,
+    20→    20→  ExternalLink,
+    21→    21→  LayoutDashboard,
+    22→    22→  LogOut,
+    23→    23→  MapPin,
+    24→    24→  MessageSquareText,
+    25→    25→  Rocket,
+    26→    26→  Search,
+    27→    27→  Send,
+    28→    28→  Settings,
+    29→    29→  Sparkles,
+    30→    30→  Star,
+    31→    31→  RefreshCw,
+    32→    32→  Download,
+    33→    33→} from "./deps";
+    34→    34→import { GoogleG, BrandLogo, SentimentBadge, StarRating, StatusBadge, WhatsAppIcon } from "./brand";
+    35→    35→import { ChartCard, RatingTrendChart, SentimentDonut, StatCard } from "./widgets";
+    36→    36→import { AiAssistantView, AnalyticsView, LocationsView, RequestsView } from "./client-views2";
+    37→    37→import { OnboardingWizard, ReviewDrawer, SettingsView, LocationDrawer } from "./client-extras";
+    38→    38→
+    39→    39→export type Overview = {
+    40→    40→  tenantName: string;
+    41→    41→  planName: string;
+    42→    42→  ownerName: string;
+    43→    43→  kpis: { rating: number; ratingDelta: string; reviewsMonth: number; reviewsDelta: string; responseRate: number; responseDelta: string; pending: number; drafts: number; alerts: number };
+    44→    44→  trend: { w: string; rating: number; volume: number }[];
+    45→    45→  sentiment: { name: string; value: number; color: string }[];
+    46→    46→  locations: LocationVM[];
+    47→    47→  recent: ReviewVM[];
+    48→    48→  urgent: ReviewVM[];
+    49→    49→  whatsapp: { quality: string; queued: number; template: string };
+    50→    50→  lastSync: string;
+    51→    51→};
+    52→    52→
+    53→    53→const NAV: { key: string; label: string; icon: React.ReactNode }[] = [
+    54→    54→  { key: "overview", label: "Overview", icon: <LayoutDashboard size={16} /> },
+    55→    55→  { key: "reviews", label: "Reviews", icon: <MessageSquareText size={16} /> },
+    56→    56→  { key: "requests", label: "Requests", icon: <Send size={16} /> },
+    57→    57→  { key: "ai", label: "AI Assistant", icon: <Sparkles size={16} /> },
+    58→    58→  { key: "analytics", label: "Analytics", icon: <BarChart3 size={16} /> },
+    59→    59→  { key: "locations", label: "Locations", icon: <MapPin size={16} /> },
+    60→    60→  { key: "settings", label: "Settings", icon: <Settings size={16} /> },
+    61→    61→];
+    62→    62→
+    63→    63→export function ClientDashboard() {
+    64→    64→  const { user, refresh, logout } = useSession();
+    65→    65→  const { route, navigate } = useRouter();
+    66→    66→  const { toast } = useToast();
+    67→    67→  const view = route.view || "overview";
+    68→    68→  const [navOpen, setNavOpen] = useState(false);
+    69→    69→  const [setupOpen, setSetupOpen] = useState(false);
+    70→    70→  const [selectedReview, setSelectedReview] = useState<ReviewVM | null>(null);
+    71→    71→  const [selectedLoc, setSelectedLoc] = useState<LocationVM | null>(null);
+    72→    72→
+    73→    73→  const overview = useApiData<Overview>(view === "overview" ? "/api/overview" : null);
+    74→    74→  const badgeCounts = useApiData<Overview>("/api/overview");
+    75→    75→  const onboardingDone = user?.tenant?.onboardingDone ?? true;
+    76→    76→
+    77→    77→  // Auto-open the onboarding wizard until setup is complete
+    78→    78→  useEffect(() => {
+    79→    79→    if (user && !user.tenant?.onboardingDone) setSetupOpen(true);
+    80→    80→  }, [user?.tenant?.onboardingDone]);
+    81→    81→
+    82→    82→  const go = (v: string) => {
+    83→    83→    navigate({ surface: "client", view: v });
+    84→    84→    setNavOpen(false);
+    85→    85→  };
+    86→    86→
+    87→    87→  // shared review actions
+    88→    88→  const [approving, setApproving] = useState<string | null>(null);
+    89→    89→  const approveReply = async (r: ReviewVM, body: string) => {
+    90→    90→    setApproving(r.id);
+    91→    91→    try {
+    92→    92→      await api.post(`/api/reviews/${r.id}/reply`, { body });
+    93→    93→      toast({ title: "Reply posted", description: `Published to Google for ${r.author}.` });
+    94→    94→      overview.reload();
+    95→    95→      badgeCounts.reload();
+    96→    96→      setSelectedReview(null);
+    97→    97→    } catch (e) {
+    98→    98→      toast({ title: "Could not post reply", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    99→    99→    } finally {
+   100→   100→      setApproving(null);
+   101→   101→    }
+   102→   102→  };
+   103→   103→  const generateDraft = async (r: ReviewVM) => {
+   104→   104→    setApproving(r.id);
+   105→   105→    try {
+   106→   106→      await api.post(`/api/reviews/${r.id}/draft`);
+   107→   107→      toast({ title: "Draft ready", description: `AI reply drafted for ${r.author}.` });
+   108→   108→      overview.reload();
+   109→   109→      badgeCounts.reload();
+   110→   110→    } catch (e) {
+   111→   111→      toast({ title: "Draft failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   112→   112→    } finally {
+   113→   113→      setApproving(null);
+   114→   114→    }
+   115→   115→  };
+   116→   116→
+   117→   117→  const initials = (user?.name || "U").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+   118→   118→  const k = overview.data?.kpis;
+   119→   119→
+   120→   120→  return (
+   121→   121→    <div className="flex h-screen bg-cream text-brand">
+   122→   122→      {/* impersonation banner */}
+   123→   123→      {user?.impersonatedBy && (
+   124→   124→        <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 bg-amber-400 px-4 py-2 text-[12.5px] font-semibold text-brand-deep">
+   125→   125→          <Shieldish /> Viewing {user?.tenant?.name || "tenant"} workspace as support — actions are audit-logged
+   126→   126→          <button
+   127→   127→            className="rounded-lg bg-brand-deep/10 px-2.5 py-1 font-bold hover:bg-brand-deep/20"
+   128→   128→            onClick={async () => {
+   129→   129→              await api.post("/api/auth/exit-impersonate");
+   130→   130→              await refresh();
+   131→   131→              navigate({ surface: "admin" });
+   132→   132→            }}
+   133→   133→          >
+   134→   134→            Exit session <Xish />
+   135→   135→          </button>
+   136→   136→        </div>
+   137→   137→      )}
+   138→   138→
+   139→   139→      {/* Sidebar */}
+   140→   140→      <aside
+   141→   141→        className={cn(
+   142→   142→          "fixed inset-y-0 left-0 z-40 flex w-[240px] flex-col border-r border-neutral-200/60 bg-white transition-transform lg:static lg:translate-x-0",
+   143→   143→          user?.impersonatedBy ? "pt-9" : "",
+   144→   144→          navOpen ? "translate-x-0" : "-translate-x-full"
+   145→   145→        )}
+   146→   146→      >
+   147→   147→        <div className="px-5 pb-4 pt-5">
+   148→   148→          <BrandLogo height={32} />
+   149→   149→        </div>
+   150→   150→        <div className="mx-4 mb-4 rounded-xl bg-surface p-3">
+   151→   151→          <p className="text-[10.5px] font-semibold uppercase tracking-wider text-neutral-400">Workspace</p>
+   152→   152→          <div className="mt-1 flex items-center justify-between text-left">
+   153→   153→            <span className="truncate text-[13px] font-semibold">{user?.tenant?.name || "Workspace"}</span>
+   154→   154→            <ChevronDown size={14} className="shrink-0 text-neutral-400" />
+   155→   155→          </div>
+   156→   156→        </div>
+   157→   157→        <nav className="flex-1 space-y-1 px-3" aria-label="Dashboard sections">
+   158→   158→          {NAV.map((n) => (
+   159→   159→            <button
+   160→   160→              key={n.key}
+   161→   161→              onClick={() => go(n.key)}
+   162→   162→              className={cn(
+   163→   163→                "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors",
+   164→   164→                view === n.key ? "bg-brand text-white shadow-sm" : "text-neutral-500 hover:bg-surface hover:text-brand"
+   165→   165→              )}
+   166→   166→              aria-current={view === n.key ? "page" : undefined}
+   167→   167→            >
+   168→   168→              {n.icon}
+   169→   169→              {n.label}
+   170→   170→              {n.key === "ai" && (badgeCounts.data?.kpis.drafts ?? 0) > 0 && (
+   171→   171→                <span className={cn(
+   172→   172→                  "ml-auto rounded-full px-1.5 py-0.5 text-[10.5px] font-bold",
+   173→   173→                  view === n.key ? "bg-white/20 text-white" : "bg-amber-soft text-amber-deep"
+   174→   174→                )}>
+   175→   175→                  {badgeCounts.data?.kpis.drafts}
+   176→   176→                </span>
+   177→   177→              )}
+   178→   178→              {n.key === "reviews" && (badgeCounts.data?.kpis.alerts ?? 0) > 0 && (
+   179→   179→                <span className={cn(
+   180→   180→                  "ml-auto rounded-full px-1.5 py-0.5 text-[10.5px] font-bold",
+   181→   181→                  view === n.key ? "bg-white/20 text-white" : "bg-red-50 text-red-500"
+   182→   182→                )}>
+   183→   183→                  {badgeCounts.data?.kpis.alerts}
+   184→   184→                </span>
+   185→   185→              )}
+   186→   186→            </button>
+   187→   187→          ))}
+   188→   188→        </nav>
+   189→   189→        <div className="border-t border-neutral-100 p-3">
+   190→   190→          {!onboardingDone && (
+   191→   191→            <button
+   192→   192→              onClick={() => setSetupOpen(true)}
+   193→   193→              className="mb-2 flex w-full items-center gap-2.5 rounded-xl bg-mint-soft/60 px-2 py-2 text-[12.5px] font-semibold text-mint-deep"
+   194→   194→            >
+   195→   195→              <Rocket size={14} /> Finish setup
+   196→   196→            </button>
+   197→   197→          )}
+   198→   198→          <button
+   199→   199→            onClick={() => setSetupOpen(true)}
+   200→   200→            className="mb-2 flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-[12.5px] font-semibold text-neutral-500 transition-colors hover:bg-surface hover:text-brand"
+   201→   201→          >
+   202→   202→            <Rocket size={14} className="text-mint-deep" /> Replay onboarding
+   203→   203→          </button>
+   204→   204→          <div className="flex items-center gap-2.5 rounded-xl px-2 py-2 hover:bg-surface">
+   205→   205→            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-[11px] font-bold text-white">{initials}</span>
+   206→   206→            <div className="min-w-0 flex-1 leading-tight">
+   207→   207→              <p className="truncate text-[12.5px] font-semibold">{user?.name}</p>
+   208→   208→              <p className="truncate text-[11px] capitalize text-neutral-400">{user?.role} · {user?.tenant?.planName} plan</p>
+   209→   209→            </div>
+   210→   210→            <button
+   211→   211→              onClick={async () => { await logout(); navigate({ surface: "home" }); }}
+   212→   212→              title="Sign out"
+   213→   213→              className="rounded-lg p-1.5 text-neutral-400 hover:bg-surface hover:text-brand"
+   214→   214→            >
+   215→   215→              <LogOut size={14} />
+   216→   216→            </button>
+   217→   217→            <button
+   218→   218→              onClick={() => navigate({ surface: "home" })}
+   219→   219→              title="Back to website"
+   220→   220→              className="rounded-lg p-1.5 text-neutral-400 hover:bg-surface hover:text-brand"
+   221→   221→            >
+   222→   222→              <ExternalLink size={14} />
+   223→   223→            </button>
+   224→   224→          </div>
+   225→   225→        </div>
+   226→   226→      </aside>
+   227→   227→      {navOpen && <button className="fixed inset-0 z-30 bg-brand/30 lg:hidden" aria-label="Close menu" onClick={() => setNavOpen(false)} />}
+   228→   228→
+   229→   229→      {/* Main */}
+   230→   230→      <div className="flex min-w-0 flex-1 flex-col">
+   231→   231→        <header className="flex items-center gap-3 border-b border-neutral-200/60 bg-white/80 px-4 py-3 backdrop-blur lg:px-7">
+   232→   232→          <button className="rounded-lg p-2 hover:bg-surface lg:hidden" onClick={() => setNavOpen(true)} aria-label="Open menu">
+   233→   233→            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+   234→   234→          </button>
+   235→   235→          <div className="relative hidden max-w-md flex-1 sm:block">
+   236→   236→            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+   237→   237→            <input
+   238→   238→              placeholder="Search reviews, guests, keywords…"
+   239→   239→              className="h-9 w-full rounded-xl border border-neutral-200 bg-surface pl-9 pr-3 text-[13px] outline-none transition-colors placeholder:text-neutral-400 focus:border-mint/60 focus:bg-white"
+   240→   240→            />
+   241→   241→          </div>
+   242→   242→          <div className="ml-auto flex items-center gap-2">
+   243→   243→            <button className="relative rounded-xl border border-neutral-200 bg-white p-2 text-neutral-500 hover:text-brand" aria-label="Notifications"
+   244→   244→              onClick={() => toast({ title: `${k?.alerts ?? 0} alerts`, description: "1–2★ reviews and sync failures ping you on WhatsApp." })}>
+   245→   245→              <Bell size={15} />
+   246→   246→              {(k?.alerts ?? 0) > 0 && (
+   247→   247→                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9.5px] font-bold text-white">{k?.alerts}</span>
+   248→   248→              )}
+   249→   249→            </button>
+   250→   250→            <Button size="sm" className="h-9 rounded-xl bg-mint-deep text-[12.5px] text-white hover:bg-mint-deep/90" onClick={() => go("requests")}>
+   251→   251→              <Send size={13} className="mr-1.5" /> New request
+   252→   252→            </Button>
+   253→   253→          </div>
+   254→   254→        </header>
+   255→   255→
+   256→   256→        <main className={cn("flex-1 overflow-y-auto px-4 py-5 lg:px-7 lg:py-6", user?.impersonatedBy && "pt-14")}>
+   257→   257→          <div className="mx-auto max-w-[1200px]">
+   258→   258→            {view === "overview" && (
+   259→   259→              <OverviewView
+   260→   260→                data={overview.data}
+   261→   261→                loading={overview.loading}
+   262→   262→                onGo={go}
+   263→   263→                onSetup={() => setSetupOpen(true)}
+   264→   264→                onOpenReview={setSelectedReview}
+   265→   265→                onApprove={approveReply}
+   266→   266→                approving={approving}
+   267→   267→              />
+   268→   268→            )}
+   269→   269→            {view === "reviews" && (
+   270→   270→              <ReviewsView onOpenReview={setSelectedReview} onApprove={approveReply} onDraft={generateDraft} busy={approving} locations={badgeCounts.data?.locations || []} />
+   271→   271→            )}
+   272→   272→            {view === "requests" && <RequestsView />}
+   273→   273→            {view === "ai" && <AiAssistantView />}
+   274→   274→            {view === "analytics" && <AnalyticsView />}
+   275→   275→            {view === "locations" && <LocationsView onOpenLocation={setSelectedLoc} />}
+   276→   276→            {view === "settings" && <SettingsView />}
+   277→   277→          </div>
+   278→   278→        </main>
+   279→   279→      </div>
+   280→   280→
+   281→   281→      {setupOpen && <OnboardingWizard onDone={() => { setSetupOpen(false); refresh(); }} />}
+   282→   282→      <ReviewDrawer
+   283→   283→        review={selectedReview}
+   284→   284→        onClose={() => setSelectedReview(null)}
+   285→   285→        onApprove={approveReply}
+   286→   286→        onDraft={generateDraft}
+   287→   287→        busy={approving === selectedReview?.id}
+   288→   288→      />
+   289→   289→      <LocationDrawer location={selectedLoc} onClose={() => { setSelectedLoc(null); badgeCounts.reload(); }} />
+   290→   290→    </div>
+   291→   291→  );
+   292→   292→}
+   293→   293→
+   294→   294→function Shieldish() {
+   295→   295→  return <ShieldIcon />;
+   296→   296→}
+   297→   297→function Xish() {
+   298→   298→  return <span aria-hidden>→</span>;
+   299→   299→}
+   300→   300→function ShieldIcon() {
+   301→   301→  return (
+   302→   302→    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+   303→   303→      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+   304→   304→    </svg>
+   305→   305→  );
+   306→   306→}
+   307→   307→
+   308→   308→/* ------------------------------- Overview ------------------------------- */
+   309→   309→
+   310→   310→function OverviewView({ data, loading, onGo, onSetup, onOpenReview, onApprove, approving }: {
+   311→   311→  data: Overview | null;
+   312→   312→  loading: boolean;
+   313→   313→  onGo: (v: string) => void;
+   314→   314→  onSetup: () => void;
+   315→   315→  onOpenReview: (r: ReviewVM) => void;
+   316→   316→  onApprove: (r: ReviewVM, body: string) => void;
+   317→   317→  approving: string | null;
+   318→   318→}) {
+   319→   319→  if (loading || !data) {
+   320→   320→    return (
+   321→   321→      <div className="space-y-5">
+   322→   322→        <div className="h-9 w-72 animate-pulse rounded-xl bg-surface" />
+   323→   323→        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   324→   324→          {[0, 1, 2, 3].map((i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-surface" />)}
+   325→   325→        </div>
+   326→   326→        <div className="grid gap-5 xl:grid-cols-3">
+   327→   327→          <div className="h-72 animate-pulse rounded-2xl bg-surface xl:col-span-2" />
+   328→   328→          <div className="h-72 animate-pulse rounded-2xl bg-surface" />
+   329→   329→        </div>
+   330→   330→      </div>
+   331→   331→    );
+   332→   332→  }
+   333→   333→  const k = data.kpis;
+   334→   334→  const firstName = data.ownerName.split(" ")[0];
+   335→   335→
+   336→   336→  return (
+   337→   337→    <div className="space-y-5">
+   338→   338→      <div className="flex flex-wrap items-end justify-between gap-3">
+   339→   339→        <div>
+   340→   340→          <h1 className="text-[22px] font-bold tracking-tight">Good day, {firstName}</h1>
+   341→   341→          <p className="mt-0.5 text-[13.5px] text-neutral-500">
+   342→   342→            Your reputation across {data.locations.length} location{data.locations.length === 1 ? "" : "s"} — refreshed <span className="font-medium text-mint-deep">{data.lastSync}</span>.
+   343→   343→          </p>
+   344→   344→        </div>
+   345→   345→        <Badge className="bg-mint-soft text-mint-deep hover:bg-mint-soft ring-1 ring-mint/40 gap-1.5">
+   346→   346→          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-mint-deep" /> Live · 15-min sync
+   347→   347→        </Badge>
+   348→   348→      </div>
+   349→   349→
+   350→   350→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   351→   351→        <StatCard label="Average rating" value={String(k.rating)} delta={k.ratingDelta} hint="vs last month · all locations" icon={<Star size={15} />} accent="amber" />
+   352→   352→        <StatCard label="New reviews (30d)" value={String(k.reviewsMonth)} delta={k.reviewsDelta} hint="Google · request campaigns" icon={<GoogleG size={15} />} />
+   353→   353→        <StatCard label="Response rate" value={`${k.responseRate}%`} delta={k.responseDelta} hint="goal: 90% within 24h" icon={<Check size={15} />} />
+   354→   354→        <StatCard label="Needs you now" value={String(k.pending)} hint={`${k.alerts} SLA alerts`} icon={<AlertTriangle size={15} />} accent="coral" />
+   355→   355→      </div>
+   356→   356→
+   357→   357→      <div className="grid gap-5 xl:grid-cols-3">
+   358→   358→        <ChartCard
+   359→   359→          title="Rating trend"
+   360→   360→          subtitle="12 weeks · volume as bars"
+   361→   361→          className="xl:col-span-2"
+   362→   362→          right={
+   363→   363→            <Button variant="ghost" size="sm" className="h-8 text-xs text-neutral-500" onClick={() => onGo("analytics")}>
+   364→   364→              Full analytics <BarChart3 size={13} className="ml-1" />
+   365→   365→            </Button>
+   366→   366→          }
+   367→   367→        >
+   368→   368→          <RatingTrendChart data={data.trend} />
+   369→   369→        </ChartCard>
+   370→   370→        <ChartCard title="Sentiment" subtitle="this month · AI-classified">
+   371→   371→          <SentimentDonut data={data.sentiment} avgRating={k.rating} />
+   372→   372→        </ChartCard>
+   373→   373→      </div>
+   374→   374→
+   375→   375→      <div className="grid gap-5 xl:grid-cols-3">
+   376→   376→        <div className="xl:col-span-2 space-y-3">
+   377→   377→          <div className="flex items-center justify-between">
+   378→   378→            <h3 className="text-[15px] font-semibold">Latest reviews</h3>
+   379→   379→            <Button variant="ghost" size="sm" className="h-8 text-xs text-neutral-500" onClick={() => onGo("reviews")}>
+   380→   380→              View all <MessageSquareText size={13} className="ml-1" />
+   381→   381→            </Button>
+   382→   382→          </div>
+   383→   383→          {data.recent.map((r) => (
+   384→   384→            <ReviewRow key={r.id} review={r} compact onOpen={onOpenReview} onApprove={onApprove} approving={approving} />
+   385→   385→          ))}
+   386→   386→        </div>
+   387→   387→
+   388→   388→        <div className="space-y-5">
+   389→   389→          <div className="rounded-2xl border border-red-200/70 bg-red-50/40 p-4">
+   390→   390→            <h3 className="flex items-center gap-2 text-[14px] font-semibold text-red-700">
+   391→   391→              <AlertTriangle size={15} /> Needs attention
+   392→   392→            </h3>
+   393→   393→            <div className="mt-3 space-y-2.5">
+   394→   394→              {data.urgent.map((r) => (
+   395→   395→                <div key={r.id} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") onGo("ai"); }} onClick={() => onGo("ai")} className="w-full cursor-pointer rounded-xl bg-white p-3 text-left shadow-sm transition-shadow hover:shadow-md">
+   396→   396→                  <div className="flex items-center justify-between">
+   397→   397→                    <span className="text-[12.5px] font-semibold text-brand">{r.author}</span>
+   398→   398→                    <StarRating value={r.stars} size={11} />
+   399→   399→                  </div>
+   400→   400→                  <p className="mt-1 line-clamp-2 text-[12px] text-neutral-500">{r.text}</p>
+   401→   401→                  <p className="mt-1.5 text-[11px] font-medium text-red-500">{r.status === "awaiting" ? "No reply yet — 24h SLA breached" : "AI draft ready for approval"}</p>
+   402→   402→                </div>
+   403→   403→              ))}
+   404→   404→              {data.urgent.length === 0 && (
+   405→   405→                <p className="rounded-xl bg-white p-3 text-[12.5px] text-neutral-400">All clear — nothing breaching SLA.</p>
+   406→   406→              )}
+   407→   407→            </div>
+   408→   408→          </div>
+   409→   409→
+   410→   410→          <ChartCard title="Locations" subtitle="rating · last sync">
+   411→   411→            <div className="space-y-2.5">
+   412→   412→              {data.locations.map((l) => (
+   413→   413→                <div key={l.id} className="flex items-center justify-between rounded-xl bg-surface px-3 py-2.5">
+   414→   414→                  <div>
+   415→   415→                    <p className="text-[12.5px] font-semibold text-brand">{l.name.replace(/^Spice Route\s+/, "").replace(/^Lumiere Dental —\s+/, "")}</p>
+   416→   416→                    <p className="text-[10.5px] text-neutral-400">{l.reviews.toLocaleString("en-IN")} reviews · {l.lastSync}</p>
+   417→   417→                  </div>
+   418→   418→                  <div className="text-right">
+   419→   419→                    <p className="text-[15px] font-bold text-brand">{l.rating}</p>
+   420→   420→                    <StatusBadge status={l.syncState} />
+   421→   421→                  </div>
+   422→   422→                </div>
+   423→   423→              ))}
+   424→   424→            </div>
+   425→   425→          </ChartCard>
+   426→   426→
+   427→   427→          <div className="rounded-2xl bg-brand p-4 text-white">
+   428→   428→            <p className="flex items-center gap-2 text-[13.5px] font-semibold"><WhatsAppIcon size={15} className="text-mint" /> WhatsApp channel healthy</p>
+   429→   429→            <p className="mt-1 text-[12px] leading-relaxed text-white/70">
+   430→   430→              Quality rating: <span className="font-semibold text-mint">{data.whatsapp.quality}</span> · {data.whatsapp.queued} campaign{data.whatsapp.queued === 1 ? "" : "s"} scheduled · template approval intact.
+   431→   431→            </p>
+   432→   432→          </div>
+   433→   433→        </div>
+   434→   434→      </div>
+   435→   435→    </div>
+   436→   436→  );
+   437→   437→}
+   438→   438→
+   439→   439→/* -------------------------------- Reviews ------------------------------- */
+   440→   440→
+   441→   441→type StatusFilter = "all" | "ai-draft" | "replied" | "awaiting";
+   442→   442→
+   443→   443→function ReviewsView({ onOpenReview, onApprove, onDraft, busy, locations }: {
+   444→   444→  onOpenReview: (r: ReviewVM) => void;
+   445→   445→  onApprove: (r: ReviewVM, body: string) => void;
+   446→   446→  onDraft: (r: ReviewVM) => void;
+   447→   447→  busy: string | null;
+   448→   448→  locations: LocationVM[];
+   449→   449→}) {
+   450→   450→  const { toast } = useToast();
+   451→   451→  const [status, setStatus] = useState<StatusFilter>("all");
+   452→   452→  const [minStars, setMinStars] = useState(0);
+   453→   453→  const [syncing, setSyncing] = useState(false);
+   454→   454→  const reviews = useApiData<{ reviews: ReviewVM[]; total: number }>(
+   455→   455→    `/api/reviews?status=${status}&minStars=${minStars}`
+   456→   456→  );
+   457→   457→  const filtered = useMemo(() => reviews.data?.reviews || [], [reviews.data]);
+   458→   458→
+   459→   459→  const syncAll = async () => {
+   460→   460→    setSyncing(true);
+   461→   461→    try {
+   462→   462→      let created = 0;
+   463→   463→      for (const loc of locations) {
+   464→   464→        const res = await api.post<{ newReviews: number }>(`/api/locations/${loc.id}/sync`);
+   465→   465→        created += res.newReviews;
+   466→   466→      }
+   467→   467→      toast({ title: "Sync complete", description: created ? `${created} new review${created > 1 ? "s" : ""} pulled and scored.` : "All profiles up to date — no new reviews." });
+   468→   468→      reviews.reload();
+   469→   469→    } catch (e) {
+   470→   470→      toast({ title: "Sync failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   471→   471→    } finally {
+   472→   472→      setSyncing(false);
+   473→   473→    }
+   474→   474→  };
+   475→   475→
+   476→   476→  const exportCsv = () => {
+   477→   477→    const rows = [
+   478→   478→      ["Author", "Stars", "Location", "Sentiment", "Status", "Text", "Received"],
+   479→   479→      ...filtered.map((r) => [r.author, String(r.stars), r.location, r.sentiment, r.status, `"${r.text.replace(/"/g, '""')}"`, r.createdAt]),
+   480→   480→    ];
+   481→   481→    const csv = rows.map((r) => r.join(",")).join("\n");
+   482→   482→    const blob = new Blob([csv], { type: "text/csv" });
+   483→   483→    const url = URL.createObjectURL(blob);
+   484→   484→    const a = document.createElement("a");
+   485→   485→    a.href = url;
+   486→   486→    a.download = `sensiblee-reviews-${new Date().toISOString().slice(0, 10)}.csv`;
+   487→   487→    a.click();
+   488→   488→    URL.revokeObjectURL(url);
+   489→   489→    toast({ title: "Export downloaded", description: `${filtered.length} reviews in the current filter.` });
+   490→   490→  };
+   491→   491→
+   492→   492→  return (
+   493→   493→    <div className="space-y-5">
+   494→   494→      <div className="flex flex-wrap items-end justify-between gap-3">
+   495→   495→        <div>
+   496→   496→          <h1 className="text-[22px] font-bold tracking-tight">Review monitor</h1>
+   497→   497→          <p className="mt-0.5 text-[13.5px] text-neutral-500">Module A · every Google review across your locations, synced every 15 minutes.</p>
+   498→   498→        </div>
+   499→   499→        <div className="flex gap-2">
+   500→   500→          <Button variant="outline" size="sm" className="h-9 rounded-xl text-[12.5px]" onClick={syncAll} disabled={syncing}>
+   501→   501→            <RefreshCw size={13} className={cn("mr-1.5", syncing && "animate-spin")} />
+   502→   502→            {syncing ? "Syncing…" : "Sync all profiles"}
+   503→   503→          </Button>
+   504→   504→          <Button variant="outline" size="sm" className="h-9 rounded-xl text-[12.5px]" onClick={exportCsv}>
+   505→   505→            <Download size={13} className="mr-1.5" /> Export CSV
+   506→   506→          </Button>
+   507→   507→        </div>
+   508→   508→      </div>
+   509→   509→
+   510→   510→      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-neutral-200/70 bg-white p-3">
+   511→   511→        <div className="flex flex-wrap gap-1.5">
+   512→   512→          {(["all", "ai-draft", "replied", "awaiting"] as StatusFilter[]).map((s) => (
+   513→   513→            <button
+   514→   514→              key={s}
+   515→   515→              onClick={() => setStatus(s)}
+   516→   516→              className={cn(
+   517→   517→                "rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors",
+   518→   518→                status === s ? "bg-brand text-white" : "bg-surface text-neutral-500 hover:text-brand"
+   519→   519→              )}
+   520→   520→            >
+   521→   521→              {s === "all" ? "All" : s === "ai-draft" ? "AI drafts" : s === "replied" ? "Replied" : "Awaiting"}
+   522→   522→            </button>
+   523→   523→          ))}
+   524→   524→        </div>
+   525→   525→        <div className="ml-auto flex items-center gap-2">
+   526→   526→          <span className="text-[12px] text-neutral-400">Min stars</span>
+   527→   527→          {[0, 1, 2, 3, 4].map((n) => (
+   528→   528→            <button
+   529→   529→              key={n}
+   530→   530→              onClick={() => setMinStars(n)}
+   531→   531→              className={cn("h-7 min-w-7 rounded-lg px-1.5 text-[12px] font-semibold", minStars === n ? "bg-mint-soft text-mint-deep ring-1 ring-mint/50" : "text-neutral-400 hover:text-brand")}
+   532→   532→            >
+   533→   533→              {n === 0 ? "Any" : `${n}+`}
+   534→   534→            </button>
+   535→   535→          ))}
+   536→   536→        </div>
+   537→   537→      </div>
+   538→   538→
+   539→   539→      <div className="space-y-3">
+   540→   540→        {reviews.loading && <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-surface" />)}</div>}
+   541→   541→        {!reviews.loading && filtered.map((r) => (
+   542→   542→          <ReviewRow key={r.id} review={r} onOpen={onOpenReview} onApprove={onApprove} onDraft={onDraft} approving={busy} />
+   543→   543→        ))}
+   544→   544→        {!reviews.loading && filtered.length === 0 && (
+   545→   545→          <div className="rounded-2xl border border-dashed border-neutral-200 p-10 text-center text-[13.5px] text-neutral-400">
+   546→   546→            No reviews match this filter.
+   547→   547→          </div>
+   548→   548→        )}
+   549→   549→      </div>
+   550→   550→    </div>
+   551→   551→  );
+   552→   552→}
+   553→   553→
+   554→   554→function ReviewRow({ review: r, compact = false, onOpen, onApprove, onDraft, approving }: {
+   555→   555→  review: ReviewVM;
+   556→   556→  compact?: boolean;
+   557→   557→  onOpen?: (r: ReviewVM) => void;
+   558→   558→  onApprove?: (r: ReviewVM, body: string) => void;
+   559→   559→  onDraft?: (r: ReviewVM) => void;
+   560→   560→  approving?: string | null;
+   561→   561→}) {
+   562→   562→  const [expanded, setExpanded] = useState(false);
+   563→   563→  const isBusy = approving === r.id;
+   564→   564→  return (
+   565→   565→    <div
+   566→   566→      onClick={() => onOpen?.(r)}
+   567→   567→      role={onOpen ? "button" : undefined}
+   568→   568→      tabIndex={onOpen ? 0 : undefined}
+   569→   569→      onKeyDown={onOpen ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(r); } } : undefined}
+   570→   570→      className={cn(
+   571→   571→        "rounded-2xl border bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-md",
+   572→   572→        r.stars <= 2 ? "border-red-200/60" : "border-neutral-200/70",
+   573→   573→        onOpen && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint"
+   574→   574→      )}
+   575→   575→    >
+   576→   576→      <div className="flex items-start gap-3">
+   577→   577→        <span className={cn(
+   578→   578→          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11.5px] font-bold text-white",
+   579→   579→          r.sentiment === "positive" ? "bg-mint-deep" : r.sentiment === "neutral" ? "bg-amber-500" : "bg-red-500"
+   580→   580→        )}>
+   581→   581→          {r.initials}
+   582→   582→        </span>
+   583→   583→        <div className="min-w-0 flex-1">
+   584→   584→          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+   585→   585→            <span className="text-[13.5px] font-semibold text-brand">{r.author}</span>
+   586→   586→            <StarRating value={r.stars} size={12} />
+   587→   587→            <span className="text-[11.5px] text-neutral-400">{r.location} · {r.time}</span>
+   588→   588→            <span className="ml-auto flex items-center gap-1.5">
+   589→   589→              <GoogleG size={13} />
+   590→   590→              <SentimentBadge sentiment={r.sentiment} />
+   591→   591→              <StatusBadge status={r.status} />
+   592→   592→            </span>
+   593→   593→          </div>
+   594→   594→          <p className={cn("mt-1.5 text-[13.5px] leading-relaxed text-neutral-600", compact && !expanded && "line-clamp-2")}>{r.text}</p>
+   595→   595→          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+   596→   596→            {r.keywords.map((kw) => (
+   597→   597→              <span key={kw} className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-neutral-500">{kw}</span>
+   598→   598→            ))}
+   599→   599→          </div>
+   600→   600→
+   601→   601→          {(r.draft || r.reply) && (
+   602→   602→            <div className={cn("mt-3 rounded-xl p-3", r.status === "ai-draft" ? "bg-mint-soft/40 ring-1 ring-mint/30" : "bg-surface")}>
+   603→   603→              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+   604→   604→                {r.status === "ai-draft" ? <><Sparkles size={11} className="text-mint-deep" /> AI suggested reply · {Math.round((r.confidence ?? 0.9) * 100)}% confident</> : "Your reply"}
+   605→   605→              </p>
+   606→   606→              <p className={cn("mt-1 text-[13px] leading-relaxed text-neutral-600", compact && !expanded && "line-clamp-2")}>{r.draft ?? r.reply}</p>
+   607→   607→            </div>
+   608→   608→          )}
+   609→   609→
+   610→   610→          <div className="mt-2.5 flex items-center gap-2">
+   611→   611→            {(r.draft || compact) && (
+   612→   612→              <button
+   613→   613→                className="text-[12px] font-semibold text-mint-deep hover:underline"
+   614→   614→                onClick={(e) => { e.stopPropagation(); setExpanded((x) => !x); }}
+   615→   615→              >
+   616→   616→                {expanded ? "Show less" : r.draft ? "Review draft" : "Show more"}
+   617→   617→              </button>
+   618→   618→            )}
+   619→   619→            {r.status === "ai-draft" && onApprove && (
+   620→   620→              <Button size="sm" className="h-7 rounded-lg bg-mint-deep px-2.5 text-[11.5px] text-white hover:bg-mint-deep/90" disabled={isBusy}
+   621→   621→                onClick={(e) => { e.stopPropagation(); onApprove(r, r.draft || ""); }}>
+   622→   622→                {isBusy ? <RefreshCw size={12} className="mr-1 animate-spin" /> : <Check size={12} className="mr-1" />}
+   623→   623→                {isBusy ? "Posting…" : "Approve"}
+   624→   624→              </Button>
+   625→   625→            )}
+   626→   626→            {r.status === "awaiting" && onDraft && (
+   627→   627→              <Button size="sm" variant="outline" className="h-7 rounded-lg px-2.5 text-[11.5px]" disabled={isBusy}
+   628→   628→                onClick={(e) => { e.stopPropagation(); onDraft(r); }}>
+   629→   629→                <Sparkles size={12} className="mr-1" /> {isBusy ? "Writing…" : "Draft a reply"}
+   630→   630→              </Button>
+   631→   631→            )}
+   632→   632→            {onOpen && (
+   633→   633→              <button
+   634→   634→                className="text-[12px] font-semibold text-neutral-400 hover:text-brand"
+   635→   635→                onClick={(e) => { e.stopPropagation(); onOpen(r); }}
+   636→   636→              >
+   637→   637→                Details
+   638→   638→              </button>
+   639→   639→            )}
+   640→   640→            <span className="ml-auto text-[11px] text-neutral-300">via {r.source === "request" ? "request · Google" : "Google"}</span>
+   641→   641→          </div>
+   642→   642→        </div>
+   643→   643→      </div>
+   644→   644→    </div>
+   645→   645→  );
+   646→   646→}
+   647→   647→
+   648→   648→void ChevronRight;
+   649→   649→

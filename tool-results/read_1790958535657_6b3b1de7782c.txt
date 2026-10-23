@@ -1,0 +1,652 @@
+     1→// Sensiblee client dashboard — shell, sidebar, Overview + Reviews (live API backed)
+     2→"use client";
+     3→
+     4→import { useEffect, useMemo, useState } from "react";
+     5→import { Badge } from "@/components/ui/badge";
+     6→import { Button } from "@/components/ui/button";
+     7→import { useToast } from "@/hooks/use-toast";
+     8→import { api, useApiData } from "@/lib/client";
+     9→import { useSession } from "@/lib/session";
+    10→import { useRouter } from "@/lib/router";
+    11→import type { ReviewVM, LocationVM } from "@/lib/viewmodels";
+    12→import {
+    13→  cn,
+    14→  AlertTriangle,
+    15→  BarChart3,
+    16→  Bell,
+    17→  Check,
+    18→  ChevronDown,
+    19→  ChevronRight,
+    20→  ExternalLink,
+    21→  LayoutDashboard,
+    22→  LogOut,
+    23→  MapPin,
+    24→  MessageSquareText,
+    25→  Rocket,
+    26→  Search,
+    27→  Send,
+    28→  Settings,
+    29→  Sparkles,
+    30→  Star,
+    31→  RefreshCw,
+    32→  Download,
+    33→} from "./deps";
+    34→import { GoogleG, BrandLogo, SentimentBadge, StarRating, StatusBadge, WhatsAppIcon } from "./brand";
+    35→import { ThemeToggle } from "./theme-toggle";
+    36→import { ChartCard, RatingTrendChart, SentimentDonut, StatCard } from "./widgets";
+    37→import { AiAssistantView, AnalyticsView, LocationsView, RequestsView } from "./client-views2";
+    38→import { OnboardingWizard, ReviewDrawer, SettingsView, LocationDrawer } from "./client-extras";
+    39→
+    40→export type Overview = {
+    41→  tenantName: string;
+    42→  planName: string;
+    43→  ownerName: string;
+    44→  kpis: { rating: number; ratingDelta: string; reviewsMonth: number; reviewsDelta: string; responseRate: number; responseDelta: string; pending: number; drafts: number; alerts: number };
+    45→  trend: { w: string; rating: number; volume: number }[];
+    46→  sentiment: { name: string; value: number; color: string }[];
+    47→  locations: LocationVM[];
+    48→  recent: ReviewVM[];
+    49→  urgent: ReviewVM[];
+    50→  whatsapp: { quality: string; queued: number; template: string };
+    51→  lastSync: string;
+    52→};
+    53→
+    54→const NAV: { key: string; label: string; icon: React.ReactNode }[] = [
+    55→  { key: "overview", label: "Overview", icon: <LayoutDashboard size={16} /> },
+    56→  { key: "reviews", label: "Reviews", icon: <MessageSquareText size={16} /> },
+    57→  { key: "requests", label: "Requests", icon: <Send size={16} /> },
+    58→  { key: "ai", label: "AI Assistant", icon: <Sparkles size={16} /> },
+    59→  { key: "analytics", label: "Analytics", icon: <BarChart3 size={16} /> },
+    60→  { key: "locations", label: "Locations", icon: <MapPin size={16} /> },
+    61→  { key: "settings", label: "Settings", icon: <Settings size={16} /> },
+    62→];
+    63→
+    64→export function ClientDashboard() {
+    65→  const { user, refresh, logout } = useSession();
+    66→  const { route, navigate } = useRouter();
+    67→  const { toast } = useToast();
+    68→  // unknown views (e.g. /login landing here via rewrite) fall back to overview
+    69→  const view = NAV.some((n) => n.key === route.view) ? route.view! : "overview";
+    70→  const [navOpen, setNavOpen] = useState(false);
+    71→  const [setupOpen, setSetupOpen] = useState(false);
+    72→  const [selectedReview, setSelectedReview] = useState<ReviewVM | null>(null);
+    73→  const [selectedLoc, setSelectedLoc] = useState<LocationVM | null>(null);
+    74→
+    75→  const overview = useApiData<Overview>(view === "overview" ? "/api/overview" : null);
+    76→  const badgeCounts = useApiData<Overview>("/api/overview");
+    77→  const onboardingDone = user?.tenant?.onboardingDone ?? true;
+    78→
+    79→  // Auto-open the onboarding wizard until setup is complete
+    80→  useEffect(() => {
+    81→    if (user && !user.tenant?.onboardingDone) setSetupOpen(true);
+    82→  }, [user?.tenant?.onboardingDone]);
+    83→
+    84→  const go = (v: string) => {
+    85→    navigate({ surface: "client", view: v });
+    86→    setNavOpen(false);
+    87→  };
+    88→
+    89→  // shared review actions
+    90→  const [approving, setApproving] = useState<string | null>(null);
+    91→  const approveReply = async (r: ReviewVM, body: string) => {
+    92→    setApproving(r.id);
+    93→    try {
+    94→      await api.post(`/api/reviews/${r.id}/reply`, { body });
+    95→      toast({ title: "Reply posted", description: `Published to Google for ${r.author}.` });
+    96→      overview.reload();
+    97→      badgeCounts.reload();
+    98→      setSelectedReview(null);
+    99→    } catch (e) {
+   100→      toast({ title: "Could not post reply", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   101→    } finally {
+   102→      setApproving(null);
+   103→    }
+   104→  };
+   105→  const generateDraft = async (r: ReviewVM) => {
+   106→    setApproving(r.id);
+   107→    try {
+   108→      await api.post(`/api/reviews/${r.id}/draft`);
+   109→      toast({ title: "Draft ready", description: `AI reply drafted for ${r.author}.` });
+   110→      overview.reload();
+   111→      badgeCounts.reload();
+   112→    } catch (e) {
+   113→      toast({ title: "Draft failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   114→    } finally {
+   115→      setApproving(null);
+   116→    }
+   117→  };
+   118→
+   119→  const initials = (user?.name || "U").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+   120→  const k = overview.data?.kpis;
+   121→
+   122→  return (
+   123→    <div className="skin skin-client flex h-screen bg-cream text-brand">
+   124→      {/* impersonation banner */}
+   125→      {user?.impersonatedBy && (
+   126→        <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 bg-amber-400 px-4 py-2 text-[12.5px] font-semibold text-brand-deep">
+   127→          <Shieldish /> Viewing {user?.tenant?.name || "client"} workspace as support — actions are audit-logged
+   128→          <button
+   129→            className="rounded-lg bg-brand-deep/10 px-2.5 py-1 font-bold hover:bg-brand-deep/20"
+   130→            onClick={async () => {
+   131→              await api.post("/api/auth/exit-impersonate");
+   132→              await refresh();
+   133→              navigate({ surface: "admin" });
+   134→            }}
+   135→          >
+   136→            Exit session <Xish />
+   137→          </button>
+   138→        </div>
+   139→      )}
+   140→
+   141→      {/* Sidebar */}
+   142→      <aside
+   143→        className={cn(
+   144→          "fixed inset-y-0 left-0 z-40 flex w-[240px] flex-col border-r border-neutral-200/60 bg-white transition-transform lg:static lg:translate-x-0",
+   145→          user?.impersonatedBy ? "pt-9" : "",
+   146→          navOpen ? "translate-x-0" : "-translate-x-full"
+   147→        )}
+   148→      >
+   149→        <div className="px-5 pb-4 pt-5">
+   150→          <BrandLogo height={32} />
+   151→        </div>
+   152→        <div className="mx-4 mb-4 rounded-xl bg-surface p-3">
+   153→          <p className="text-[10.5px] font-semibold uppercase tracking-wider text-neutral-400">Workspace</p>
+   154→          <div className="mt-1 flex items-center justify-between text-left">
+   155→            <span className="truncate text-[13px] font-semibold">{user?.tenant?.name || "Workspace"}</span>
+   156→            <ChevronDown size={14} className="shrink-0 text-neutral-400" />
+   157→          </div>
+   158→        </div>
+   159→        <nav className="flex-1 space-y-1 px-3" aria-label="Dashboard sections">
+   160→          {NAV.map((n) => (
+   161→            <button
+   162→              key={n.key}
+   163→              onClick={() => go(n.key)}
+   164→              className={cn(
+   165→                "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors",
+   166→                view === n.key ? "bg-brand text-white shadow-sm" : "text-neutral-500 hover:bg-surface hover:text-brand"
+   167→              )}
+   168→              aria-current={view === n.key ? "page" : undefined}
+   169→            >
+   170→              {n.icon}
+   171→              {n.label}
+   172→              {n.key === "ai" && (badgeCounts.data?.kpis.drafts ?? 0) > 0 && (
+   173→                <span className={cn(
+   174→                  "ml-auto rounded-full px-1.5 py-0.5 text-[10.5px] font-bold",
+   175→                  view === n.key ? "bg-white/20 text-white" : "bg-amber-soft text-amber-deep"
+   176→                )}>
+   177→                  {badgeCounts.data?.kpis.drafts}
+   178→                </span>
+   179→              )}
+   180→              {n.key === "reviews" && (badgeCounts.data?.kpis.alerts ?? 0) > 0 && (
+   181→                <span className={cn(
+   182→                  "ml-auto rounded-full px-1.5 py-0.5 text-[10.5px] font-bold",
+   183→                  view === n.key ? "bg-white/20 text-white" : "bg-red-50 text-red-500"
+   184→                )}>
+   185→                  {badgeCounts.data?.kpis.alerts}
+   186→                </span>
+   187→              )}
+   188→            </button>
+   189→          ))}
+   190→        </nav>
+   191→        <div className="border-t border-neutral-100 p-3">
+   192→          {!onboardingDone && (
+   193→            <button
+   194→              onClick={() => setSetupOpen(true)}
+   195→              className="mb-2 flex w-full items-center gap-2.5 rounded-xl bg-mint-soft/60 px-2 py-2 text-[12.5px] font-semibold text-mint-deep"
+   196→            >
+   197→              <Rocket size={14} /> Finish setup
+   198→            </button>
+   199→          )}
+   200→          <button
+   201→            onClick={() => setSetupOpen(true)}
+   202→            className="mb-2 flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-[12.5px] font-semibold text-neutral-500 transition-colors hover:bg-surface hover:text-brand"
+   203→          >
+   204→            <Rocket size={14} className="text-mint-deep" /> Replay onboarding
+   205→          </button>
+   206→          <div className="flex items-center gap-2.5 rounded-xl px-2 py-2 hover:bg-surface">
+   207→            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-[11px] font-bold text-white">{initials}</span>
+   208→            <div className="min-w-0 flex-1 leading-tight">
+   209→              <p className="truncate text-[12.5px] font-semibold">{user?.name}</p>
+   210→              <p className="truncate text-[11px] capitalize text-neutral-400">{user?.role} · {user?.tenant?.planName} plan</p>
+   211→            </div>
+   212→            <button
+   213→              onClick={async () => { await logout(); navigate({ surface: "login" }); }}
+   214→              title="Sign out"
+   215→              className="rounded-lg p-1.5 text-neutral-400 hover:bg-surface hover:text-brand"
+   216→            >
+   217→              <LogOut size={14} />
+   218→            </button>
+   219→            <button
+   220→              onClick={() => navigate({ surface: "home" })}
+   221→              title="Back to website"
+   222→              className="rounded-lg p-1.5 text-neutral-400 hover:bg-surface hover:text-brand"
+   223→            >
+   224→              <ExternalLink size={14} />
+   225→            </button>
+   226→          </div>
+   227→        </div>
+   228→      </aside>
+   229→      {navOpen && <button className="fixed inset-0 z-30 bg-brand/30 lg:hidden" aria-label="Close menu" onClick={() => setNavOpen(false)} />}
+   230→
+   231→      {/* Main */}
+   232→      <div className="flex min-w-0 flex-1 flex-col">
+   233→        <header className="flex items-center gap-3 border-b border-neutral-200/60 bg-white/80 px-4 py-3 backdrop-blur lg:px-7">
+   234→          <button className="rounded-lg p-2 hover:bg-surface lg:hidden" onClick={() => setNavOpen(true)} aria-label="Open menu">
+   235→            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+   236→          </button>
+   237→          <div className="relative hidden max-w-md flex-1 sm:block">
+   238→            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+   239→            <input
+   240→              placeholder="Search reviews, guests, keywords…"
+   241→              className="h-9 w-full rounded-xl border border-neutral-200 bg-surface pl-9 pr-3 text-[13px] outline-none transition-colors placeholder:text-neutral-400 focus:border-mint/60 focus:bg-white"
+   242→            />
+   243→          </div>
+   244→          <div className="ml-auto flex items-center gap-2">
+   245→            <ThemeToggle chrome="light" />
+   246→            <button className="relative rounded-xl border border-neutral-200 bg-white p-2 text-neutral-500 hover:text-brand" aria-label="Notifications"
+   247→              onClick={() => toast({ title: `${k?.alerts ?? 0} alerts`, description: "1–2★ reviews and sync failures ping you on WhatsApp." })}>
+   248→              <Bell size={15} />
+   249→              {(k?.alerts ?? 0) > 0 && (
+   250→                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9.5px] font-bold text-white">{k?.alerts}</span>
+   251→              )}
+   252→            </button>
+   253→            <Button size="sm" className="h-9 rounded-xl bg-mint-deep text-[12.5px] text-white hover:bg-mint-deep/90" onClick={() => go("requests")}>
+   254→              <Send size={13} className="mr-1.5" /> New request
+   255→            </Button>
+   256→          </div>
+   257→        </header>
+   258→
+   259→        <main className={cn("flex-1 overflow-y-auto px-4 py-5 lg:px-7 lg:py-6", user?.impersonatedBy && "pt-14")}>
+   260→          <div className="mx-auto max-w-[1200px]">
+   261→            {view === "overview" && (
+   262→              <OverviewView
+   263→                data={overview.data}
+   264→                loading={overview.loading}
+   265→                onGo={go}
+   266→                onSetup={() => setSetupOpen(true)}
+   267→                onOpenReview={setSelectedReview}
+   268→                onApprove={approveReply}
+   269→                approving={approving}
+   270→              />
+   271→            )}
+   272→            {view === "reviews" && (
+   273→              <ReviewsView onOpenReview={setSelectedReview} onApprove={approveReply} onDraft={generateDraft} busy={approving} locations={badgeCounts.data?.locations || []} />
+   274→            )}
+   275→            {view === "requests" && <RequestsView />}
+   276→            {view === "ai" && <AiAssistantView />}
+   277→            {view === "analytics" && <AnalyticsView />}
+   278→            {view === "locations" && <LocationsView onOpenLocation={setSelectedLoc} />}
+   279→            {view === "settings" && <SettingsView />}
+   280→          </div>
+   281→        </main>
+   282→      </div>
+   283→
+   284→      {setupOpen && <OnboardingWizard onDone={() => { setSetupOpen(false); refresh(); }} />}
+   285→      <ReviewDrawer
+   286→        review={selectedReview}
+   287→        onClose={() => setSelectedReview(null)}
+   288→        onApprove={approveReply}
+   289→        onDraft={generateDraft}
+   290→        busy={approving === selectedReview?.id}
+   291→      />
+   292→      <LocationDrawer location={selectedLoc} onClose={() => { setSelectedLoc(null); badgeCounts.reload(); }} />
+   293→    </div>
+   294→  );
+   295→}
+   296→
+   297→function Shieldish() {
+   298→  return <ShieldIcon />;
+   299→}
+   300→function Xish() {
+   301→  return <span aria-hidden>→</span>;
+   302→}
+   303→function ShieldIcon() {
+   304→  return (
+   305→    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+   306→      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+   307→    </svg>
+   308→  );
+   309→}
+   310→
+   311→/* ------------------------------- Overview ------------------------------- */
+   312→
+   313→function OverviewView({ data, loading, onGo, onSetup, onOpenReview, onApprove, approving }: {
+   314→  data: Overview | null;
+   315→  loading: boolean;
+   316→  onGo: (v: string) => void;
+   317→  onSetup: () => void;
+   318→  onOpenReview: (r: ReviewVM) => void;
+   319→  onApprove: (r: ReviewVM, body: string) => void;
+   320→  approving: string | null;
+   321→}) {
+   322→  if (loading || !data) {
+   323→    return (
+   324→      <div className="space-y-5">
+   325→        <div className="h-9 w-72 animate-pulse rounded-xl bg-surface" />
+   326→        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   327→          {[0, 1, 2, 3].map((i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-surface" />)}
+   328→        </div>
+   329→        <div className="grid gap-5 xl:grid-cols-3">
+   330→          <div className="h-72 animate-pulse rounded-2xl bg-surface xl:col-span-2" />
+   331→          <div className="h-72 animate-pulse rounded-2xl bg-surface" />
+   332→        </div>
+   333→      </div>
+   334→    );
+   335→  }
+   336→  const k = data.kpis;
+   337→  const firstName = data.ownerName.split(" ")[0];
+   338→
+   339→  return (
+   340→    <div className="space-y-5">
+   341→      <div className="flex flex-wrap items-end justify-between gap-3">
+   342→        <div>
+   343→          <h1 className="text-[22px] font-bold tracking-tight">Good day, {firstName}</h1>
+   344→          <p className="mt-0.5 text-[13.5px] text-neutral-500">
+   345→            Your reputation across {data.locations.length} location{data.locations.length === 1 ? "" : "s"} — refreshed <span className="font-medium text-mint-deep">{data.lastSync}</span>.
+   346→          </p>
+   347→        </div>
+   348→        <Badge className="bg-mint-soft text-mint-deep hover:bg-mint-soft ring-1 ring-mint/40 gap-1.5">
+   349→          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-mint-deep" /> Live · 15-min sync
+   350→        </Badge>
+   351→      </div>
+   352→
+   353→      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+   354→        <StatCard label="Average rating" value={String(k.rating)} delta={k.ratingDelta} hint="vs last month · all locations" icon={<Star size={15} />} accent="amber" />
+   355→        <StatCard label="New reviews (30d)" value={String(k.reviewsMonth)} delta={k.reviewsDelta} hint="Google · request campaigns" icon={<GoogleG size={15} />} />
+   356→        <StatCard label="Response rate" value={`${k.responseRate}%`} delta={k.responseDelta} hint="goal: 90% within 24h" icon={<Check size={15} />} />
+   357→        <StatCard label="Needs you now" value={String(k.pending)} hint={`${k.alerts} SLA alerts`} icon={<AlertTriangle size={15} />} accent="coral" />
+   358→      </div>
+   359→
+   360→      <div className="grid gap-5 xl:grid-cols-3">
+   361→        <ChartCard
+   362→          title="Rating trend"
+   363→          subtitle="12 weeks · volume as bars"
+   364→          className="xl:col-span-2"
+   365→          right={
+   366→            <Button variant="ghost" size="sm" className="h-8 text-xs text-neutral-500" onClick={() => onGo("analytics")}>
+   367→              Full analytics <BarChart3 size={13} className="ml-1" />
+   368→            </Button>
+   369→          }
+   370→        >
+   371→          <RatingTrendChart data={data.trend} />
+   372→        </ChartCard>
+   373→        <ChartCard title="Sentiment" subtitle="this month · AI-classified">
+   374→          <SentimentDonut data={data.sentiment} avgRating={k.rating} />
+   375→        </ChartCard>
+   376→      </div>
+   377→
+   378→      <div className="grid gap-5 xl:grid-cols-3">
+   379→        <div className="xl:col-span-2 space-y-3">
+   380→          <div className="flex items-center justify-between">
+   381→            <h3 className="text-[15px] font-semibold">Latest reviews</h3>
+   382→            <Button variant="ghost" size="sm" className="h-8 text-xs text-neutral-500" onClick={() => onGo("reviews")}>
+   383→              View all <MessageSquareText size={13} className="ml-1" />
+   384→            </Button>
+   385→          </div>
+   386→          {data.recent.map((r) => (
+   387→            <ReviewRow key={r.id} review={r} compact onOpen={onOpenReview} onApprove={onApprove} approving={approving} />
+   388→          ))}
+   389→        </div>
+   390→
+   391→        <div className="space-y-5">
+   392→          <div className="rounded-2xl border border-red-200/70 bg-red-50/40 p-4">
+   393→            <h3 className="flex items-center gap-2 text-[14px] font-semibold text-red-700">
+   394→              <AlertTriangle size={15} /> Needs attention
+   395→            </h3>
+   396→            <div className="mt-3 space-y-2.5">
+   397→              {data.urgent.map((r) => (
+   398→                <div key={r.id} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") onGo("ai"); }} onClick={() => onGo("ai")} className="w-full cursor-pointer rounded-xl bg-white p-3 text-left shadow-sm transition-shadow hover:shadow-md">
+   399→                  <div className="flex items-center justify-between">
+   400→                    <span className="text-[12.5px] font-semibold text-brand">{r.author}</span>
+   401→                    <StarRating value={r.stars} size={11} />
+   402→                  </div>
+   403→                  <p className="mt-1 line-clamp-2 text-[12px] text-neutral-500">{r.text}</p>
+   404→                  <p className="mt-1.5 text-[11px] font-medium text-red-500">{r.status === "awaiting" ? "No reply yet — 24h SLA breached" : "AI draft ready for approval"}</p>
+   405→                </div>
+   406→              ))}
+   407→              {data.urgent.length === 0 && (
+   408→                <p className="rounded-xl bg-white p-3 text-[12.5px] text-neutral-400">All clear — nothing breaching SLA.</p>
+   409→              )}
+   410→            </div>
+   411→          </div>
+   412→
+   413→          <ChartCard title="Locations" subtitle="rating · last sync">
+   414→            <div className="space-y-2.5">
+   415→              {data.locations.map((l) => (
+   416→                <div key={l.id} className="flex items-center justify-between rounded-xl bg-surface px-3 py-2.5">
+   417→                  <div>
+   418→                    <p className="text-[12.5px] font-semibold text-brand">{l.name.replace(/^Spice Route\s+/, "").replace(/^Lumiere Dental —\s+/, "")}</p>
+   419→                    <p className="text-[10.5px] text-neutral-400">{l.reviews.toLocaleString("en-IN")} reviews · {l.lastSync}</p>
+   420→                  </div>
+   421→                  <div className="text-right">
+   422→                    <p className="text-[15px] font-bold text-brand">{l.rating}</p>
+   423→                    <StatusBadge status={l.syncState} />
+   424→                  </div>
+   425→                </div>
+   426→              ))}
+   427→            </div>
+   428→          </ChartCard>
+   429→
+   430→          <div className="rounded-2xl bg-brand p-4 text-white">
+   431→            <p className="flex items-center gap-2 text-[13.5px] font-semibold"><WhatsAppIcon size={15} className="text-mint" /> WhatsApp channel healthy</p>
+   432→            <p className="mt-1 text-[12px] leading-relaxed text-white/70">
+   433→              Quality rating: <span className="font-semibold text-mint">{data.whatsapp.quality}</span> · {data.whatsapp.queued} campaign{data.whatsapp.queued === 1 ? "" : "s"} scheduled · template approval intact.
+   434→            </p>
+   435→          </div>
+   436→        </div>
+   437→      </div>
+   438→    </div>
+   439→  );
+   440→}
+   441→
+   442→/* -------------------------------- Reviews ------------------------------- */
+   443→
+   444→type StatusFilter = "all" | "ai-draft" | "replied" | "awaiting";
+   445→
+   446→function ReviewsView({ onOpenReview, onApprove, onDraft, busy, locations }: {
+   447→  onOpenReview: (r: ReviewVM) => void;
+   448→  onApprove: (r: ReviewVM, body: string) => void;
+   449→  onDraft: (r: ReviewVM) => void;
+   450→  busy: string | null;
+   451→  locations: LocationVM[];
+   452→}) {
+   453→  const { toast } = useToast();
+   454→  const [status, setStatus] = useState<StatusFilter>("all");
+   455→  const [minStars, setMinStars] = useState(0);
+   456→  const [syncing, setSyncing] = useState(false);
+   457→  const reviews = useApiData<{ reviews: ReviewVM[]; total: number }>(
+   458→    `/api/reviews?status=${status}&minStars=${minStars}`
+   459→  );
+   460→  const filtered = useMemo(() => reviews.data?.reviews || [], [reviews.data]);
+   461→
+   462→  const syncAll = async () => {
+   463→    setSyncing(true);
+   464→    try {
+   465→      let created = 0;
+   466→      for (const loc of locations) {
+   467→        const res = await api.post<{ newReviews: number }>(`/api/locations/${loc.id}/sync`);
+   468→        created += res.newReviews;
+   469→      }
+   470→      toast({ title: "Sync complete", description: created ? `${created} new review${created > 1 ? "s" : ""} pulled and scored.` : "All profiles up to date — no new reviews." });
+   471→      reviews.reload();
+   472→    } catch (e) {
+   473→      toast({ title: "Sync failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+   474→    } finally {
+   475→      setSyncing(false);
+   476→    }
+   477→  };
+   478→
+   479→  const exportCsv = () => {
+   480→    const rows = [
+   481→      ["Author", "Stars", "Location", "Sentiment", "Status", "Text", "Received"],
+   482→      ...filtered.map((r) => [r.author, String(r.stars), r.location, r.sentiment, r.status, `"${r.text.replace(/"/g, '""')}"`, r.createdAt]),
+   483→    ];
+   484→    const csv = rows.map((r) => r.join(",")).join("\n");
+   485→    const blob = new Blob([csv], { type: "text/csv" });
+   486→    const url = URL.createObjectURL(blob);
+   487→    const a = document.createElement("a");
+   488→    a.href = url;
+   489→    a.download = `sensiblee-reviews-${new Date().toISOString().slice(0, 10)}.csv`;
+   490→    a.click();
+   491→    URL.revokeObjectURL(url);
+   492→    toast({ title: "Export downloaded", description: `${filtered.length} reviews in the current filter.` });
+   493→  };
+   494→
+   495→  return (
+   496→    <div className="space-y-5">
+   497→      <div className="flex flex-wrap items-end justify-between gap-3">
+   498→        <div>
+   499→          <h1 className="text-[22px] font-bold tracking-tight">Review monitor</h1>
+   500→          <p className="mt-0.5 text-[13.5px] text-neutral-500">Module A · every Google review across your locations, synced every 15 minutes.</p>
+   501→        </div>
+   502→        <div className="flex gap-2">
+   503→          <Button variant="outline" size="sm" className="h-9 rounded-xl text-[12.5px]" onClick={syncAll} disabled={syncing}>
+   504→            <RefreshCw size={13} className={cn("mr-1.5", syncing && "animate-spin")} />
+   505→            {syncing ? "Syncing…" : "Sync all profiles"}
+   506→          </Button>
+   507→          <Button variant="outline" size="sm" className="h-9 rounded-xl text-[12.5px]" onClick={exportCsv}>
+   508→            <Download size={13} className="mr-1.5" /> Export CSV
+   509→          </Button>
+   510→        </div>
+   511→      </div>
+   512→
+   513→      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-neutral-200/70 bg-white p-3">
+   514→        <div className="flex flex-wrap gap-1.5">
+   515→          {(["all", "ai-draft", "replied", "awaiting"] as StatusFilter[]).map((s) => (
+   516→            <button
+   517→              key={s}
+   518→              onClick={() => setStatus(s)}
+   519→              className={cn(
+   520→                "rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors",
+   521→                status === s ? "bg-brand text-white" : "bg-surface text-neutral-500 hover:text-brand"
+   522→              )}
+   523→            >
+   524→              {s === "all" ? "All" : s === "ai-draft" ? "AI drafts" : s === "replied" ? "Replied" : "Awaiting"}
+   525→            </button>
+   526→          ))}
+   527→        </div>
+   528→        <div className="ml-auto flex items-center gap-2">
+   529→          <span className="text-[12px] text-neutral-400">Min stars</span>
+   530→          {[0, 1, 2, 3, 4].map((n) => (
+   531→            <button
+   532→              key={n}
+   533→              onClick={() => setMinStars(n)}
+   534→              className={cn("h-7 min-w-7 rounded-lg px-1.5 text-[12px] font-semibold", minStars === n ? "bg-mint-soft text-mint-deep ring-1 ring-mint/50" : "text-neutral-400 hover:text-brand")}
+   535→            >
+   536→              {n === 0 ? "Any" : `${n}+`}
+   537→            </button>
+   538→          ))}
+   539→        </div>
+   540→      </div>
+   541→
+   542→      <div className="space-y-3">
+   543→        {reviews.loading && <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-surface" />)}</div>}
+   544→        {!reviews.loading && filtered.map((r) => (
+   545→          <ReviewRow key={r.id} review={r} onOpen={onOpenReview} onApprove={onApprove} onDraft={onDraft} approving={busy} />
+   546→        ))}
+   547→        {!reviews.loading && filtered.length === 0 && (
+   548→          <div className="rounded-2xl border border-dashed border-neutral-200 p-10 text-center text-[13.5px] text-neutral-400">
+   549→            No reviews match this filter.
+   550→          </div>
+   551→        )}
+   552→      </div>
+   553→    </div>
+   554→  );
+   555→}
+   556→
+   557→function ReviewRow({ review: r, compact = false, onOpen, onApprove, onDraft, approving }: {
+   558→  review: ReviewVM;
+   559→  compact?: boolean;
+   560→  onOpen?: (r: ReviewVM) => void;
+   561→  onApprove?: (r: ReviewVM, body: string) => void;
+   562→  onDraft?: (r: ReviewVM) => void;
+   563→  approving?: string | null;
+   564→}) {
+   565→  const [expanded, setExpanded] = useState(false);
+   566→  const isBusy = approving === r.id;
+   567→  return (
+   568→    <div
+   569→      onClick={() => onOpen?.(r)}
+   570→      role={onOpen ? "button" : undefined}
+   571→      tabIndex={onOpen ? 0 : undefined}
+   572→      onKeyDown={onOpen ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(r); } } : undefined}
+   573→      className={cn(
+   574→        "rounded-2xl border bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-shadow hover:shadow-md",
+   575→        r.stars <= 2 ? "border-red-200/60" : "border-neutral-200/70",
+   576→        onOpen && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint"
+   577→      )}
+   578→    >
+   579→      <div className="flex items-start gap-3">
+   580→        <span className={cn(
+   581→          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11.5px] font-bold text-white",
+   582→          r.sentiment === "positive" ? "bg-mint-deep" : r.sentiment === "neutral" ? "bg-amber-500" : "bg-red-500"
+   583→        )}>
+   584→          {r.initials}
+   585→        </span>
+   586→        <div className="min-w-0 flex-1">
+   587→          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+   588→            <span className="text-[13.5px] font-semibold text-brand">{r.author}</span>
+   589→            <StarRating value={r.stars} size={12} />
+   590→            <span className="text-[11.5px] text-neutral-400">{r.location} · {r.time}</span>
+   591→            <span className="ml-auto flex items-center gap-1.5">
+   592→              <GoogleG size={13} />
+   593→              <SentimentBadge sentiment={r.sentiment} />
+   594→              <StatusBadge status={r.status} />
+   595→            </span>
+   596→          </div>
+   597→          <p className={cn("mt-1.5 text-[13.5px] leading-relaxed text-neutral-600", compact && !expanded && "line-clamp-2")}>{r.text}</p>
+   598→          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+   599→            {r.keywords.map((kw) => (
+   600→              <span key={kw} className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-neutral-500">{kw}</span>
+   601→            ))}
+   602→          </div>
+   603→
+   604→          {(r.draft || r.reply) && (
+   605→            <div className={cn("mt-3 rounded-xl p-3", r.status === "ai-draft" ? "bg-mint-soft/40 ring-1 ring-mint/30" : "bg-surface")}>
+   606→              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+   607→                {r.status === "ai-draft" ? <><Sparkles size={11} className="text-mint-deep" /> AI suggested reply · {Math.round((r.confidence ?? 0.9) * 100)}% confident</> : "Your reply"}
+   608→              </p>
+   609→              <p className={cn("mt-1 text-[13px] leading-relaxed text-neutral-600", compact && !expanded && "line-clamp-2")}>{r.draft ?? r.reply}</p>
+   610→            </div>
+   611→          )}
+   612→
+   613→          <div className="mt-2.5 flex items-center gap-2">
+   614→            {(r.draft || compact) && (
+   615→              <button
+   616→                className="text-[12px] font-semibold text-mint-deep hover:underline"
+   617→                onClick={(e) => { e.stopPropagation(); setExpanded((x) => !x); }}
+   618→              >
+   619→                {expanded ? "Show less" : r.draft ? "Review draft" : "Show more"}
+   620→              </button>
+   621→            )}
+   622→            {r.status === "ai-draft" && onApprove && (
+   623→              <Button size="sm" className="h-7 rounded-lg bg-mint-deep px-2.5 text-[11.5px] text-white hover:bg-mint-deep/90" disabled={isBusy}
+   624→                onClick={(e) => { e.stopPropagation(); onApprove(r, r.draft || ""); }}>
+   625→                {isBusy ? <RefreshCw size={12} className="mr-1 animate-spin" /> : <Check size={12} className="mr-1" />}
+   626→                {isBusy ? "Posting…" : "Approve"}
+   627→              </Button>
+   628→            )}
+   629→            {r.status === "awaiting" && onDraft && (
+   630→              <Button size="sm" variant="outline" className="h-7 rounded-lg px-2.5 text-[11.5px]" disabled={isBusy}
+   631→                onClick={(e) => { e.stopPropagation(); onDraft(r); }}>
+   632→                <Sparkles size={12} className="mr-1" /> {isBusy ? "Writing…" : "Draft a reply"}
+   633→              </Button>
+   634→            )}
+   635→            {onOpen && (
+   636→              <button
+   637→                className="text-[12px] font-semibold text-neutral-400 hover:text-brand"
+   638→                onClick={(e) => { e.stopPropagation(); onOpen(r); }}
+   639→              >
+   640→                Details
+   641→              </button>
+   642→            )}
+   643→            <span className="ml-auto text-[11px] text-neutral-300">via {r.source === "request" ? "request · Google" : "Google"}</span>
+   644→          </div>
+   645→        </div>
+   646→      </div>
+   647→    </div>
+   648→  );
+   649→}
+   650→
+   651→void ChevronRight;
+   652→

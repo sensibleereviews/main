@@ -1,0 +1,210 @@
+/home/z/my-project/src/components/sensiblee/marketing-chrome.tsx:183:                <ArrowRight size={15} className="text-neutral-300" />
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:65:          <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-neutral-300">
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:83:        <span className="rounded-lg bg-surface px-3 py-1 font-mono text-[11px] text-neutral-400">/g/{loc.code}</span>
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:96:          <p className="mt-3 text-center text-[11.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:144:            <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">rate us</p>
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:232:      <div className="flex items-center justify-center gap-1.5 border-t border-neutral-100 py-3 text-[10px] font-semibold text-neutral-300">
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:250:      <p className="mt-1.5 text-[12.5px] text-neutral-400">One honest tap — takes 20 seconds.</p>
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:270:      <p className="mt-7 flex items-center gap-1.5 text-[10.5px] text-neutral-300">
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:284:      <p className="mt-1.5 max-w-[250px] text-[12.5px] leading-relaxed text-neutral-400">
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:297:      <button onClick={onBack} className="mt-3 text-[11.5px] font-semibold text-neutral-400 hover:text-neutral-600">
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:312:      <p className="mx-auto mt-1.5 max-w-[250px] text-center text-[12.5px] leading-relaxed text-neutral-400">
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:326:            <p className="text-[10px] text-neutral-400">optional · manager replies within 24h</p>
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:344:      <button onClick={onBack} className="mt-3 text-center text-[11.5px] font-semibold text-neutral-400 hover:text-neutral-600">
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:358:      <p className="mt-1.5 max-w-[250px] text-[12.5px] leading-relaxed text-neutral-400">
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:365:          <p className="text-[10.5px] leading-snug text-neutral-400">Monthly offers on WhatsApp · unsubscribe anytime</p>
+/home/z/my-project/src/components/sensiblee/guest-view.tsx:374:      <button onClick={onAgain} className="mt-6 text-[11.5px] font-semibold text-neutral-400 hover:text-neutral-600">
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:68:        <span className="mr-1 hidden text-[11.5px] font-semibold text-neutral-400 sm:inline">Share</span>
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:71:            className="flex h-7 w-7 items-center justify-center rounded-full bg-surface text-neutral-400 transition-colors hover:bg-mint-soft hover:text-mint-deep">
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:76:          className="flex h-7 items-center gap-1 rounded-full bg-surface px-2.5 text-[10.5px] font-bold text-neutral-400 transition-colors hover:bg-mint-soft hover:text-mint-deep">
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:85:      <span className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:146:            <figcaption className="mt-2 text-center text-[11px] text-neutral-400">Sensiblee turns review signals into one calm, actionable loop.</figcaption>
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:168:          <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-[12.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:210:                <span className="mt-0.5 block text-[11.5px] leading-snug text-neutral-400">2-minute product tour, no signup</span>
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:222:                <span className="mt-0.5 block text-[11.5px] leading-snug text-neutral-400">7-day trial on your live Google profile</span>
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:247:                        <span className="mt-auto block pt-2 text-[11px] text-neutral-400">{fmtDate(r.publishedAt)} · {r.readTime}</span>
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:267:          <BookOpen size={28} className="mx-auto text-neutral-300" />
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:299:                  <span className="flex flex-wrap items-center gap-2.5 text-[11.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:305:                  <span className="mt-auto flex items-center gap-2 pt-4 text-[12px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:319:        <p className="mt-6 flex items-center justify-center gap-2 text-center text-[12.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:356:          <Search size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:366:          <p className="mt-3 text-[12.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:375:              {g.blurb && <p className="mt-0.5 text-[12.5px] text-neutral-400">{g.blurb}</p>}
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:381:                      <ChevronRight size={15} className="shrink-0 text-neutral-300 transition-transform group-open:rotate-90" />
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:392:              <p className="mt-1 text-[12.5px] text-neutral-400">{c.noMatchSub}</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:523:                  <span className="mt-0.5 block text-[10.5px] text-neutral-400">{p.hint}</span>
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:542:            <p className="flex items-center gap-1.5 text-[11.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-pages4.tsx:551:        <p className="mt-4 text-center text-[12.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/auth-pages.tsx:42:          className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-surface text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-brand"
+/home/z/my-project/src/components/sensiblee/auth-pages.tsx:108:          <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Work email</span>
+/home/z/my-project/src/components/sensiblee/auth-pages.tsx:116:          <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Password</span>
+/home/z/my-project/src/components/sensiblee/auth-pages.tsx:143:            <p className="font-mono text-[10.5px] text-neutral-400">anand@spiceroute.in</p>
+/home/z/my-project/src/components/sensiblee/auth-pages.tsx:149:      <p className="mt-5 text-center text-[12.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/auth-pages.tsx:189:            <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Business name</span>
+/home/z/my-project/src/components/sensiblee/auth-pages.tsx:193:            <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Your name</span>
+/home/z/my-project/src/components/sensiblee/auth-pages.tsx:199:            <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Work email</span>
+/home/z/my-project/src/components/sensiblee/auth-pages.tsx:203:            <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Phone (optional)</span>
+/home/z/my-project/src/components/sensiblee/auth-pages.tsx:208:          <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Password (8+ characters)</span>
+/home/z/my-project/src/components/sensiblee/auth-pages.tsx:217:        <p className="flex items-center justify-center gap-1.5 text-[11px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/auth-pages.tsx:222:      <p className="mt-5 text-center text-[12.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-pages3.tsx:97:              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-neutral-400">{g.title}</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages3.tsx:113:                        className="mt-1 shrink-0 text-neutral-300 transition-all group-hover:translate-x-0.5 group-hover:text-mint-deep"
+/home/z/my-project/src/components/sensiblee/marketing-pages3.tsx:167:                <span className="flex items-center gap-1 text-[11.5px] font-medium text-neutral-400"><MapPin size={12} /> {c.featured.since}</span>
+/home/z/my-project/src/components/sensiblee/marketing-pages3.tsx:170:              <p className="mt-1 text-[13px] text-neutral-400">{c.featured.place}</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages3.tsx:179:                  <p className="text-[11.5px] text-neutral-400">{c.featured.role}</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages3.tsx:190:                    <p className="mt-0.5 text-[11.5px] leading-snug text-neutral-400">{r.label}</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages3.tsx:233:                  <p className="mt-0.5 text-[12px] text-neutral-400">{s.place}</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages3.tsx:250:                    <p className="mt-0.5 text-[10.5px] leading-snug text-neutral-400">{r.label}</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages3.tsx:265:              <p className="mt-0.5 text-[11.5px] leading-snug text-neutral-400">{s.l}</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages3.tsx:327:              <p className="mt-0.5 text-[12.5px] text-neutral-400">Every third party that touches your data, and why.</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages3.tsx:336:                <tr className="border-b border-neutral-100 bg-surface/60 text-[11px] uppercase tracking-wider text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-pages3.tsx:349:                    <td className="px-6 py-3.5 text-neutral-400">{s.region}</td>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:114:                <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">Template</p>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:128:                      <span className="mt-0.5 line-clamp-2 text-[11.5px] text-neutral-400">{t.body.slice(0, 60)}…</span>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:135:                <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">Audience — locations</p>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:151:                  <span className="rounded-full border border-dashed border-neutral-300 px-3 py-1.5 text-[12.5px] font-medium text-neutral-400">
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:159:                  <p className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:174:                  <p className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:186:                <p className="text-[12.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:201:                  <tr className="border-b border-neutral-100 text-[11.5px] uppercase tracking-wide text-neutral-400">
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:214:                        <span className="block text-[11px] font-normal text-neutral-400">{c.location} · {c.date}</span>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:294:          <p className="mt-1 truncate font-mono text-[10.5px] text-neutral-400">{qr.data?.url || "…"}</p>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:387:              <p className="mt-0.5 text-xs text-neutral-400">Module C · every reply is yours to approve, edit or regenerate</p>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:393:                <p className="text-neutral-400">post ≥95% confidence</p>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:406:                    <span className="text-[11.5px] text-neutral-400">{item.location} · {item.age} old</span>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:435:                  <span className="ml-auto text-[11px] text-neutral-400"> learns from every edit</span>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:463:                <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-neutral-400">Learned phrases</p>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:469:                <p className="mt-2.5 text-[11px] leading-relaxed text-neutral-400">Tune the voice any time in Settings → AI &amp; brand voice.</p>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:551:                    <span className="text-[11px] text-neutral-400">{s.mentions} mentions</span>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:562:              <p className="text-[12.5px] text-neutral-400">No staff mentions configured — add team names in Settings to track them.</p>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:630:                  <p className="text-[12px] text-neutral-400">{l.area}</p>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:647:                <p className="text-[11px] text-neutral-400">total reviews</p>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:651:              <p className="flex items-center gap-1.5 text-[11.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:699:            <p className="mt-1 max-w-[220px] text-[12px] text-neutral-400">OAuth by the business owner · reviews start flowing within 15 minutes</p>
+/home/z/my-project/src/components/sensiblee/client-views2.tsx:731:                  <p className="text-[12px] text-neutral-400">{r.when}</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages.tsx:113:                  <p className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-neutral-400">Module {m.tag}</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages.tsx:222:          <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Health score</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages.tsx:223:          <p className="text-[26px] font-bold leading-tight text-brand">86<span className="text-[14px] text-neutral-400">/100</span></p>
+/home/z/my-project/src/components/sensiblee/marketing-pages.tsx:235:              <span>{l.w}</span><span className="text-neutral-400">{l.v}</span>
+/home/z/my-project/src/components/sensiblee/marketing-pages.tsx:488:                <span className={cn("text-[12.5px]", p.popular ? "text-white/50" : "text-neutral-400")}>{billedNote(p)}</span>
+/home/z/my-project/src/components/sensiblee/marketing-pages.tsx:524:        <p className="mt-4 text-center text-[11.5px] leading-relaxed text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-pages.tsx:533:              <p className="text-[11.5px] text-neutral-400">{a.detail}</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages.tsx:534:              <p className="mt-1.5 text-[15px] font-bold text-mint-deep">{a.price}<span className="text-[11px] font-medium text-neutral-400">/month</span></p>
+/home/z/my-project/src/components/sensiblee/marketing-pages.tsx:556:                    <td colSpan={4} className="px-5 py-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-pages.tsx:568:                            <span className="text-neutral-300">—</span>
+/home/z/my-project/src/components/sensiblee/marketing-pages.tsx:581:        <p className="mt-3 text-center text-[11.5px] text-neutral-400">Add-ons are billed on the same cycle as your plan and appear as separate line items on the GST invoice.</p>
+/home/z/my-project/src/components/sensiblee/app-shell.tsx:167:      <p className="text-[12.5px] text-neutral-400">{label}</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages2.tsx:28:        <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-neutral-400">Reputation health</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages2.tsx:41:            <span className="mt-0.5 text-[9.5px] font-bold uppercase tracking-wider text-neutral-400">/ 100</span>
+/home/z/my-project/src/components/sensiblee/marketing-pages2.tsx:49:          <p className="mt-1 text-[11px] leading-relaxed text-neutral-400">3 locations · synced 4 min ago</p>
+/home/z/my-project/src/components/sensiblee/marketing-pages2.tsx:377:              <p className="flex items-center justify-center gap-1.5 text-center text-[11.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-pages2.tsx:477:        <p className="mt-2 flex items-center gap-1.5 text-[12.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-home.tsx:89:          <p className="mt-4 text-[12px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-home.tsx:92:          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-home.tsx:114:                <p className="mt-0.5 text-[11.5px] leading-snug text-neutral-400">{s.l}</p>
+/home/z/my-project/src/components/sensiblee/marketing-home.tsx:282:                <span className="text-[11px] font-bold uppercase tracking-widest text-neutral-300">Module {"ABCD"[i % 4]}</span>
+/home/z/my-project/src/components/sensiblee/marketing-home.tsx:358:                  <p className="truncate text-[11px] text-neutral-400">{t.role}</p>
+/home/z/my-project/src/components/sensiblee/marketing-home.tsx:390:                <span className={cn("text-[12px]", p.popular ? "text-white/50" : "text-neutral-400")}>/month</span>
+/home/z/my-project/src/components/sensiblee/marketing-home.tsx:466:                  <span className="flex flex-wrap items-center gap-2.5 text-[11.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/marketing-home.tsx:524:        <span className="ml-3 rounded-lg bg-white px-3 py-1 font-mono text-[10.5px] text-neutral-400">app.sensiblee.in · overview</span>
+/home/z/my-project/src/components/sensiblee/marketing-home.tsx:544:                <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">{c.l}</p>
+/home/z/my-project/src/components/sensiblee/marketing-home.tsx:567:              <div className="mt-1 flex justify-between font-mono text-[9.5px] text-neutral-300">
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:118:                  i < step ? "bg-mint-deep text-white" : i === step ? "bg-brand text-white" : "bg-neutral-100 text-neutral-400"
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:123:                  <p className={cn("text-[12.5px] font-semibold leading-tight", i === step ? "text-brand" : i < step ? "text-neutral-500" : "text-neutral-400")}>{s.title}</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:124:                  <p className="text-[10.5px] text-neutral-400">{s.hint}</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:130:            <p className="text-[11px] leading-relaxed text-neutral-400">Takes about 4 minutes. Everything here can be changed later in Settings.</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:141:            className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white text-neutral-400 shadow-sm ring-1 ring-neutral-200/70 transition-colors hover:bg-surface hover:text-brand"
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:149:              <div className="flex items-center justify-between text-[11px] font-semibold text-neutral-400">
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:178:                <p className="mt-2.5 text-[11px] text-neutral-400">Demo OAuth — production uses live Google Business Profile OAuth.</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:196:                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface"><MapPin size={15} className="text-neutral-400" /></span>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:199:                        <p className="text-[11.5px] text-neutral-400">{l.area} · {l.reviews.toLocaleString("en-IN")} reviews · {l.rating}★ now</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:217:                    <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Business display name</span>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:221:                    <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Sender number</span>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:259:                  <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Sign replies as</span>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:291:                      <button onClick={() => setInvites((list) => list.filter((x) => x !== v))} className="rounded-full p-0.5 text-neutral-400 hover:bg-surface hover:text-brand" aria-label={`Remove ${v}`}>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:296:                  {invites.length === 0 && <span className="text-[12px] text-neutral-400">No invites yet — you can add people later.</span>}
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:335:                      <p className="mt-0.5 text-[10.5px] text-neutral-400">{s.l}</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:353:                <span className="hidden text-[11.5px] text-neutral-400 sm:inline">{step + 1} / {STEPS.length}</span>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:391:      <button onClick={() => setOpen(true)} className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-neutral-300 py-3 text-[12px] font-semibold text-neutral-400 transition-colors hover:border-mint/60 hover:text-mint-deep">
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:445:          <p className="mt-0.5 text-[12px] text-neutral-400">{sub}</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:456:      <span className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">{label}</span>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:546:          <p className="flex items-center gap-1.5 text-[11px] text-neutral-400"><ShieldCheck size={13} className="text-mint-deep" /> Passwords are stored salted &amp; hashed — never in plain text.</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:753:              <p className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Connected Google profiles</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:760:                      <p className="text-[10.5px] text-neutral-400">{l.area}</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:774:            <p className="text-[11.5px] font-semibold uppercase tracking-wide text-neutral-400">Default tone</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:798:              <p className="mt-1 text-[11px] leading-relaxed text-neutral-400">
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:805:                <input defaultValue={form.plan?.name === "Enterprise" ? "Unlimited · fair use" : `${form.plan?.name || "Plan"} quota`} readOnly className={cn(inputCls, "text-neutral-400")} />
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:823:                    <p className="mt-0.5 text-[11.5px] leading-relaxed text-neutral-400">{desc}</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:841:                        <p className="truncate text-[11px] text-neutral-400">{m.email}</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:851:                          <button onClick={() => setEditingId(editingId === m.id ? null : m.id)} className="rounded-lg p-1.5 text-neutral-400 hover:bg-white hover:text-brand" aria-label={`Edit ${m.name}`}>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:855:                            <button onClick={() => removeMember(m.id, m.role)} className="rounded-lg p-1.5 text-neutral-300 hover:bg-white hover:text-red-500" aria-label={`Remove ${m.name}`}>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:899:                <p className="text-[10.5px] leading-relaxed text-neutral-400">Production sends the invite over WhatsApp + email. Here you get a one-time temp password.</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:911:                    <span className="text-[10.5px] font-bold text-neutral-400">{customRoles.length} custom role{customRoles.length === 1 ? "" : "s"}</span>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:913:                  <span className="text-[11px] text-neutral-400">{rolesOpen ? "Hide" : "Manage"}</span>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1107:              <p className="mt-1 text-[11.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1125:                <p className="mt-2 text-[11px] text-neutral-400">Customer GSTIN {detail.data.business.gstin} · input credit eligible</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1148:                  <p className="text-[11px] text-neutral-400">{inv.date}</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1153:                  <ChevronRight size={14} className="text-neutral-300" />
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1158:              <p className="py-6 text-center text-[12.5px] text-neutral-400">No invoices yet — your first one lands at the end of the billing period.</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1177:          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">reviews</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1181:          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">avg rating</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1185:          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">replied</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1188:      <p className="mt-3 text-[11.5px] leading-relaxed text-neutral-400">
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1231:            <span className="text-neutral-400">{k.events} events · {k.tokens.toLocaleString("en-IN")} tok</span>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1234:        {u.usage.byKind.length === 0 && <p className="py-2 text-[12px] text-neutral-400">No AI activity yet this month — drafts and classifications appear here.</p>}
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1284:                <p className="mt-0.5 text-[11px] leading-relaxed text-neutral-400">{f.description}</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1303:      <p className="mt-3 flex items-center gap-1.5 text-[10.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1399:          <p className="font-mono text-[10.5px] text-neutral-400">{r.id.slice(0, 14)}… · via Google</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1401:        <button onClick={onClose} className="rounded-xl p-2 text-neutral-400 transition-colors hover:bg-surface hover:text-brand" aria-label="Close">
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1419:              <p className="mt-0.5 text-[11.5px] text-neutral-400">{r.location} · {r.time} · Google review</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1455:            <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Your published reply</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1471:          <p className="mt-0.5 text-[11px] text-neutral-400">Visible to your team only — never shown on Google.</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1495:                  <p className="text-[11.5px] leading-relaxed text-neutral-400">{e.desc} · {e.t}</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1569:                  <p className="truncate font-mono text-[10px] text-neutral-400">google.business/{l.code}</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1572:              <button onClick={onClose} className="rounded-xl p-2 text-neutral-400 transition-colors hover:bg-surface hover:text-brand" aria-label="Close">
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1589:                  <p className="mt-1.5 text-[10.5px] text-neutral-400">total reviews</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1590:                  <p className="text-[10.5px] text-neutral-300">all time</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1594:                  <p className="mt-1.5 text-[10.5px] text-neutral-400">response rate</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1595:                  <p className="text-[10.5px] text-neutral-300">{l.avgResponse} avg</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1602:                <p className="mt-0.5 text-[11px] text-neutral-400">Keyword-clustered health scores · trailing 90 days</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1628:                  <span className="text-[10.5px] font-semibold text-neutral-400">{d?.recentReviews.length ?? 0} of {d?.totalAtLocation ?? 0}</span>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1642:                        <p className="truncate text-[11px] text-neutral-400">{r.text}</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1648:                    <p className="text-[11.5px] text-neutral-400">No reviews yet — connect the profile and sync to pull history.</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1656:                <p className="mt-0.5 text-[11px] text-neutral-400">Every pull from Google · newest first</p>
+/home/z/my-project/src/components/sensiblee/client-extras.tsx:1667:                      <span className="mt-0.5 shrink-0 font-mono text-[10px] text-neutral-300">{s.t}</span>
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:39:    : "h-9 w-full rounded-xl border border-neutral-200 bg-white px-3 text-[12.5px] text-neutral-800 placeholder:text-neutral-300 outline-none focus:border-brand";
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:51:          <span className={cn("text-[10px] font-bold uppercase tracking-wider", dark ? "text-white/35" : "text-neutral-400")}>Role name</span>
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:55:          <span className={cn("text-[10px] font-bold uppercase tracking-wider", dark ? "text-white/35" : "text-neutral-400")}>Description (optional)</span>
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:62:            <p className={cn("text-[10px] font-bold uppercase tracking-wider", dark ? "text-white/35" : "text-neutral-400")}>{g}</p>
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:87:                      <span className={cn("mt-0.5 block text-[10.5px] leading-snug", dark ? "text-white/40" : "text-neutral-400")}>{p.desc}</span>
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:146:        <p className={cn("rounded-xl px-2.5 py-3 text-[12px]", dark ? "bg-white/5 text-white/40" : "bg-surface text-neutral-400")}>
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:157:              {r.name} <span className={cn("ml-1 text-[10.5px] font-bold", dark ? "text-white/35" : "text-neutral-400")}>{r.members} member{r.members === 1 ? "" : "s"}</span>
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:159:            {r.description && <p className={cn("truncate text-[11px]", dark ? "text-white/40" : "text-neutral-400")}>{r.description}</p>}
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:160:            <p className={cn("mt-1 text-[10.5px] leading-relaxed", dark ? "text-white/35" : "text-neutral-400")}>
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:166:          <button onClick={() => setEditing(r)} className={cn("rounded-lg p-1.5", dark ? "text-white/40 hover:bg-white/5 hover:text-white" : "text-neutral-400 hover:bg-white hover:text-brand")} aria-label={`Edit ${r.name}`}>
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:169:          <button onClick={() => onDelete(r)} className={cn("rounded-lg p-1.5", dark ? "text-white/30 hover:bg-white/5 hover:text-red-300" : "text-neutral-300 hover:bg-white hover:text-red-500")} aria-label={`Delete ${r.name}`}>
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:203:        <span className={cn("text-[10px] font-bold uppercase tracking-wider", dark ? "text-white/35" : "text-neutral-400")}>Name</span>
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:207:        <span className={cn("text-[10px] font-bold uppercase tracking-wider", dark ? "text-white/35" : "text-neutral-400")}>Role & permissions</span>
+/home/z/my-project/src/components/sensiblee/team-roles.tsx:235:        <p className={cn("mt-1.5 text-[10.5px]", dark ? "text-white/30" : "text-neutral-400")}>
+/home/z/my-project/src/components/sensiblee/widgets.tsx:64:      {hint && <div className="mt-1.5 text-xs text-neutral-400">{hint}</div>}
+/home/z/my-project/src/components/sensiblee/widgets.tsx:87:          {subtitle && <p className="mt-0.5 text-xs text-neutral-400">{subtitle}</p>}
+/home/z/my-project/src/components/sensiblee/widgets.tsx:142:          <span className="text-[10px] uppercase tracking-wide text-neutral-400">avg rating</span>
+/home/z/my-project/src/components/sensiblee/widgets.tsx:155:        <p className="pt-1 text-[11px] leading-relaxed text-neutral-400">
+/home/z/my-project/src/components/sensiblee/widgets.tsx:172:              <span className="ml-1.5 text-[11px] font-medium text-neutral-400">{f.pct}%</span>
+/home/z/my-project/src/components/sensiblee/theme-toggle.tsx:56:                  : "text-neutral-400 hover:text-brand"
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:153:          <p className="text-[10.5px] font-semibold uppercase tracking-wider text-neutral-400">Workspace</p>
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:156:            <ChevronDown size={14} className="shrink-0 text-neutral-400" />
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:210:              <p className="truncate text-[11px] capitalize text-neutral-400">{user?.role} · {user?.tenant?.planName} plan</p>
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:215:              className="rounded-lg p-1.5 text-neutral-400 hover:bg-surface hover:text-brand"
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:222:              className="rounded-lg p-1.5 text-neutral-400 hover:bg-surface hover:text-brand"
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:238:            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:241:              className="h-9 w-full rounded-xl border border-neutral-200 bg-surface pl-9 pr-3 text-[13px] outline-none transition-colors placeholder:text-neutral-400 focus:border-mint/60 focus:bg-white"
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:408:                <p className="rounded-xl bg-white p-3 text-[12.5px] text-neutral-400">All clear — nothing breaching SLA.</p>
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:419:                    <p className="text-[10.5px] text-neutral-400">{l.reviews.toLocaleString("en-IN")} reviews · {l.lastSync}</p>
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:529:          <span className="text-[12px] text-neutral-400">Min stars</span>
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:534:              className={cn("h-7 min-w-7 rounded-lg px-1.5 text-[12px] font-semibold", minStars === n ? "bg-mint-soft text-mint-deep ring-1 ring-mint/50" : "text-neutral-400 hover:text-brand")}
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:548:          <div className="rounded-2xl border border-dashed border-neutral-200 p-10 text-center text-[13.5px] text-neutral-400">
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:590:            <span className="text-[11.5px] text-neutral-400">{r.location} · {r.time}</span>
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:606:              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:637:                className="text-[12px] font-semibold text-neutral-400 hover:text-brand"
+/home/z/my-project/src/components/sensiblee/client-dashboard.tsx:643:            <span className="ml-auto text-[11px] text-neutral-300">via {r.source === "request" ? "request · Google" : "Google"}</span>

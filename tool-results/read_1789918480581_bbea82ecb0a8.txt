@@ -1,0 +1,490 @@
+     1→// Sensiblee seed — deterministic, realistic demo dataset
+     2→// Run: bun prisma/seed.ts
+     3→import { PrismaClient } from "@prisma/client";
+     4→import { hashPassword } from "../src/lib/auth";
+     5→
+     6→const db = new PrismaClient();
+     7→
+     8→// deterministic RNG
+     9→let s = 42;
+    10→const rand = () => {
+    11→  s = (s * 1103515245 + 12345) % 2147483648;
+    12→  return s / 2147483648;
+    13→};
+    14→const pick = <T,>(arr: T[]): T => arr[Math.floor(rand() * arr.length)];
+    15→const now = Date.now();
+    16→const ago = (days: number, hours = 0) => new Date(now - days * 86400_000 - hours * 3600_000);
+    17→const ahead = (days: number) => new Date(now + days * 86400_000);
+    18→
+    19→const DEMO_PW = "Demo@1234";
+    20→
+    21→const KW_POS = [
+    22→  ["butter chicken", "staff", "ambience"], ["filter coffee", "dosa", "service"],
+    23→  ["biryani", "portions", "staff courtesy"], ["group dining", "platters", "service"],
+    24→  ["appam", "food quality", "coffee"], ["chicken 65", "mutton sukka", "valet"],
+    25→  ["ambience", "dessert", "celebration"], ["staff courtesy", "regulars", "filter coffee"],
+    26→];
+    27→const KW_NEU = [["portions", "pricing", "value"], ["crowded", "music", "biryani"], ["parking", "weekend", "service"]];
+    28→const KW_NEG = [["wait time", "reservation", "service"], ["delivery", "missing items", "packaging"], ["order mixup", "wait time", "counter"]];
+    29→
+    30→const NAMES = ["Ananya Sharma", "Rohit Menon", "Priya Nair", "Karthik Iyer", "Meera Krishnan", "Aditya Rao",
+    31→  "Sneha Kulkarni", "Vikram Desai", "Nikhil George", "Divya Suresh", "Arjun Prasad", "Fatima Rizvi",
+    32→  "Kavya Menon", "Rahul Verma", "Sana Sheikh", "Manoj Pillai", "Lakshmi Iyer", "Tarun Bhatia",
+    33→  "Pooja Hegde", "Imran Khan", "Shruti Balan", "Dev Patel", "Ritu Malhotra", "Gaurav Shetty"];
+    34→
+    35→const POS_TEXT = [
+    36→  "Celebrated my parents' anniversary here. The staff arranged a surprise dessert plate without being asked — such a thoughtful touch. Butter chicken and malabar paratha were outstanding.",
+    37→  "The filter coffee and ghee roast dosa are the best in the area. Warm interiors, quick service, and the manager remembered our usual order!",
+    38→  "Hosted a team dinner of 14. The private dining area, the sampler platters and the service were all seamless. Everyone left happy.",
+    39→  "Great coastal flavors — the appam and stew were authentic. Service was prompt even on a busy evening.",
+    40→  "Solid neighbourhood option. Chicken 65 was crisp and the mutton sukka had proper heat. Valet tie-up on weekends is a nice touch.",
+    41→  "The biryani here is easily the best in the neighbourhood. Generous portions and genuinely courteous staff.",
+    42→  "Lovely ambience for a date night. The dessert platter was the highlight and the team sang along for our anniversary!",
+    43→];
+    44→const NEU_TEXT = [
+    45→  "Food is tasty but portion sizes have shrunk while prices went up. Hope the team reconsider the value equation.",
+    46→  "Decent spot for a work lunch, though the music was a bit loud to talk. Biryani was lovely, parking took a while.",
+    47→  "Good food overall. Weekend crowd makes service slightly slow, weekdays are much better.",
+    48→];
+    49→const NEG_TEXT = [
+    50→  "Waited 40 minutes despite a reservation. Food was good but the delay spoiled the evening. Expected better coordination on a Saturday.",
+    51→  "Order arrived cold and missing items on delivery. Packaging was leaking. Very disappointing experience overall.",
+    52→  "Order was mixed up twice at the counter and the wait crossed half an hour even with the place half empty.",
+    53→];
+    54→
+    55→const REPLIES = [
+    56→  "Thank you so much! Delighted your visit hit the mark — your kind words are shared with the whole crew. See you again soon! — Anand, Spice Route Kitchen",
+    57→  "Thank you for the detailed note — we're on it. Hope to welcome you back for a noticeably better visit. — Anand, Spice Route Kitchen",
+    58→  "We're truly sorry about the wait — that is not the experience we intend. Saturday staffing has been corrected and our manager would love to make this right personally. — Anand, Spice Route Kitchen",
+    59→];
+    60→
+    61→async function main() {
+    62→  console.log("Clearing existing data…");
+    63→  await db.systemEvent.deleteMany();
+    64→  await db.demoRequest.deleteMany();
+    65→  await db.syncLog.deleteMany();
+    66→  await db.activityLog.deleteMany();
+    67→  await db.invoice.deleteMany();
+    68→  await db.guestFeedback.deleteMany();
+    69→  await db.campaign.deleteMany();
+    70→  await db.aiDraft.deleteMany();
+    71→  await db.review.deleteMany();
+    72→  await db.location.deleteMany();
+    73→  await db.user.deleteMany();
+    74→  await db.tenant.deleteMany();
+    75→  await db.plan.deleteMany();
+    76→
+    77→  const pw = hashPassword(DEMO_PW);
+    78→
+    79→  /* ---------------------------------- plans --------------------------------- */
+    80→  console.log("Plans…");
+    81→  await db.plan.createMany({
+    82→    data: [
+    83→      {
+    84→        id: "starter", name: "Starter", monthlyInr: 1099, halfYearlyInr: 5495, annualInr: 10990, locations: 1, seats: 2,
+    85→        aiDrafts: "50 / month", waQuota: 200, sortOrder: 1,
+    86→        blurb: "Single location getting its Google presence in order.",
+    87→        features: JSON.stringify([
+    88→          "1 Google Business Profile", "Daily review sync", "AI drafts — 50 / month",
+    89→          "WhatsApp requests — 200 / month", "Core analytics dashboard",
+    90→        ]),
+    91→      },
+    92→      {
+    93→        id: "growth", name: "Growth", monthlyInr: 2499, halfYearlyInr: 12495, annualInr: 24990, locations: 1, seats: 5,
+    94→        aiDrafts: "300 / month", waQuota: 1000, sortOrder: 2, popular: true,
+    95→        blurb: "Busy single site that lives on its reputation.",
+    96→        features: JSON.stringify([
+    97→          "2 Google Business Profiles", "15-minute review sync", "AI drafts — 300 / month",
+    98→          "WhatsApp requests — 1,000 / month", "Sentiment + keyword analytics", "QR table kits included",
+    99→        ]),
+   100→      },
+   101→      {
+   102→        id: "multi", name: "Enterprise", monthlyInr: 4999, halfYearlyInr: 24995, annualInr: 49980, locations: 5, seats: 10,
+   103→        aiDrafts: "Unlimited · fair use", waQuota: 5000, sortOrder: 3,
+   104→        blurb: "Multi-branch brands running reputation as a program.",
+   105→        features: JSON.stringify([
+   106→          "Up to 5 Google Business Profiles", "15-minute review sync", "AI drafts — unlimited fair use",
+   107→          "WhatsApp requests — 5,000 / month", "Location & staff analytics", "Approval workflow + roles", "Priority support",
+   108→        ]),
+   109→      },
+   110→    ],
+   111→  });
+   112→  const plans = await db.plan.findMany();
+   113→  const planId = Object.fromEntries(plans.map((p) => [p.id, p.id])) as Record<string, string>;
+   114→
+   115→  /* ------------------------------- platform admin ---------------------------- */
+   116→  console.log("Platform admin…");
+   117→  await db.user.create({
+   118→    data: { email: "admin@sensiblee.in", passwordHash: pw, name: "Ops Console", role: "platform_admin" },
+   119→  });
+   120→
+   121→  /* --------------------------------- tenants -------------------------------- */
+   122→  console.log("Tenants…");
+   123→
+   124→  const defaultSettings = (over: Record<string, unknown> = {}) =>
+   125→    JSON.stringify({
+   126→      tone: "warm", autoApproveThreshold: 90, greeting: "Anand",
+   127→      signature: "— Anand, Spice Route Kitchen", category: "South Indian restaurant",
+   128→      website: "spiceroute.in", digestLanguage: "English (India)",
+   129→      notifs: { digest: true, negative: true, weekly: true, billing: false },
+   130→      onboarding: { done: true },
+   131→      ...over,
+   132→    });
+   133→
+   134→  // --- 1. Spice Route Kitchen (flagship demo tenant) ---
+   135→  const spk = await db.tenant.create({
+   136→    data: {
+   137→      name: "Spice Route Kitchen", slug: "spice-route", planId: planId.multi, status: "active",
+   138→      mrrInr: 4999, gstin: "29ABCDE1234F1Z5", contactName: "Anand Menon",
+   139→      contactEmail: "anand@spiceroute.in", contactPhone: "+91 98450 11223",
+   140→      nextInvoiceAt: ahead(13), settings: defaultSettings(),
+   141→      whatsappName: "Spice Route Kitchen", whatsappPhone: "+91 98450 12345",
+   142→      createdAt: ago(220),
+   143→    },
+   144→  });
+   145→  await db.user.createMany({
+   146→    data: [
+   147→      { email: "anand@spiceroute.in", passwordHash: pw, name: "Anand Menon", role: "owner", tenantId: spk.id, lastLoginAt: ago(0, 5) },
+   148→      { email: "divya@spiceroute.in", passwordHash: pw, name: "Divya Suresh", role: "manager", tenantId: spk.id, lastLoginAt: ago(1, 2) },
+   149→      { email: "rahul@spiceroute.in", passwordHash: pw, name: "Rahul Prasad", role: "observer", tenantId: spk.id, invitePending: true },
+   150→    ],
+   151→  });
+   152→
+   153→  const spkLocs = await Promise.all(
+   154→    [
+   155→      { code: "spk-kor", name: "Spice Route Koramangala", area: "Koramangala 5th Block", rating: 4.7, delta: 0.2, reviews: 862, book: 640, resp: 96, avg: 100, health: [["Food quality", 95], ["Service", 96], ["Ambience", 94], ["Value", 82]] },
+   156→      { code: "spk-ind", name: "Spice Route Indiranagar", area: "100 Feet Road", rating: 4.5, delta: 0.1, reviews: 641, book: 520, resp: 91, avg: 125, health: [["Food quality", 92], ["Service", 88], ["Ambience", 84], ["Value", 80]] },
+   157→      { code: "spk-hsr", name: "Spice Route HSR Layout", area: "Sector 2", rating: 4.3, delta: -0.1, reviews: 418, book: 380, resp: 84, avg: 340, health: [["Food quality", 86], ["Service", 68], ["Ambience", 88], ["Value", 74]] },
+   158→    ].map((l) =>
+   159→      db.location.create({
+   160→        data: {
+   161→          tenantId: spk.id, code: l.code, name: l.name, area: l.area,
+   162→          address: `${l.area}, Bengaluru`, phone: "+91 98450 11223",
+   163→          googlePlaceId: `ChIJ${l.code.toUpperCase()}DEMO`, googleReviewUrl: `https://search.google.com/local/writereview?placeid=ChIJ${l.code.toUpperCase()}DEMO`,
+   164→          rating: l.rating, ratingDelta: l.delta, reviewCount: l.reviews,
+   165→          contactBookSize: l.book, responseRate: l.resp, avgResponseMins: l.avg,
+   166→          health: JSON.stringify(l.health.map(([label, score]) => ({ label, score }))),
+   167→          lastSyncAt: ago(0, 0.03), syncCount: 40 + Math.floor(rand() * 20),
+   168→        },
+   169→      })
+   170→    )
+   171→  );
+   172→
+   173→  // --- 2..6 other tenants ---
+   174→  const others: { t: typeof spk; locs: { code: string; name: string; area: string; rating: number; reviews: number }[]; email: string; owner: string; mrr: number; plan: string; status: string; settings: string; created: number }[] = [];
+   175→  async function makeTenant(cfg: typeof others[number]) {
+   176→    const t = await db.tenant.create({
+   177→      data: {
+   178→        name: cfg.t.name, slug: cfg.t.slug, planId: planId[cfg.plan], status: cfg.status,
+   179→        mrrInr: cfg.mrr, contactName: cfg.owner, contactEmail: cfg.email,
+   180→        gstin: cfg.t.gstin, contactPhone: cfg.t.contactPhone, trialEndsAt: cfg.t.trialEndsAt,
+   181→        nextInvoiceAt: cfg.t.nextInvoiceAt, settings: cfg.settings, createdAt: ago(cfg.created),
+   182→        whatsappName: cfg.t.whatsappName, whatsappPhone: cfg.t.whatsappPhone,
+   183→      },
+   184→    });
+   185→    await db.user.create({ data: { email: cfg.email, passwordHash: pw, name: cfg.owner, role: "owner", tenantId: t.id, lastLoginAt: ago(1) } });
+   186→    const locs = await Promise.all(
+   187→      cfg.locs.map((l) =>
+   188→        db.location.create({
+   189→          data: {
+   190→            tenantId: t.id, code: l.code, name: l.name, area: l.area,
+   191→            googlePlaceId: `ChIJ${l.code.toUpperCase()}DEMO`, googleReviewUrl: `https://search.google.com/local/writereview?placeid=ChIJ${l.code.toUpperCase()}DEMO`,
+   192→            rating: l.rating, ratingDelta: Number((rand() * 0.3 - 0.1).toFixed(1)), reviewCount: l.reviews,
+   193→            contactBookSize: Math.floor(l.reviews / 3), responseRate: 80 + Math.floor(rand() * 15),
+   194→            avgResponseMins: 100 + Math.floor(rand() * 200),
+   195→            health: JSON.stringify([{ label: "Service", score: 74 + Math.floor(rand() * 20) }, { label: "Quality", score: 80 + Math.floor(rand() * 15) }, { label: "Value", score: 70 + Math.floor(rand() * 20) }]),
+   196→            lastSyncAt: ago(0, rand() * 2), syncCount: 30 + Math.floor(rand() * 20),
+   197→          },
+   198→        })
+   199→      )
+   200→    );
+   201→    return { t, locs };
+   202→  }
+   203→
+   204→  const lumiere = await makeTenant({
+   205→    t: { name: "Lumiere Dental Care", slug: "lumiere", gstin: "36AAHCL9021K1ZB", contactPhone: "+91 90000 44551", trialEndsAt: null, nextInvoiceAt: ahead(15), whatsappName: "Lumiere Dental", whatsappPhone: "+91 90000 44551" } as typeof spk,
+   206→    locs: [{ code: "lum-som", name: "Lumiere Dental — Somajiguda", area: "Somajiguda, Hyderabad", rating: 4.8, reviews: 640 }],
+   207→    email: "kavya@lumieredental.in", owner: "Dr. Kavya Reddy", mrr: 2499, plan: "growth", status: "active",
+   208→    settings: JSON.stringify({ tone: "formal", autoApproveThreshold: 85, greeting: "Dr. Kavya", signature: "— Dr. Kavya Reddy, Lumiere Dental Care", category: "Dental clinic", website: "lumieredental.in", notifs: { digest: true, negative: true, weekly: true, billing: true }, onboarding: { done: true }, staff: [] }),
+   209→    created: 190,
+   210→  });
+   211→  const iron = await makeTenant({
+   212→    t: { name: "Iron & Iris Fitness", slug: "iron-iris", gstin: "27AAFCI4488M1Z7", contactPhone: "+91 98220 77114", trialEndsAt: null, nextInvoiceAt: ahead(9), whatsappName: "Iron & Iris", whatsappPhone: "+91 98220 77114" } as typeof spk,
+   213→    locs: [{ code: "ii-kaly", name: "Iron & Iris Kalyaninagar", area: "Kalyani Nagar, Pune", rating: 4.4, reviews: 288 }],
+   214→    email: "sameer@ironandiris.fit", owner: "Sameer Shah", mrr: 1099, plan: "starter", status: "active",
+   215→    settings: JSON.stringify({ tone: "playful", autoApproveThreshold: 80, greeting: "Sameer", signature: "— Sameer, Iron & Iris", category: "Fitness studio", website: "ironandiris.fit", notifs: { digest: true, negative: true, weekly: false, billing: false }, onboarding: { done: true }, staff: [] }),
+   216→    created: 150,
+   217→  });
+   218→  const bloom = await makeTenant({
+   219→    t: { name: "Bloom Florists", slug: "bloom", gstin: "29AAGFB7781P1Z2", contactPhone: "+91 98860 33447", trialEndsAt: ahead(12), nextInvoiceAt: null, whatsappName: "Bloom Florists", whatsappPhone: "+91 98860 33447" } as typeof spk,
+   220→    locs: [{ code: "bloom-jay", name: "Bloom Florists Jayanagar", area: "Jayanagar, Bengaluru", rating: 4.6, reviews: 154 }],
+   221→    email: "nandini@bloomflorists.in", owner: "Nandini Rao", mrr: 1099, plan: "starter", status: "trial",
+   222→    settings: JSON.stringify({ tone: "warm", autoApproveThreshold: 90, greeting: "Nandini", signature: "— Nandini, Bloom Florists", category: "Florist", website: "bloomflorists.in", notifs: { digest: true, negative: true, weekly: false, billing: false }, onboarding: { done: true }, staff: [] }),
+   223→    created: 18,
+   224→  });
+   225→  const mandala = await makeTenant({
+   226→    t: { name: "Cafe Mandala", slug: "cafe-mandala", gstin: "29AAJCC1180Q1Z9", contactPhone: "+91 97400 55810", trialEndsAt: null, nextInvoiceAt: ago(9), whatsappName: "Cafe Mandala", whatsappPhone: "+91 97400 55810" } as typeof spk,
+   227→    locs: [{ code: "cm-fra", name: "Cafe Mandala Frazer Town", area: "Frazer Town, Bengaluru", rating: 4.2, reviews: 512 }],
+   228→    email: "tenzin@cafemandala.in", owner: "Tenzin W.", mrr: 2499, plan: "growth", status: "past_due",
+   229→    settings: JSON.stringify({ tone: "warm", autoApproveThreshold: 90, greeting: "Tenzin", signature: "— Tenzin, Cafe Mandala", category: "Cafe", website: "cafemandala.in", notifs: { digest: true, negative: true, weekly: true, billing: true }, onboarding: { done: true }, staff: [] }),
+   230→    created: 240,
+   231→  });
+   232→  const urban = await makeTenant({
+   233→    t: { name: "UrbanNest Realty", slug: "urbannest", gstin: "29AAECU6612R1ZK", contactPhone: "+91 99860 21009", trialEndsAt: null, nextInvoiceAt: ahead(21), whatsappName: "UrbanNest Realty", whatsappPhone: "+91 99860 21009" } as typeof spk,
+   234→    locs: [
+   235→      { code: "un-whf", name: "UrbanNest Whitefield", area: "Whitefield, Bengaluru", rating: 4.5, reviews: 240 },
+   236→      { code: "un-ind", name: "UrbanNest Indiranagar", area: "Indiranagar, Bengaluru", rating: 4.4, reviews: 137 },
+   237→    ],
+   238→    email: "farhan@urbannest.co.in", owner: "Farhan Ali", mrr: 3298, plan: "growth", status: "active",
+   239→    settings: JSON.stringify({ tone: "formal", autoApproveThreshold: 88, greeting: "Farhan", signature: "— Farhan, UrbanNest Realty", category: "Real estate", website: "urbannest.co.in", notifs: { digest: true, negative: true, weekly: true, billing: false }, onboarding: { done: true }, staff: [] }),
+   240→    created: 120,
+   241→  });
+   242→
+   243→  /* --------------------------------- reviews --------------------------------- */
+   244→  console.log("Reviews…");
+   245→  type ReviewSpec = { locIdx: number; daysAgo: number; hoursAgo?: number; stars: number; status: string; source?: string };
+   246→  const spkSpecs: ReviewSpec[] = [
+   247→    { locIdx: 0, daysAgo: 0, hoursAgo: 2, stars: 5, status: "ai-draft" },            // Ananya 5★ draft
+   248→    { locIdx: 2, daysAgo: 0, hoursAgo: 5, stars: 2, status: "ai-draft" },            // Rohit 2★ urgent
+   249→    { locIdx: 1, daysAgo: 0, hoursAgo: 8, stars: 4, status: "replied" },
+   250→    { locIdx: 2, daysAgo: 1, hoursAgo: 4, stars: 1, status: "awaiting" },            // Karthik SLA
+   251→    { locIdx: 0, daysAgo: 1, hoursAgo: 10, stars: 5, status: "replied" },
+   252→    { locIdx: 1, daysAgo: 2, hoursAgo: 3, stars: 3, status: "ai-draft" },            // Aditya
+   253→    { locIdx: 0, daysAgo: 2, hoursAgo: 9, stars: 5, status: "replied" },
+   254→    { locIdx: 2, daysAgo: 3, hoursAgo: 1, stars: 4, status: "replied" },
+   255→    { locIdx: 0, daysAgo: 4, stars: 5, status: "replied" },
+   256→    { locIdx: 1, daysAgo: 5, stars: 2, status: "replied" },
+   257→    { locIdx: 2, daysAgo: 6, stars: 5, status: "replied" },
+   258→    { locIdx: 0, daysAgo: 7, stars: 4, status: "replied" },
+   259→    { locIdx: 1, daysAgo: 9, stars: 5, status: "replied" },
+   260→    { locIdx: 2, daysAgo: 10, stars: 3, status: "replied" },
+   261→    { locIdx: 0, daysAgo: 12, stars: 5, status: "replied", source: "request" },
+   262→    { locIdx: 1, daysAgo: 14, stars: 4, status: "replied", source: "request" },
+   263→    { locIdx: 2, daysAgo: 16, stars: 1, status: "replied" },
+   264→    { locIdx: 0, daysAgo: 18, stars: 5, status: "replied", source: "request" },
+   265→    { locIdx: 1, daysAgo: 21, stars: 5, status: "replied" },
+   266→    { locIdx: 2, daysAgo: 24, stars: 4, status: "replied", source: "request" },
+   267→    { locIdx: 0, daysAgo: 28, stars: 4, status: "replied" },
+   268→    { locIdx: 1, daysAgo: 33, stars: 5, status: "replied", source: "request" },
+   269→    { locIdx: 2, daysAgo: 38, stars: 2, status: "replied" },
+   270→    { locIdx: 0, daysAgo: 45, stars: 5, status: "replied" },
+   271→    { locIdx: 1, daysAgo: 52, stars: 4, status: "replied", source: "request" },
+   272→    { locIdx: 2, daysAgo: 60, stars: 5, status: "replied" },
+   273→  ];
+   274→
+   275→  let nameIdx = 0;
+   276→  const nextName = () => NAMES[nameIdx++ % NAMES.length];
+   277→
+   278→  for (const spec of spkSpecs) {
+   279→    const loc = spkLocs[spec.locIdx];
+   280→    const author = nextName();
+   281→    const text = spec.stars >= 4 ? pick(POS_TEXT) : spec.stars === 3 ? pick(NEU_TEXT) : pick(NEG_TEXT);
+   282→    const keywords = spec.stars >= 4 ? pick(KW_POS) : spec.stars === 3 ? pick(KW_NEU) : pick(KW_NEG);
+   283→    const sentiment = spec.stars >= 4 ? "positive" : spec.stars === 3 ? "neutral" : "negative";
+   284→    const createdAt = ago(spec.daysAgo, spec.hoursAgo || 0);
+   285→    const review = await db.review.create({
+   286→      data: {
+   287→        tenantId: spk.id, locationId: loc.id, author, stars: spec.stars, text,
+   288→        sentiment, keywords: JSON.stringify(keywords), status: spec.status,
+   289→        source: spec.source || "google",
+   290→        createdAt,
+   291→        replyText: spec.status === "replied" ? pick(REPLIES) : null,
+   292→        repliedAt: spec.status === "replied" ? new Date(createdAt.getTime() + (1 + rand() * 20) * 3600_000) : null,
+   293→        repliedBy: spec.status === "replied" ? "Anand Menon" : null,
+   294→      },
+   295→    });
+   296→    if (spec.status === "ai-draft") {
+   297→      const bodies: Record<number, string> = {
+   298→        5: `Thank you so much, ${author.split(" ")[0]}! We're delighted we could make the occasion special. A warm thank-you from the Spice Route family — we look forward to hosting you again soon! — Anand, Spice Route Kitchen`,
+   299→        3: `${author.split(" ")[0]}, thank you for the honest feedback — portions and value are something we actively review. We hope to welcome you back and change the math for you. — Anand, Spice Route Kitchen`,
+   300→        2: `${author.split(" ")[0]}, we're truly sorry about the wait on Saturday — that is not the experience we intend. We're reviewing our Saturday reservation staffing and our manager will reach out personally today. — Anand, Spice Route Kitchen`,
+   301→      };
+   302→      await db.aiDraft.create({
+   303→        data: {
+   304→          reviewId: review.id, body: bodies[spec.stars] || bodies[3],
+   305→          tone: spec.stars <= 2 ? "apologetic" : spec.stars === 3 ? "professional" : "warm",
+   306→          confidence: spec.stars === 5 ? 0.96 : spec.stars === 2 ? 0.91 : 0.84,
+   307→          createdAt: new Date(createdAt.getTime() + 9 * 60_000),
+   308→        },
+   309→      });
+   310→    }
+   311→  }
+   312→
+   313→  async function seedReviewsFor(tenantId: string, locs: { id: string }[], count: number, baseDays: number) {
+   314→    for (let i = 0; i < count; i++) {
+   315→      const loc = locs[i % locs.length];
+   316→      const stars = [5, 4, 5, 3, 4, 5, 2, 4][Math.floor(rand() * 8)];
+   317→      const author = nextName();
+   318→      const text = stars >= 4 ? pick(POS_TEXT) : stars === 3 ? pick(NEU_TEXT) : pick(NEG_TEXT);
+   319→      const keywords = stars >= 4 ? pick(KW_POS) : stars === 3 ? pick(KW_NEU) : pick(KW_NEG);
+   320→      const createdAt = ago(Math.floor(rand() * baseDays) + 1, Math.floor(rand() * 12));
+   321→      const status = rand() > 0.25 ? "replied" : rand() > 0.4 ? "awaiting" : "ai-draft";
+   322→      const review = await db.review.create({
+   323→        data: {
+   324→          tenantId, locationId: loc.id, author, stars, text,
+   325→          sentiment: stars >= 4 ? "positive" : stars === 3 ? "neutral" : "negative",
+   326→          keywords: JSON.stringify(keywords), status, source: rand() > 0.7 ? "request" : "google",
+   327→          createdAt,
+   328→          replyText: status === "replied" ? pick(REPLIES) : null,
+   329→          repliedAt: status === "replied" ? new Date(createdAt.getTime() + 5 * 3600_000) : null,
+   330→          repliedBy: status === "replied" ? "Owner" : null,
+   331→        },
+   332→      });
+   333→      if (status === "ai-draft") {
+   334→        await db.aiDraft.create({
+   335→          data: {
+   336→            reviewId: review.id,
+   337→            body: stars <= 2
+   338→              ? `${author.split(" ")[0]}, we're truly sorry about this experience. Our manager will reach out personally to make it right.`
+   339→              : `Thank you so much, ${author.split(" ")[0]}! Delighted your visit hit the mark — see you again soon!`,
+   340→            tone: stars <= 2 ? "apologetic" : "warm",
+   341→            confidence: 0.82 + rand() * 0.15,
+   342→            createdAt: new Date(createdAt.getTime() + 15 * 60_000),
+   343→          },
+   344→        });
+   345→      }
+   346→    }
+   347→  }
+   348→  await seedReviewsFor(lumiere.t.id, lumiere.locs, 14, 60);
+   349→  await seedReviewsFor(iron.t.id, iron.locs, 10, 50);
+   350→  await seedReviewsFor(bloom.t.id, bloom.locs, 6, 14);
+   351→  await seedReviewsFor(mandala.t.id, mandala.locs, 12, 70);
+   352→  await seedReviewsFor(urban.t.id, urban.locs, 10, 55);
+   353→
+   354→  /* -------------------------------- campaigns -------------------------------- */
+   355→  console.log("Campaigns…");
+   356→  const campaignSeed = [
+   357→    { t: spk.id, loc: spkLocs[0].id, name: "Weekend Feast — Post-dining burst", channel: "whatsapp", tmpl: "Post-dining thank you", rec: 420, sent: 412, opened: 388, clicked: 148, gen: 57, status: "running", days: 6 },
+   358→    { t: spk.id, loc: null, name: "Table QR — ongoing rollout", channel: "qr", tmpl: null, rec: 1310, sent: 1310, opened: 1240, clicked: 476, gen: 96, status: "running", days: 48 },
+   359→    { t: spk.id, loc: spkLocs[1].id, name: "Loyal regulars — Thank-you note", channel: "whatsapp", tmpl: "Loyal regular note", rec: 236, sent: 236, opened: 221, clicked: 92, gen: 41, status: "completed", days: 29 },
+   360→    { t: spk.id, loc: spkLocs[2].id, name: "Delivery follow-up wave", channel: "whatsapp", tmpl: "Delivery follow-up", rec: 0, sent: 0, opened: 0, clicked: 0, gen: 0, status: "scheduled", days: -2 },
+   361→    { t: lumiere.t.id, loc: lumiere.locs[0].id, name: "Post-appointment follow-up", channel: "whatsapp", tmpl: "Post-visit thank you", rec: 48, sent: 48, opened: 44, clicked: 26, gen: 12, status: "completed", days: 8 },
+   362→    { t: mandala.t.id, loc: mandala.locs[0].id, name: "Sunday brunch crowd", channel: "whatsapp", tmpl: "Post-dining thank you", rec: 130, sent: 130, opened: 118, clicked: 41, gen: 9, status: "completed", days: 20 },
+   363→    { t: urban.t.id, loc: urban.locs[0].id, name: "Site-visit follow-up", channel: "whatsapp", tmpl: "Site visit thank you", rec: 64, sent: 64, opened: 59, clicked: 22, gen: 7, status: "completed", days: 12 },
+   364→  ];
+   365→  for (const c of campaignSeed) {
+   366→    await db.campaign.create({
+   367→      data: {
+   368→        tenantId: c.t, locationId: c.loc, name: c.name, channel: c.channel, template: c.tmpl,
+   369→        recipients: c.rec, sent: c.sent, opened: c.opened, clicked: c.clicked,
+   370→        reviewsGenerated: c.gen, status: c.status, createdAt: ago(Math.max(c.days, 1)),
+   371→      },
+   372→    });
+   373→  }
+   374→
+   375→  /* ------------------------------ guest feedback ----------------------------- */
+   376→  console.log("Guest feedback…");
+   377→  const moods = ["smile", "smile", "smile", "meh", "frown", "smile", "meh", "smile"];
+   378→  for (const loc of [...spkLocs, ...lumiere.locs, ...mandala.locs]) {
+   379→    const n = loc.tenantId === spk.id ? 6 : 3;
+   380→    for (let i = 0; i < n; i++) {
+   381→      const mood = moods[Math.floor(rand() * moods.length)];
+   382→      const isFrown = mood === "frown";
+   383→      await db.guestFeedback.create({
+   384→        data: {
+   385→          locationId: loc.id, tenantId: loc.tenantId, mood,
+   386→          rating: mood === "smile" ? 5 : mood === "meh" ? 3 : null,
+   387→          text: isFrown ? pick(["Waited too long for the order even though the cafe was empty.", "Music was too loud and the table wasn't cleaned for 15 minutes."]) : mood === "meh" ? pick(["Food took a while but tasted fine.", "Seating area felt cramped on Sunday evening."]) : null,
+   388→          optedIn: rand() > 0.5, phone: rand() > 0.6 ? "+91 98" + String(Math.floor(rand() * 100000000)).padStart(8, "0") : null,
+   389→          createdAt: ago(Math.floor(rand() * 20) + 1, Math.floor(rand() * 10)),
+   390→        },
+   391→      });
+   392→    }
+   393→  }
+   394→
+   395→  /* --------------------------------- invoices -------------------------------- */
+   396→  console.log("Invoices…");
+   397→  let invNo = 1001;
+   398→  async function invoice(tenantId: string, amount: number, status: string, start: Date, method = "UPI · Razorpay") {
+   399→    await db.invoice.create({
+   400→      data: {
+   401→        tenantId, number: `SS-2026-${invNo++}`, amountInr: amount, method, status,
+   402→        periodStart: start, periodEnd: new Date(start.getTime() + 30 * 86400_000),
+   403→        dueAt: new Date(start.getTime() + 7 * 86400_000),
+   404→        paidAt: status === "paid" ? new Date(start.getTime() + 2 * 86400_000) : null,
+   405→      },
+   406→    });
+   407→  }
+   408→  for (let m = 5; m >= 1; m--) await invoice(spk.id, 4999, "paid", ago(m * 30));
+   409→  await invoice(spk.id, 4999, "paid", ago(17));
+   410→  for (let m = 5; m >= 1; m--) await invoice(mandala.t.id, 2499, "paid", ago((m + 1) * 30), "Auto-debit · Razorpay");
+   411→  await invoice(mandala.t.id, 2499, "overdue", ago(12), "Auto-debit · Razorpay");
+   412→  await invoice(lumiere.t.id, 2499, "paid", ago(15), "Card · Visa 4411");
+   413→  await invoice(iron.t.id, 1099, "paid", ago(9));
+   414→  await invoice(bloom.t.id, 0, "pending", ago(17), "On conversion");
+   415→  await invoice(urban.t.id, 3298, "paid", ago(10), "NetBanking · HDFC");
+   416→  await invoice(urban.t.id, 2499, "paid", ago(40), "NetBanking · HDFC");
+   417→
+   418→  /* ------------------------------ activity + syncs ---------------------------- */
+   419→  console.log("Activity & sync logs…");
+   420→  await db.activityLog.createMany({
+   421→    data: [
+   422→      { tenantId: spk.id, actor: "system", action: "google.sync.completed", detail: "3 profiles synced · 2 new reviews scored", createdAt: ago(0, 2) },
+   423→      { tenantId: spk.id, actor: "anand@spiceroute.in", action: "reply.approved", detail: "5★ reply published for Ananya S.", createdAt: ago(0, 3) },
+   424→      { tenantId: spk.id, actor: "system", action: "campaign.sent", detail: "Weekend Feast burst · 412 requests · 94% opened", createdAt: ago(6) },
+   425→      { tenantId: spk.id, actor: "system", action: "subscription.renewed", detail: "Enterprise plan · ₹4,999 via UPI auto-debit", createdAt: ago(17) },
+   426→      { tenantId: mandala.t.id, actor: "system", action: "dunning.retry_failed", detail: "Auto-debit returned 'insufficient funds' · retry 2/5", createdAt: ago(0, 7) },
+   427→      { tenantId: mandala.t.id, actor: "system", action: "invoice.failed", detail: "Invoice ₹2,499 failed · Razorpay event pay_fail", createdAt: ago(12) },
+   428→      { tenantId: bloom.t.id, actor: "nandini@bloomflorists.in", action: "reply.approved", detail: "First AI draft approved — 5★ reply published", createdAt: ago(2) },
+   429→      { tenantId: lumiere.t.id, actor: "system", action: "template.approved", detail: "'Post-visit thank you' cleared WhatsApp review", createdAt: ago(5) },
+   430→    ],
+   431→  });
+   432→
+   433→  const syncLogRows: { locationId: string; state: string; message: string; newReviews: number; latencyMs: number; createdAt: Date }[] = [];
+   434→  for (const loc of [...spkLocs, ...lumiere.locs, ...iron.locs, ...mandala.locs, ...urban.locs]) {
+   435→    for (let i = 0; i < 5; i++) {
+   436→      const isNew = i === 1 && rand() > 0.4;
+   437→      const isHsr = loc.code === "spk-hsr";
+   438→      syncLogRows.push({
+   439→        locationId: loc.id,
+   440→        state: isHsr && i === 3 ? "error" : isHsr && i === 0 ? "warn" : i === 4 && rand() > 0.7 ? "warn" : "ok",
+   441→        message: isNew ? `${1 + Math.floor(rand() * 2)} new review${rand() > 0.5 ? "s" : ""} · sentiment scored` : isHsr && i === 3 ? "OAuth token expired · re-auth card shown" : isHsr && i === 0 ? "Google API latency 4.1 s · cursor saved" : `No new reviews · latency ${360 + Math.floor(rand() * 220)} ms`,
+   442→        newReviews: isNew ? 1 + Math.floor(rand() * 2) : 0,
+   443→        latencyMs: 360 + Math.floor(rand() * 400),
+   444→        createdAt: ago(0, 0.25 * (i + 1)),
+   445→      });
+   446→    }
+   447→  }
+   448→  await db.syncLog.createMany({ data: syncLogRows });
+   449→
+   450→  /* -------------------------------- system events ---------------------------- */
+   451→  await db.systemEvent.createMany({
+   452→    data: [
+   453→      { type: "deploy", name: "app deploy v2.4.1", state: "ok", detail: "Rolled out to production · 0 errors", createdAt: ago(2, 4) },
+   454→      { type: "job", name: "google-sync", state: "ok", detail: "All 10 profiles healthy · avg latency 412 ms", createdAt: ago(0, 0.2) },
+   455→      { type: "job", name: "whatsapp-sender", state: "ok", detail: "14 messages queued · quality rating HIGH", createdAt: ago(0, 0.3) },
+   456→      { type: "job", name: "ai-worker", state: "ok", detail: "3 drafts queued · p95 2.8 s", createdAt: ago(0, 0.4) },
+   457→      { type: "job", name: "webhook-receiver", state: "warn", detail: "1 retrying · Razorpay callback backlog 6.4 s", createdAt: ago(0, 1) },
+   458→      { type: "signal", name: "Cafe Mandala dunning", state: "error", detail: "Auto-debit failed · day 9 of grace period", createdAt: ago(0, 8) },
+   459→    ],
+   460→  });
+   461→
+   462→  /* -------------------------------- demo requests ---------------------------- */
+   463→  await db.demoRequest.createMany({
+   464→    data: [
+   465→      { name: "Preetham Gowda", email: "preetham@heritagecafes.in", company: "Heritage Cafes", phone: "+91 99000 12345", outlets: "4 outlets", message: "Looking for multi-location review management across our cafe brand.", createdAt: ago(1, 3) },
+   466→      { name: "Meenal Desai", email: "meenal@glowlabs.co", company: "Glow Labs", phone: "+91 98200 55443", outlets: "2 outlets", message: "Saw the QR flow at Spice Route — want the same for our clinics.", createdAt: ago(3) },
+   467→    ],
+   468→  });
+   469→
+   470→  const counts = {
+   471→    tenants: await db.tenant.count(),
+   472→    users: await db.user.count(),
+   473→    locations: await db.location.count(),
+   474→    reviews: await db.review.count(),
+   475→    drafts: await db.aiDraft.count(),
+   476→    campaigns: await db.campaign.count(),
+   477→    feedback: await db.guestFeedback.count(),
+   478→    invoices: await db.invoice.count(),
+   479→  };
+   480→  console.log("Seed complete:", counts);
+   481→  console.log(`Logins — platform: admin@sensiblee.in · tenant: anand@spiceroute.in · password: ${DEMO_PW}`);
+   482→}
+   483→
+   484→main()
+   485→  .catch((e) => {
+   486→    console.error(e);
+   487→    process.exit(1);
+   488→  })
+   489→  .finally(() => db.$disconnect());
+   490→

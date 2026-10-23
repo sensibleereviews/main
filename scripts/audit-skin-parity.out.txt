@@ -1,0 +1,199 @@
+================ skin-admin (light remap of dark-native) ================
+-- UNMAPPED (74) --
+bg-mint                            admin-console.tsx×21 admin-cms.tsx×14 team-roles.tsx×5 widgets.tsx×1 theme-toggle.tsx×1
+text-brand-deep                    admin-console.tsx×16 admin-cms.tsx×14 team-roles.tsx×5 theme-toggle.tsx×1
+bg-mint/15                         admin-console.tsx×12 admin-cms.tsx×10 team-roles.tsx×1
+hover:bg-mint/90                   admin-console.tsx×7 admin-cms.tsx×11 team-roles.tsx×2
+text-neutral-400                   team-roles.tsx×12 widgets.tsx×5 theme-toggle.tsx×1
+bg-mint/10                         admin-console.tsx×10 admin-cms.tsx×4
+text-mint-deep                     team-roles.tsx×3 brand.tsx×7 widgets.tsx×2
+bg-mint-soft                       team-roles.tsx×3 brand.tsx×7 widgets.tsx×2
+hover:bg-mint/10                   admin-console.tsx×7 admin-cms.tsx×3
+focus:border-mint/50               admin-console.tsx×8 admin-cms.tsx×2
+text-brand                         team-roles.tsx×3 widgets.tsx×6
+bg-amber-400/15                    admin-cms.tsx×8
+bg-white                           team-roles.tsx×4 brand.tsx×1 widgets.tsx×2 theme-toggle.tsx×1
+bg-amber-soft                      brand.tsx×6 widgets.tsx×1
+text-amber-deep                    brand.tsx×6 widgets.tsx×1
+bg-surface                         team-roles.tsx×4 widgets.tsx×2
+ring-amber-300/60                  brand.tsx×6
+bg-red-50                          brand.tsx×4 widgets.tsx×2
+text-neutral-500                   team-roles.tsx×3 brand.tsx×1 widgets.tsx×1
+bg-amber-soft/10                   admin-console.tsx×4
+bg-amber-300                       admin-console.tsx×4
+bg-mint-deep                       team-roles.tsx×3 widgets.tsx×1
+text-red-700                       brand.tsx×4
+ring-red-200                       brand.tsx×4
+text-neutral-600                   brand.tsx×2 widgets.tsx×2
+hover:bg-mint/25                   admin-cms.tsx×3
+hover:bg-amber-400/25              admin-cms.tsx×3
+border-neutral-200                 team-roles.tsx×2 theme-toggle.tsx×1
+bg-neutral-100                     brand.tsx×3
+ring-neutral-200                   brand.tsx×3
+bg-amber-soft/15                   admin-console.tsx×2
+bg-red-400/15                      admin-console.tsx×2
+bg-red-400/10                      admin-console.tsx×2
+bg-mint/[0.04]                     admin-console.tsx×2
+hover:bg-mint/20                   admin-console.tsx×2
+bg-red-400                         admin-console.tsx×2
+border-mint                        admin-cms.tsx×1 team-roles.tsx×1
+text-neutral-800                   team-roles.tsx×2
+focus:border-brand                 team-roles.tsx×2
+hover:bg-mint-deep/90              team-roles.tsx×2
+hover:bg-white                     team-roles.tsx×2
+hover:text-brand                   team-roles.tsx×1 theme-toggle.tsx×1
+text-red-600                       widgets.tsx×2
+border-neutral-200/70              widgets.tsx×2
+bg-black/50                        admin-console.tsx×1
+bg-amber-soft/20                   admin-console.tsx×1
+from-mint-deep                     admin-console.tsx×1
+to-mint                            admin-console.tsx×1
+hover:border-mint/30               admin-console.tsx×1
+bg-amber-soft/5                    admin-console.tsx×1
+hover:bg-mint/85                   admin-console.tsx×1
+hover:bg-red-400/10                admin-console.tsx×1
+bg-black/60                        admin-console.tsx×1
+bg-mint/20                         admin-console.tsx×1
+hover:border-mint/60               admin-cms.tsx×1
+bg-red-500                         admin-cms.tsx×1
+hover:bg-red-400                   admin-cms.tsx×1
+bg-red-500/15                      admin-cms.tsx×1
+hover:bg-red-500/25                admin-cms.tsx×1
+placeholder:text-neutral-300       team-roles.tsx×1
+ring-mint/50                       team-roles.tsx×1
+hover:bg-neutral-100               team-roles.tsx×1
+border-mint-deep                   team-roles.tsx×1
+border-neutral-300                 team-roles.tsx×1
+text-neutral-300                   team-roles.tsx×1
+hover:text-red-500                 team-roles.tsx×1
+hover:text-neutral-700             team-roles.tsx×1
+hover:bg-mint-soft/70              team-roles.tsx×1
+fill-amber-400                     brand.tsx×1
+text-amber-400                     brand.tsx×1
+fill-neutral-200                   brand.tsx×1
+text-neutral-200                   brand.tsx×1
+bg-brand/5                         widgets.tsx×1
+bg-brand/75                        widgets.tsx×1
+-- ARBITRARY VALUES (16) --
+text-[12.5px]                      admin-console.tsx×24 admin-cms.tsx×16 team-roles.tsx×9 widgets.tsx×1
+text-[11.5px]                      admin-console.tsx×30 admin-cms.tsx×15 team-roles.tsx×2
+text-[11px]                        admin-console.tsx×28 admin-cms.tsx×11 team-roles.tsx×1 brand.tsx×2 widgets.tsx×3
+text-[10.5px]                      admin-console.tsx×23 admin-cms.tsx×10 team-roles.tsx×4
+text-[12px]                        admin-console.tsx×18 admin-cms.tsx×15 team-roles.tsx×2
+text-[10px]                        admin-console.tsx×12 admin-cms.tsx×5 team-roles.tsx×5 widgets.tsx×2
+text-[13px]                        admin-console.tsx×9 admin-cms.tsx×6 team-roles.tsx×2 widgets.tsx×2
+text-[15px]                        admin-console.tsx×7 admin-cms.tsx×5 widgets.tsx×1
+text-[13.5px]                      admin-console.tsx×5
+text-[14.5px]                      admin-console.tsx×4
+text-[22px]                        admin-console.tsx×2
+text-[9.5px]                       admin-console.tsx×2
+text-[24px]                        admin-console.tsx×1
+text-[16px]                        admin-console.tsx×1
+text-[9px]                         admin-cms.tsx×1
+text-[26px]                        widgets.tsx×1
+-- mapped-but-unused (dead CSS, 2) --
+border-mint/50
+hover:bg-brand
+
+================ skin-client (dark remap of light-native) ================
+-- UNMAPPED (65) --
+text-white                         client-dashboard.tsx×10 client-views2.tsx×5 client-extras.tsx×29 auth-pages.tsx×3 guest-view.tsx×4 app-shell.tsx×2 widgets.tsx×1 theme-toggle.tsx×1
+bg-mint-deep                       client-dashboard.tsx×4 client-views2.tsx×4 client-extras.tsx×12 app-shell.tsx×1 widgets.tsx×1
+hover:bg-brand-deep                client-views2.tsx×2 client-extras.tsx×8 auth-pages.tsx×2 guest-view.tsx×2 app-shell.tsx×2
+focus:border-mint/60               client-dashboard.tsx×1 client-views2.tsx×2 client-extras.tsx×7 auth-pages.tsx×1 guest-view.tsx×1
+ring-mint/40                       client-dashboard.tsx×1 client-views2.tsx×1 client-extras.tsx×1 brand.tsx×7
+hover:bg-mint-deep/90              client-dashboard.tsx×2 client-views2.tsx×1 client-extras.tsx×6
+border-mint/40                     client-views2.tsx×1 client-extras.tsx×5 auth-pages.tsx×1 guest-view.tsx×1 app-shell.tsx×1
+bg-mint                            client-views2.tsx×1 client-extras.tsx×4 guest-view.tsx×1 widgets.tsx×1 theme-toggle.tsx×1
+text-mint                          client-dashboard.tsx×2 client-extras.tsx×2 auth-pages.tsx×2
+text-white/40                      client-extras.tsx×4 auth-pages.tsx×1
+text-white/50                      client-extras.tsx×3 guest-view.tsx×1 theme-toggle.tsx×1
+bg-amber-400                       client-dashboard.tsx×1 client-views2.tsx×2 client-extras.tsx×1
+text-brand-deep                    client-dashboard.tsx×1 client-extras.tsx×1 guest-view.tsx×1 theme-toggle.tsx×1
+bg-red-500                         client-dashboard.tsx×2 client-extras.tsx×2
+bg-mint-soft/30                    client-views2.tsx×1 client-extras.tsx×2 auth-pages.tsx×1
+text-white/70                      client-dashboard.tsx×1 client-extras.tsx×1 auth-pages.tsx×1
+focus-visible:ring-mint            client-dashboard.tsx×1 client-views2.tsx×1 guest-view.tsx×1
+bg-amber-500                       client-dashboard.tsx×1 client-extras.tsx×2
+focus-visible:ring-mint/50         client-views2.tsx×1 client-extras.tsx×2
+text-amber-300                     client-extras.tsx×3
+bg-white/20                        client-dashboard.tsx×2
+ring-mint/50                       client-dashboard.tsx×1 client-views2.tsx×1
+border-mint-deep                   client-views2.tsx×1 client-extras.tsx×1
+accent-mint-deep                   client-views2.tsx×2
+text-amber-500                     client-views2.tsx×1 guest-view.tsx×1
+text-white/80                      client-extras.tsx×2
+ring-white                         client-extras.tsx×2
+bg-white/10                        client-extras.tsx×2
+bg-amber-300                       client-extras.tsx×2
+border-white/10                    client-extras.tsx×1 theme-toggle.tsx×1
+bg-mint/15                         client-extras.tsx×1 auth-pages.tsx×1
+bg-red-400                         client-extras.tsx×2
+border-mint                        guest-view.tsx×2
+bg-brand/90                        guest-view.tsx×2
+fill-amber-400                     guest-view.tsx×1 brand.tsx×1
+text-amber-400                     guest-view.tsx×1 brand.tsx×1
+ring-mint/30                       client-dashboard.tsx×1
+border-mint-deep/40                client-views2.tsx×1
+bg-mint-soft/25                    client-views2.tsx×1
+border-mint/50                     client-views2.tsx×1
+hover:border-mint-deep/40          client-views2.tsx×1
+border-mint-deep/50                client-views2.tsx×1
+hover:border-mint-deep             client-views2.tsx×1
+border-mint/60                     client-extras.tsx×1
+hover:border-mint/60               client-extras.tsx×1
+hover:text-red-500                 client-extras.tsx×1
+text-white/60                      client-extras.tsx×1
+text-white/85                      client-extras.tsx×1
+bg-mint/20                         client-extras.tsx×1
+bg-amber-soft/20                   client-extras.tsx×1
+text-white/45                      client-extras.tsx×1
+bg-amber-100                       client-extras.tsx×1
+text-amber-700                     client-extras.tsx×1
+bg-red-400/20                      client-extras.tsx×1
+text-red-300                       client-extras.tsx×1
+bg-amber-300/20                    client-extras.tsx×1
+text-amber-600                     client-extras.tsx×1
+bg-white/70                        guest-view.tsx×1
+text-red-400                       guest-view.tsx×1
+hover:border-mint                  guest-view.tsx×1
+border-brand/20                    app-shell.tsx×1
+fill-mint-deep                     app-shell.tsx×1
+bg-white/5                         theme-toggle.tsx×1
+hover:bg-white/5                   theme-toggle.tsx×1
+hover:text-white                   theme-toggle.tsx×1
+-- ARBITRARY VALUES (24) --
+text-[12.5px]                      client-dashboard.tsx×11 client-views2.tsx×14 client-extras.tsx×40 auth-pages.tsx×4 guest-view.tsx×6 app-shell.tsx×2 widgets.tsx×1
+text-[11px]                        client-dashboard.tsx×6 client-views2.tsx×6 client-extras.tsx×28 auth-pages.tsx×2 guest-view.tsx×5 app-shell.tsx×1 brand.tsx×2 widgets.tsx×3
+text-[11.5px]                      client-dashboard.tsx×4 client-views2.tsx×8 client-extras.tsx×27 auth-pages.tsx×8 guest-view.tsx×6
+text-[13px]                        client-dashboard.tsx×3 client-views2.tsx×12 client-extras.tsx×16 auth-pages.tsx×1 guest-view.tsx×5 app-shell.tsx×2 widgets.tsx×2
+text-[12px]                        client-dashboard.tsx×6 client-views2.tsx×9 client-extras.tsx×18 auth-pages.tsx×1 guest-view.tsx×3
+text-[10.5px]                      client-dashboard.tsx×4 client-views2.tsx×3 client-extras.tsx×19 auth-pages.tsx×2 guest-view.tsx×6
+text-[13.5px]                      client-dashboard.tsx×7 client-views2.tsx×1 client-extras.tsx×12 auth-pages.tsx×5 guest-view.tsx×3 app-shell.tsx×3
+text-[10px]                        client-extras.tsx×11 guest-view.tsx×3 widgets.tsx×2
+text-[20px]                        client-extras.tsx×6 guest-view.tsx×4
+text-[22px]                        client-dashboard.tsx×2 client-extras.tsx×3 auth-pages.tsx×1 app-shell.tsx×1
+text-[15px]                        client-dashboard.tsx×2 client-views2.tsx×2 client-extras.tsx×1 widgets.tsx×1
+text-[24px]                        client-extras.tsx×3 auth-pages.tsx×2
+text-[14px]                        client-dashboard.tsx×1 client-views2.tsx×1 client-extras.tsx×1 app-shell.tsx×1
+text-[17px]                        client-extras.tsx×3 guest-view.tsx×1
+text-[14.5px]                      client-views2.tsx×1 client-extras.tsx×1 guest-view.tsx×1
+text-[18px]                        client-views2.tsx×1 client-extras.tsx×1
+text-[16px]                        client-extras.tsx×2
+border-[10px]                      guest-view.tsx×2
+text-[9.5px]                       client-dashboard.tsx×1
+text-[30px]                        client-views2.tsx×1
+text-[15.5px]                      guest-view.tsx×1
+text-[21px]                        guest-view.tsx×1
+lg:text-[44px]                     app-shell.tsx×1
+text-[26px]                        widgets.tsx×1
+-- mapped-but-unused (dead CSS, 8) --
+bg-brand/10
+bg-mint-soft/70
+hover:bg-amber-soft/20
+hover:bg-amber-soft/50
+hover:bg-amber-soft/70
+hover:bg-brand
+text-neutral-700
+text-neutral-800
+

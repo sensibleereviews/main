@@ -1,0 +1,476 @@
+     1→// Sensiblee marketing pages 4 — Blog, Knowledgebase, Submit a Ticket
+     2→"use client";
+     3→
+     4→import { useMemo, useState } from "react";
+     5→import { Button } from "@/components/ui/button";
+     6→import { PageHero } from "./marketing-chrome";
+     7→import {
+     8→  cn, ArrowRight, ArrowUpRight, BookOpen, Search, Check, CheckCircle2, LifeBuoy,
+     9→  Ticket as TicketIcon, Clock, Tag, Sparkles, AlertTriangle, ChevronRight, Headphones,
+    10→} from "./deps";
+    11→
+    12→type NavFn = (v: string) => void;
+    13→type PageProps = { onNavigate: NavFn };
+    14→
+    15→/* ================================ BLOG ================================ */
+    16→
+    17→type Post = {
+    18→  slug: string;
+    19→  tag: string;
+    20→  title: string;
+    21→  excerpt: string;
+    22→  date: string;
+    23→  read: string;
+    24→  author: string;
+    25→  role: string;
+    26→  body: string[];
+    27→};
+    28→
+    29→const POSTS: Post[] = [
+    30→  {
+    31→    slug: "response-rate-lever",
+    32→    tag: "Reputation playbook",
+    33→    title: "Response rate is the most underrated lever in hospitality reputation",
+    34→    excerpt:
+    35→      "Google's own data says 88% of guests would use a business that replies to reviews. Most Indian hospitality businesses reply to fewer than one in five. Here's why the gap is your cheapest growth channel.",
+    36→    date: "12 Sep 2026",
+    37→    read: "6 min read",
+    38→    author: "Anand Menon",
+    39→    role: "Co-founder, Sensiblee",
+    40→    body: [
+    41→      "Ask any hotelier or restaurateur what drives their Google rating and you'll hear about food, service and ambience. Ask them what drives their conversion from those ratings and the answers get vague — which is a problem, because the difference between a profile that wins the click and one that loses it is rarely the stars alone. It's what happens underneath them.",
+    42→      "Google has published that 88% of guests are likely to use a business that responds to all of its reviews, positive or negative. Compare that with what actually happens on the ground: across the hundreds of Indian hospitality profiles we analysed before building Sensiblee, fewer than one in five reviews received any reply at all. Five-star reviews — your best free marketing — sat unanswered. One-star reviews, the most urgent conversations you will ever have with a departing customer, sat even longer.",
+    43→      "The maths of replying is startlingly favourable. A reply costs you three minutes; a drafted reply costs you thirty seconds of approval. What it buys is three separate things at once. First, the departing guest sees the reply — studies consistently show a thoughtful response recovers a meaningful share of complainants, and recovered complainants become your loudest advocates. Second, every future reader of that review sees the reply; you are not writing to one guest, you are auditioning for the next fifty who read it. Third, review activity itself is a freshness signal — profiles that engage rank and convert better over time.",
+    44→      "So why doesn't it happen? Because response rate is an operations problem disguised as a marketing one. The owner who could reply is running the floor. The manager who could reply doesn't have the voice signed off. The evening rush means the review from last Saturday gets seen on Thursday. This is exactly the gap a sensing-and-drafting system closes: every review arrives scored and triaged, a reply in your voice is already waiting, and the only human decision left is approve, edit or regenerate.",
+    45→      "The operators we work with set a simple target: 100% response rate on negative reviews within 24 hours, and 90% on positive reviews within a week. Negative-first sequencing matters — an apology issued quickly reads as culture, while the same apology issued late reads as damage control. Positive replies matter almost as much: a specific, warm thank-you that names the dish or the staff member turns a one-time guest into a returning one, and quietly tells every reader what to order.",
+    46→      "If you take one number from this post, take this one: none of this requires a single new guest. Response rate is the rare growth lever that works entirely on the reviews you already received. That is why we built Sensiblee around it — sensing every review the moment it lands, drafting the reply in your voice, and making the whole loop calm enough that it actually survives a Saturday night.",
+    47→    ],
+    48→  },
+    49→  {
+    50→    slug: "whatsapp-review-requests",
+    51→    tag: "Review requests",
+    52→    title: "WhatsApp review requests: the polite way to multiply your Google reviews",
+    53→    excerpt:
+    54→      "Email review requests get ignored; SMS feels invasive. In India, WhatsApp is where your guest already is. The craft is in the ask — here's the template, timing and consent playbook we see working.",
+    55→    date: "2 Sep 2026",
+    56→    read: "7 min read",
+    57→    author: "Meera Krishnan",
+    58→    role: "Head of Customer Success, Sensiblee",
+    59→    body: [
+    60→      "Every operator knows the asymmetry: your happiest guests walk out glowing, and never write a line. Your unhappiest guests, meanwhile, need no invitation at all. The result is a Google profile that systematically under-represents your best days. Review requests exist to correct that imbalance — and in India, there is exactly one channel where they work.",
+    61→      "Email open rates for review requests hover in the low twenties, and SMS feels like a utility bill. WhatsApp is different: it is the inbox where family photos and the building society committee live. A well-crafted WhatsApp message to a guest who just paid the bill feels like a thank-you note, not a survey. In our design-partner cohort, a single well-timed WhatsApp burst lifted monthly review volume between 1.7x and 2.9x — with ratings intact, because the guests being asked were the ones already smiling.",
+    62→      "The craft is in three decisions: who, when and what. Who: ask the guests your own data says were delighted — the tables that lingered, the patients who rebooked, the members who referred a friend. Sensiblee's mood screen exists precisely to sort delighted from disappointed before the ask is ever made. When: within two hours of the visit, while the feel-good is still chemically present, and never during the meal. A message that lands at the wrong moment is an interruption; the same message two hours later is a memory-jogger. What: short, personal, and honest. Name the dish if your POS knows it. Thank them for coming. One link, one ask, no nesting of surveys inside surveys.",
+    63→      "Consent is not a footnote here — it is the entire licence to operate. Meta's WhatsApp Business policy and India's DPDP Act both draw the same line: message people who agreed to be messaged, make opting out effortless, and never let the review ask masquerade as something else. Every template we ship carries an explicit opt-out and is sent only to guests who opted in, at the venue or afterwards. The counterintuitive truth we've learned: telling guests up front that you'll only message occasionally makes them more likely to engage, not less.",
+    64→      "One warning from the field: never gate the ask on happiness in a way the guest can feel. If a guest taps \"not great\" and the request link vanishes, you've taught them that honesty has a cost — and some of them will head straight to Google to prove a point. The correct design offers every guest a voice: the delighted get a graceful path to Google, the disappointed get a private line to the manager's phone. Both feel respected; only one becomes public.",
+    65→      "Done this way, review requests stop being extraction and start being hospitality's last course — a warm message, a genuine thank-you, and an easy door for the guests who want the world to know what you did right.",
+    66→    ],
+    67→  },
+    68→  {
+    69→    slug: "qr-table-tent-playbook",
+    70→    tag: "Guest experience",
+    71→    title: "The QR on the table: turning dissent into private feedback and delight into public proof",
+    72→    excerpt:
+    73→      "A table-tent QR code is the fastest feedback loop in hospitality — if you design the two paths correctly. The mood-first flow that protects your rating and your guest's dignity, explained.",
+    74→    date: "21 Aug 2026",
+    75→    read: "5 min read",
+    76→    author: "Anand Menon",
+    77→    role: "Co-founder, Sensiblee",
+    78→    body: [
+    79→      "The table-tent QR code has a reputation problem, and it earned it. Most venues deployed a generic link to a feedback form, guests stopped scanning, and the industry concluded QR feedback was a fad. The failure wasn't the medium — it was the flow. A form asks for effort before it offers value. A well-designed flow asks one question first: how was it?",
+    80→      "That single tap changes everything, because the two answers need opposite destinations. The guest who taps the smile is standing in your restaurant, pleasantly full, phone in hand. This is the highest-intent moment for a public Google review you will ever get — better than any WhatsApp follow-up, because the experience is not a memory, it is a present-tense fact. Hand that guest a graceful, one-tap path to your Google profile and a startling number of them finish the job before the plates are cleared.",
+    81→      "The guest who taps the frown needs the opposite: privacy. Research after research confirms the majority of unhappy guests who post publicly do so because no easier channel to be heard existed in the moment. Give them a private note that lands on the manager's phone — not the internet — and you have intercepted the review before it was written. Not suppressed it: intercepted. The difference matters. A guest who is heard privately still posts publicly when the recovery is genuine — and a public review that begins \"I had an issue, and the manager called me within the hour\" is worth more than a flawless five-star record, because it shows the reader how you behave when things go wrong.",
+    82→      "The design rules fall out of that symmetry. One question before any form field. No personally identifiable information demanded up front — a guest who fears a follow-up call will censor themselves. An explicit, honest consent line if you want to message them later, unticked by default. And a thank-you screen that respects both outcomes: the delighted guest sees their review fly, the disappointed guest sees a promise with a name on it.",
+    83→      "There is an operational dividend too. Private feedback arrives tagged by location and moment, which turns mood data into a shift-level instrument. When one outlet's frown rate doubles for two weekends, that is not noise — that is a staffing change, a supplier switch, or a menu experiment showing up in the data before it shows up in your rating. The venues that act on mood signals in days keep the dips minor; the ones that wait for the monthly rating average inherit the damage.",
+    84→      "None of this requires an app download, a loyalty program or a change in guest behaviour. It requires respecting the two guests in front of you: the one who wants to shout your name from a rooftop, and the one who wants to tell you, quietly, what went wrong. The QR code is simply the door — what matters is that both rooms are worth walking into.",
+    85→    ],
+    86→  },
+    87→];
+    88→
+    89→export function BlogPage(_props: PageProps) {
+    90→  const [openSlug, setOpenSlug] = useState<string | null>(null);
+    91→  const post = POSTS.find((p) => p.slug === openSlug) || null;
+    92→
+    93→  if (post) {
+    94→    return (
+    95→      <main className="flex-1">
+    96→        <article className="mx-auto max-w-2xl px-5 pb-14 pt-12">
+    97→          <button onClick={() => setOpenSlug(null)} className="flex items-center gap-1.5 text-[13px] font-semibold text-neutral-500 hover:text-brand">
+    98→            <ChevronRight size={14} className="rotate-180" /> All articles
+    99→          </button>
+   100→          <span className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-mint-soft px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mint-deep">
+   101→            <Tag size={11} /> {post.tag}
+   102→          </span>
+   103→          <h1 className="mt-4 text-[34px] font-bold leading-[1.12] tracking-tight">{post.title}</h1>
+   104→          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-neutral-400">
+   105→            <span className="flex items-center gap-1.5"><Clock size={13} /> {post.date} · {post.read}</span>
+   106→            <span className="flex items-center gap-1.5">
+   107→              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand text-[9px] font-bold text-white">
+   108→                {post.author.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+   109→              </span>
+   110→              <span className="font-semibold text-neutral-500">{post.author}</span> · {post.role}
+   111→            </span>
+   112→          </div>
+   113→          <div className="mt-8 space-y-5">
+   114→            {post.body.map((para, i) => (
+   115→              <p key={i} className="text-[14.5px] leading-[1.75] text-neutral-600">{para}</p>
+   116→            ))}
+   117→          </div>
+   118→          <div className="mt-10 rounded-3xl bg-brand p-7 text-center text-white">
+   119→            <Sparkles size={20} className="mx-auto text-mint" />
+   120→            <h2 className="mt-3 text-[20px] font-bold">See it working on your own reviews</h2>
+   121→            <p className="mx-auto mt-1.5 max-w-md text-[13px] text-white/55">
+   122→              A 2-minute demo, then a free 7-day trial on your live Google profile.
+   123→            </p>
+   124→            <div className="mt-4 flex flex-wrap justify-center gap-2.5">
+   125→              <Button className="h-11 rounded-2xl bg-mint px-5 text-[13.5px] font-bold text-brand-deep hover:bg-mint/90" onClick={() => document.getElementById("demo-video")?.scrollIntoView({ behavior: "smooth" })}>
+   126→                Watch Demo
+   127→              </Button>
+   128→              <Button variant="outline" className="h-11 rounded-2xl border-white/20 px-5 text-[13.5px] text-white hover:bg-white/10" onClick={() => setOpenSlug(null)}>
+   129→                More articles
+   130→              </Button>
+   131→            </div>
+   132→          </div>
+   133→        </article>
+   134→      </main>
+   135→    );
+   136→  }
+   137→
+   138→  return (
+   139→    <main className="flex-1">
+   140→      <PageHero
+   141→        eyebrow="Sensiblee blog"
+   142→        title="Reputation, sized for"
+   143→        accent="operators."
+   144→        description="Field notes on review response, WhatsApp requests, guest experience and the calm operations behind a five-star profile."
+   145→      />
+   146→      <section className="mx-auto max-w-4xl px-5 pb-12">
+   147→        <div className="grid gap-4">
+   148→          {POSTS.map((p) => (
+   149→            <button
+   150→              key={p.slug}
+   151→              onClick={() => setOpenSlug(p.slug)}
+   152→              className="group rounded-3xl border border-neutral-200/70 bg-white p-6 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all hover:-translate-y-0.5 hover:shadow-lg lg:p-7"
+   153→            >
+   154→              <div className="flex flex-wrap items-center gap-2.5 text-[11.5px] text-neutral-400">
+   155→                <span className="rounded-full bg-mint-soft px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-mint-deep">{p.tag}</span>
+   156→                <span className="flex items-center gap-1"><Clock size={12} /> {p.date} · {p.read}</span>
+   157→              </div>
+   158→              <h2 className="mt-3 text-[21px] font-bold leading-snug tracking-tight text-brand">{p.title}</h2>
+   159→              <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-neutral-500">{p.excerpt}</p>
+   160→              <span className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand">
+   161→                Read article <ArrowRight size={14} className="text-mint-deep transition-transform group-hover:translate-x-0.5" />
+   162→              </span>
+   163→            </button>
+   164→          ))}
+   165→        </div>
+   166→        <p className="mt-6 flex items-center justify-center gap-2 text-center text-[12.5px] text-neutral-400">
+   167→          <BookOpen size={14} /> New articles every fortnight — written by the operators, for the operators.
+   168→        </p>
+   169→      </section>
+   170→    </main>
+   171→  );
+   172→}
+   173→
+   174→/* ============================ KNOWLEDGEBASE ============================ */
+   175→
+   176→const KB: { cat: string; blurb: string; items: { q: string; a: string }[] }[] = [
+   177→  {
+   178→    cat: "Getting started",
+   179→    blurb: "From signup to your first AI-approved reply.",
+   180→    items: [
+   181→      { q: "How do I connect my Google Business Profile?", a: "Sign in, open Settings → Business profile, and click Connect Google. You'll approve read-only access on Google's own consent screen — we never ask for your Google password. Historical reviews import immediately; live syncing starts within 15 minutes." },
+   182→      { q: "How long does setup really take?", a: "Most venues are live in under an hour: connect Google (2 min), confirm your AI tone (3 min), upload staff or locations if you have them (10 min), and print your first QR kit (5 min). The 5-step wizard inside the app walks you through each one." },
+   183→      { q: "Can I invite my team?", a: "Yes — Settings → Team lets you invite managers (approve & reply), observers (read-only) and marketing seats (requests & campaigns, no replies). Invites arrive over WhatsApp with a temporary password." },
+   184→    ],
+   185→  },
+   186→  {
+   187→    cat: "Review monitoring & sync",
+   188→    blurb: "Google sync health, cadence and troubleshooting.",
+   189→    items: [
+   190→      { q: "How often do reviews sync?", a: "Every 15 minutes per connected profile. You can also trigger a manual sync from Locations → Sync now. If a review arrived on Google but hasn't appeared after 30 minutes, open the location's sync log — every poll and its result is recorded there." },
+   191→      { q: "A sync shows a warning — what does that mean?", a: "Warnings mean Google's API responded slowly or partially (often during their maintenance windows). Data self-heals on the next successful poll. An error entry means we skipped a cycle; three consecutive errors raise an alert to our on-call channel automatically." },
+   192→      { q: "Do you support Facebook or Zomato reviews?", a: "Google Business Profile is fully live today. Facebook Pages is in beta with design partners and Zomato/Swiggy are on the Phase 2 roadmap — sentiment tagging in the current build is already platform-neutral, so historical imports slot in when connectors ship." },
+   193→    ],
+   194→  },
+   195→  {
+   196→    cat: "AI drafts & replies",
+   197→    blurb: "Tone, approval thresholds and autopilot.",
+   198→    items: [
+   199→      { q: "How does the AI learn my voice?", a: "You pick a base tone — warm, formal or playful — and Sensiblee studies your published replies and signature. Every draft shows its confidence score; below your chosen threshold it stays in the approval queue, above it you can enable autopilot for low-risk 5★ replies." },
+   200→      { q: "Can I edit a draft before it posts?", a: "Always. Open the draft in the AI Assistant queue or the review drawer, edit inline, and approve — the edited text is what gets published and what the AI learns from next time. You can also regenerate for a different take in your tone." },
+   201→      { q: "What happens to a 1★ or 2★ review?", a: "Low-star reviews are flagged urgent, get an apologetic-tone draft immediately, and never auto-post — a human approves every difficult reply. If the review came through your QR mood screen, the guest's private note is attached so you know what actually went wrong." },
+   202→    ],
+   203→  },
+   204→  {
+   205→    cat: "WhatsApp & QR requests",
+   206→    blurb: "Campaigns, templates, consent and quotas.",
+   207→    items: [
+   208→      { q: "Who receives WhatsApp review requests?", a: "Only guests who opted in — via the QR mood screen switch, a checkbox on your booking flow, or your imported consent list. Every message carries an opt-out; Meta policy and DPDP consent rules are enforced in the product, not just the paperwork." },
+   209→      { q: "What is included in my WhatsApp quota?", a: "Quota is per plan (Starter 200/month, Growth 1,000/month, Enterprise 5,000/month) and counts delivered messages. The Settings → usage meter shows live consumption; we warn you at 85% and never silently bill overage." },
+   210→      { q: "How do table QR kits work?", a: "Each location gets a unique short code (like spk-hsr). The Requests page renders print-ready table tents with that code — scan, tap a mood, and the guest is routed to Google (delighted) or a private manager note (disappointed). Reprint as often as you like; the code never changes." },
+   211→    ],
+   212→  },
+   213→  {
+   214→    cat: "Billing & account",
+   215→    blurb: "Plans, invoices, trials and cancellations.",
+   216→    items: [
+   217→      { q: "How does the free trial work?", a: "7 days, full features of your chosen plan, no card required. At day 5 we'll ask (gently, over WhatsApp) whether you'd like to continue — if you do nothing, the workspace pauses and your data waits for 90 days." },
+   218→      { q: "Can I change plans or cancel?", a: "Upgrade or downgrade anytime from Settings → Plan; changes prorate automatically. Cancel from the same page — no calls, no retention scripts. Invoices are GST-compliant and available in Billing → Invoices." },
+   219→      { q: "Do you offer half-yearly or annual billing?", a: "Yes — half-yearly billing gives you one month free and annual gives you two months free (the pricing page shows all three options). Teams on longer cycles also get a named success manager and a quarterly reputation review." },
+   220→    ],
+   221→  },
+   222→];
+   223→
+   224→export function KnowledgebasePage({ onNavigate }: PageProps) {
+   225→  const [q, setQ] = useState("");
+   226→  const query = q.trim().toLowerCase();
+   227→
+   228→  const filtered = useMemo(
+   229→    () =>
+   230→      KB.map((c) => ({
+   231→        ...c,
+   232→        items: query
+   233→          ? c.items.filter((i) => (i.q + " " + i.a).toLowerCase().includes(query))
+   234→          : c.items,
+   235→      })).filter((c) => c.items.length > 0),
+   236→    [query]
+   237→  );
+   238→  const total = KB.reduce((n, c) => n + c.items.length, 0);
+   239→  const hits = filtered.reduce((n, c) => n + c.items.length, 0);
+   240→
+   241→  return (
+   242→    <main className="flex-1">
+   243→      <PageHero
+   244→        eyebrow="Knowledgebase"
+   245→        title="Answers, before you"
+   246→        accent="need them."
+   247→        description={`How Sensiblee behaves in the real world — sync cadence, AI approvals, WhatsApp consent, billing. ${total} short answers, no support ticket required.`}
+   248→      />
+   249→      <section className="mx-auto max-w-3xl px-5 pb-12">
+   250→        <div className="relative">
+   251→          <Search size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+   252→          <input
+   253→            value={q}
+   254→            onChange={(e) => setQ(e.target.value)}
+   255→            placeholder="Search the knowledgebase — try “sync”, “tone”, “quota”, “trial”…"
+   256→            className="h-13 w-full rounded-2xl border border-neutral-200 bg-white py-3.5 pl-11 pr-4 text-[14px] shadow-[0_1px_2px_rgba(16,24,40,0.04)] outline-none focus:border-mint focus:ring-2 focus:ring-mint/30"
+   257→            aria-label="Search the knowledgebase"
+   258→          />
+   259→        </div>
+   260→        {query && (
+   261→          <p className="mt-3 text-[12.5px] text-neutral-400">
+   262→            {hits} answer{hits === 1 ? "" : "s"} match “{q.trim()}”
+   263→          </p>
+   264→        )}
+   265→
+   266→        <div className="mt-6 space-y-5">
+   267→          {filtered.map((c) => (
+   268→            <div key={c.cat} className="rounded-3xl border border-neutral-200/70 bg-white p-6">
+   269→              <h2 className="text-[19px] font-bold tracking-tight text-brand">{c.cat}</h2>
+   270→              <p className="mt-0.5 text-[12.5px] text-neutral-400">{c.blurb}</p>
+   271→              <div className="mt-4 space-y-4">
+   272→                {c.items.map((i) => (
+   273→                  <details key={i.q} className="group rounded-2xl border border-neutral-100 bg-cream/60 p-4 open:bg-white open:shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+   274→                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[14px] font-semibold text-brand [&::-webkit-details-marker]:hidden">
+   275→                      {i.q}
+   276→                      <ChevronRight size={15} className="shrink-0 text-neutral-300 transition-transform group-open:rotate-90" />
+   277→                    </summary>
+   278→                    <p className="mt-2.5 text-[13.5px] leading-relaxed text-neutral-500">{i.a}</p>
+   279→                  </details>
+   280→                ))}
+   281→              </div>
+   282→            </div>
+   283→          ))}
+   284→          {filtered.length === 0 && (
+   285→            <div className="rounded-3xl border border-dashed border-neutral-200 bg-white p-8 text-center">
+   286→              <p className="text-[14px] font-semibold text-brand">No match for “{q.trim()}”</p>
+   287→              <p className="mt-1 text-[12.5px] text-neutral-400">Try a broader word — or send us a ticket and we&apos;ll answer within one business day.</p>
+   288→            </div>
+   289→          )}
+   290→        </div>
+   291→
+   292→        <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-3xl bg-brand px-7 py-6 text-center sm:flex-row sm:text-left">
+   293→          <div>
+   294→            <h3 className="flex items-center gap-2 text-[17px] font-bold text-white">
+   295→              <Headphones size={17} className="text-mint" /> Didn&apos;t find it here?
+   296→            </h3>
+   297→            <p className="mt-1 text-[13px] text-white/55">Our support desk answers within one business day — usually much faster.</p>
+   298→          </div>
+   299→          <Button className="h-11 shrink-0 rounded-2xl bg-mint px-5 text-[13.5px] font-bold text-brand-deep hover:bg-mint/90" onClick={() => onNavigate("ticket")}>
+   300→            Submit a Ticket <ArrowUpRight size={14} className="ml-1" />
+   301→          </Button>
+   302→        </div>
+   303→      </section>
+   304→    </main>
+   305→  );
+   306→}
+   307→
+   308→/* ============================= SUBMIT A TICKET ============================= */
+   309→
+   310→const TOPICS = ["Technical issue", "Google sync", "WhatsApp campaigns", "AI drafts & replies", "Billing & plans", "Feature request"];
+   311→const PRIORITIES = [
+   312→  { key: "low", label: "Low", hint: "Question or feedback" },
+   313→  { key: "normal", label: "Normal", hint: "Something's off" },
+   314→  { key: "high", label: "High", hint: "Workflow is blocked" },
+   315→];
+   316→
+   317→export function TicketPage({ onNavigate }: PageProps) {
+   318→  const [form, setForm] = useState({ name: "", email: "", business: "", topic: TOPICS[0], priority: "normal", message: "" });
+   319→  const [errors, setErrors] = useState<Record<string, string>>({});
+   320→  const [busy, setBusy] = useState(false);
+   321→  const [ticketNo, setTicketNo] = useState<string | null>(null);
+   322→
+   323→  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+   324→    setForm((f) => ({ ...f, [k]: e.target.value }));
+   325→
+   326→  const submit = async (e: React.FormEvent) => {
+   327→    e.preventDefault();
+   328→    const errs: Record<string, string> = {};
+   329→    if (form.name.trim().length < 2) errs.name = "Please tell us your name";
+   330→    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errs.email = "Enter a valid email — the reply lands there";
+   331→    if (form.message.trim().length < 15) errs.message = "A sentence or two helps us help you (min 15 characters)";
+   332→    setErrors(errs);
+   333→    if (Object.keys(errs).length > 0) return;
+   334→
+   335→    setBusy(true);
+   336→    try {
+   337→      const res = await fetch("/api/support/ticket", {
+   338→        method: "POST",
+   339→        headers: { "Content-Type": "application/json" },
+   340→        body: JSON.stringify(form),
+   341→      });
+   342→      const data = await res.json();
+   343→      if (!res.ok) throw new Error(data?.error || "Could not submit");
+   344→      setTicketNo(data.ticket.number);
+   345→    } catch {
+   346→      setErrors({ message: "Something went wrong submitting the ticket — please try again, or email support@sensiblee.com." });
+   347→    } finally {
+   348→      setBusy(false);
+   349→    }
+   350→  };
+   351→
+   352→  if (ticketNo) {
+   353→    return (
+   354→      <main className="flex-1">
+   355→        <section className="mx-auto max-w-xl px-5 py-20 text-center">
+   356→          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-mint-soft">
+   357→            <CheckCircle2 size={30} className="text-mint-deep" />
+   358→          </span>
+   359→          <h1 className="mt-5 text-[28px] font-bold tracking-tight">Ticket {ticketNo} received</h1>
+   360→          <p className="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-neutral-500">
+   361→            Thanks {form.name.split(" ")[0]} — your ticket is with the support desk. You&apos;ll get a reply at{" "}
+   362→            <span className="font-semibold text-brand">{form.email}</span> within one business day
+   363→            {form.priority === "high" ? " (high-priority tickets jump the queue)" : ""}.
+   364→          </p>
+   365→          <div className="mt-7 flex flex-wrap justify-center gap-3">
+   366→            <Button className="h-11 rounded-2xl bg-brand px-5 text-[13.5px] text-white hover:bg-brand-deep" onClick={() => onNavigate("home")}>
+   367→              Back to home
+   368→            </Button>
+   369→            <Button variant="outline" className="h-11 rounded-2xl border-brand/20 px-5 text-[13.5px]" onClick={() => onNavigate("knowledge")}>
+   370→              Browse the knowledgebase
+   371→            </Button>
+   372→          </div>
+   373→        </section>
+   374→      </main>
+   375→    );
+   376→  }
+   377→
+   378→  return (
+   379→    <main className="flex-1">
+   380→      <PageHero
+   381→        eyebrow="Support"
+   382→        title="Submit a"
+   383→        accent="ticket."
+   384→        description="One ticket, one owner, one business day. Technical issues, sync questions, billing — it all lands with a human who can actually fix it."
+   385→      />
+   386→      <section className="mx-auto max-w-2xl px-5 pb-14">
+   387→        <form onSubmit={submit} noValidate className="rounded-3xl border border-neutral-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)] lg:p-8">
+   388→          <div className="grid gap-4 sm:grid-cols-2">
+   389→            <Field label="Your name" error={errors.name}>
+   390→              <input value={form.name} onChange={set("name")} placeholder="Anand Menon" className={inputCls} />
+   391→            </Field>
+   392→            <Field label="Work email" error={errors.email}>
+   393→              <input value={form.email} onChange={set("email")} type="email" placeholder="you@yourbusiness.in" className={inputCls} />
+   394→            </Field>
+   395→            <Field label="Business (optional)">
+   396→              <input value={form.business} onChange={set("business")} placeholder="Spice Route Kitchen" className={inputCls} />
+   397→            </Field>
+   398→            <Field label="Topic">
+   399→              <select value={form.topic} onChange={set("topic")} className={cn(inputCls, "appearance-none")}>
+   400→                {TOPICS.map((t) => <option key={t}>{t}</option>)}
+   401→              </select>
+   402→            </Field>
+   403→          </div>
+   404→
+   405→          <div className="mt-4">
+   406→            <p className="text-[12px] font-bold uppercase tracking-wider text-neutral-500">Priority</p>
+   407→            <div className="mt-2 grid grid-cols-3 gap-2">
+   408→              {PRIORITIES.map((p) => (
+   409→                <button
+   410→                  type="button"
+   411→                  key={p.key}
+   412→                  onClick={() => setForm((f) => ({ ...f, priority: p.key }))}
+   413→                  className={cn(
+   414→                    "rounded-2xl border px-3 py-2.5 text-left transition-all",
+   415→                    form.priority === p.key ? "border-mint bg-mint-soft shadow-[0_0_0_1px_var(--color-mint)]" : "border-neutral-200 bg-white hover:border-neutral-300"
+   416→                  )}
+   417→                  aria-pressed={form.priority === p.key}
+   418→                >
+   419→                  <span className={cn("flex items-center gap-1.5 text-[13px] font-bold", form.priority === p.key && p.key === "high" ? "text-amber-deep" : "text-brand")}>
+   420→                    {p.key === "high" && <AlertTriangle size={13} />}
+   421→                    {p.label}
+   422→                  </span>
+   423→                  <span className="mt-0.5 block text-[10.5px] text-neutral-400">{p.hint}</span>
+   424→                </button>
+   425→              ))}
+   426→            </div>
+   427→          </div>
+   428→
+   429→          <div className="mt-4">
+   430→            <Field label="What happened?" error={errors.message}>
+   431→              <textarea
+   432→                value={form.message}
+   433→                onChange={set("message")}
+   434→                rows={5}
+   435→                placeholder="What you expected, what happened instead, and when it started. Screenshots welcome at support@sensiblee.com (quote your ticket number)."
+   436→                className={cn(inputCls, "h-auto py-3 leading-relaxed")}
+   437→              />
+   438→            </Field>
+   439→          </div>
+   440→
+   441→          <div className="mt-6 flex flex-col items-center justify-between gap-3 sm:flex-row">
+   442→            <p className="flex items-center gap-1.5 text-[11.5px] text-neutral-400">
+   443→              <LifeBuoy size={13} className="text-mint-deep" /> Replies come from support@sensiblee.com · one business day
+   444→            </p>
+   445→            <Button type="submit" disabled={busy} className="h-12 w-full rounded-2xl bg-mint px-6 text-[14px] font-bold text-brand-deep hover:bg-mint/90 sm:w-auto">
+   446→              {busy ? "Submitting…" : <>Submit Ticket <TicketIcon size={15} className="ml-1.5" /></>}
+   447→            </Button>
+   448→          </div>
+   449→        </form>
+   450→
+   451→        <p className="mt-4 text-center text-[12.5px] text-neutral-400">
+   452→          Looking for a quicker answer? The <button onClick={() => onNavigate("knowledge")} className="font-semibold text-mint-deep hover:underline">knowledgebase</button> covers the most common questions.
+   453→        </p>
+   454→      </section>
+   455→    </main>
+   456→  );
+   457→}
+   458→
+   459→const inputCls = "h-11 w-full rounded-xl border border-neutral-200 bg-cream/60 px-3.5 text-[13.5px] outline-none focus:border-mint focus:ring-2 focus:ring-mint/30";
+   460→
+   461→function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+   462→  return (
+   463→    <label className="block">
+   464→      <span className="mb-1.5 block text-[12px] font-bold uppercase tracking-wider text-neutral-500">{label}</span>
+   465→      {children}
+   466→      {error && (
+   467→        <span className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-red-500">
+   468→          <AlertTriangle size={11} /> {error}
+   469→        </span>
+   470→      )}
+   471→    </label>
+   472→  );
+   473→}
+   474→
+   475→void Check;
+   476→
